@@ -69,7 +69,7 @@ Route::post('/contact', function (Request $request) {
 
     $school = SchoolBrandingService::get();
 
-    return back()->with('success', 'Thank you for reaching out to '.($school['name'] ?? 'PrimeOS Academy').'. Our Academic Relations team will connect with you within 24 hours.');
+    return back()->with('success', 'Thank you for reaching out to '.($school['name'] ?? 'PrimeArc Public School').'. Our Academic Admissions team will connect with you within 24 hours.');
 })->name('contact.submit');
 
 // PWA Offline Fallback

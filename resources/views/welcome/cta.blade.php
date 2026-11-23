@@ -15,7 +15,7 @@
         </p>
         <div class="pt-4 flex flex-wrap items-center justify-center gap-3">
             <a href="{{ route('register') }}" class="px-8 py-4 rounded-full font-black text-sm text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition shadow-lg hover:shadow-emerald-500/20">
-                Enroll Your Scholar Today
+                Enroll Your Child Today
             </a>
             <a href="{{ route('courses.index') }}" class="px-7 py-4 rounded-full font-bold text-sm text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition">
                 Explore Curriculum Handouts

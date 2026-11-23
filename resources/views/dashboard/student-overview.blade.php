@@ -72,7 +72,7 @@
             <div class="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
                 <div class="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Academic XP</div>
                 <div class="text-lg font-black text-slate-900 dark:text-white mt-0.5">⚡ {{ number_format($user->xp_points ?? 0) }}</div>
-                <div class="text-[10px] text-slate-400 truncate">{{ $user->academic_tier ?? 'Honors Scholar' }}</div>
+                <div class="text-[10px] text-slate-400 truncate">{{ $user->academic_tier ?? 'Enrolled Student' }}</div>
             </div>
 
             <!-- 3. Syllabus Coverage -->

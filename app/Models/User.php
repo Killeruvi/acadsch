@@ -205,14 +205,19 @@ class User extends Authenticatable
 
     public function refreshTier(): void
     {
-        if ($this->xp_points >= 2500) {
-            $this->academic_tier = 'Presidential Fellow';
-        } elseif ($this->xp_points >= 1200) {
-            $this->academic_tier = 'Distinguished Scholar';
-        } elseif ($this->xp_points >= 500) {
-            $this->academic_tier = 'Honors Scholar';
+        if ($this->currentClass) {
+            $base = $this->currentClass->display_name;
+            if ($this->xp_points >= 2500) {
+                $this->academic_tier = $base.' (Distinction)';
+            } elseif ($this->xp_points >= 1200) {
+                $this->academic_tier = $base.' (Honors)';
+            } else {
+                $this->academic_tier = $base;
+            }
+        } elseif ($this->role === 'teacher') {
+            $this->academic_tier = 'Faculty Member';
         } else {
-            $this->academic_tier = 'Junior Scholar';
+            $this->academic_tier = 'Enrolled Student';
         }
     }
 

@@ -66,7 +66,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Admitted</span>
-                    <p class="text-[10px] text-slate-400">Official Scholars</p>
+                    <p class="text-[10px] text-slate-400">Official Students</p>
                 </div>
                 <div class="gradient-color2 text-2xl font-black font-mono leading-none">{{ $stats['total_students'] }}</div>
             </div>

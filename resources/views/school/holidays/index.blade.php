@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Academic Holidays & Festivals — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Academic Holidays & Festivals — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-[1680px] mx-auto space-y-4" x-data="{

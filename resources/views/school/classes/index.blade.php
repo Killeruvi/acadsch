@@ -170,7 +170,7 @@
                 <i class="ti-user text-sm"></i>
             </div>
             <div class="min-w-0">
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Enrolled Scholars</div>
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Enrolled Students</div>
                 <div class="text-lg font-black text-slate-900 dark:text-white leading-tight">{{ $stats['total_students'] }}</div>
             </div>
         </div>

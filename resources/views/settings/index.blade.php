@@ -143,9 +143,9 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <div class="sm:col-span-2">
-                        <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Full School / Academy Name *</label>
+                        <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Full School Name *</label>
                         <input type="text" name="institute_name" required value="{{ old('institute_name', $settings['institute_name'] ?? '') }}"
-                               placeholder="e.g. Greenwood Public School or Delhi World Academy"
+                               placeholder="e.g. Greenwood Public School"
                                class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-1 focus:ring-emerald-500 text-xs font-bold text-slate-900 dark:text-white">
                     </div>
 

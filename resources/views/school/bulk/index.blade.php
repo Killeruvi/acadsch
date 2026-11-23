@@ -39,7 +39,7 @@
         <div class="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Students</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">Scholars</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">Enrolled</span>
             </div>
             <div class="text-xl font-black text-slate-900 dark:text-white mt-1">{{ $stats['total_students'] }}</div>
         </div>
@@ -344,7 +344,7 @@
                 </div>
 
                 <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-400">
-                    Exports complete parent contact registry including guardian names, verified emails, phone numbers, residential addresses, and linked child scholars.
+                    Exports complete parent contact registry including guardian names, verified emails, phone numbers, residential addresses, and linked student children.
                 </div>
 
                 <div class="pt-2 flex justify-end">

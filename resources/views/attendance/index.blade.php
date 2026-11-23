@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Attendance Management' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Attendance Management' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div x-data="{ openTakeModal: false, selectedModalClassId: '{{ $selectedClass->id ?? ($allClasses->first()->id ?? '') }}' }" class="space-y-3.5">

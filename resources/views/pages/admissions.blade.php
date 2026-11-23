@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Admissions & Batches — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Admissions & Batches — ' . ($school['name'] ?? 'PrimeArc Public School'))
 @section('meta_description', 'Guide to enrollment, Classes 1–12 batch scheduling, morning and evening shifts, and transparent admission procedures. Powered by PrimeOS.')
 
 @section('content')
@@ -12,8 +12,8 @@
                 <span>Admissions &amp; Batches</span>
             </div>
             <h1 class="font-display text-3xl sm:text-5xl font-black tracking-tight text-slate-900 leading-tight">
-                Join {{ $school['name'] ?? 'PrimeOS Academy' }} <br>
-                <span class="text-emerald-700">Scholar Community.</span>
+                Join {{ $school['name'] ?? 'PrimeArc Public School' }} <br>
+                <span class="text-emerald-700">Student Community.</span>
             </h1>
             <p class="text-sm sm:text-base text-slate-600 leading-relaxed">
                 Structured, concept-first education from Classes 1 to 12. Morning and evening shifts, and individual mentorship.
@@ -40,7 +40,7 @@
                 <span class="text-xs font-mono font-bold text-emerald-600 block">STEP 01</span>
                 <h3 class="font-bold text-slate-900 text-sm">Select Academic Class</h3>
                 <p class="text-xs text-slate-600 leading-relaxed">
-                    Identify the scholar's standard (Classes 1 through 12). Review curriculum aligned to CBSE guidelines.
+                    Identify the student's standard (Classes 1 through 12). Review curriculum aligned to CBSE guidelines.
                 </p>
             </div>
 

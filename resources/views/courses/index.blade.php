@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Courses' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Courses' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div x-data="{ 
@@ -67,7 +67,7 @@
             @endif
             @else
             <a href="{{ route('register') }}" class="primary-btn" style="padding: 0.4rem 1.1rem; font-size: 0.75rem;">
-                <span>Enroll as Scholar &rarr;</span>
+                <span>Register as Student &rarr;</span>
             </a>
             @endauth
         </div>
@@ -154,7 +154,7 @@
                         </div>
                     </div>
 
-                    <!-- Lessons & Enrolled Scholars Count -->
+                    <!-- Lessons & Enrolled Students Count -->
                     <div class="course_less_students">
                         <a>
                             <i class="ti-agenda text-theme-primary"></i>

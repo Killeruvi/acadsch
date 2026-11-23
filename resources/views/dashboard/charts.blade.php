@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data: {
                 labels: {!! json_encode($admissionsChart['labels'] ?? []) !!},
                 datasets: [{
-                    label: 'Scholars',
+                    label: 'Students',
                     data: {!! json_encode($admissionsChart['data'] ?? []) !!},
                     backgroundColor: ['#6366f1', '#10b981', '#f43f5e', '#eab308'],
                     borderRadius: 6,

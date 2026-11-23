@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Register' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Register' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-md mx-auto my-6 sm:my-8 px-4" x-data="{ role: '{{ old('role', 'student') }}' }">
@@ -9,13 +9,13 @@
         <!-- Header -->
         <div class="text-center mb-6">
             <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 mx-auto flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-emerald-500/25 mb-2.5">
-                PA
+                PAS
             </div>
             <div class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 mb-1">
-                <span>🔥</span>
-                <span>Aim, Ascend, Achieve</span>
+                <span>🏫</span>
+                <span>{{ $school['name'] ?? 'PrimeArc Public School' }}</span>
             </div>
-            <h2 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Institutional Registration</h2>
+            <h2 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Student &amp; Faculty Registration</h2>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Create your student or faculty academic profile</p>
         </div>
 

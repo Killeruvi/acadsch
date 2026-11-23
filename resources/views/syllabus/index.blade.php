@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Syllabus Explorer' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Syllabus Explorer' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="space-y-2.5 sm:space-y-4" x-data="{ createTopicModalOpen: false, importModalOpen: false, progressModalOpen: false, progressTopicId: null, progressTopicTitle: '', progressTopicStatus: 'not_started', progressTopicNotes: '', progressTopicUrl: '' }">

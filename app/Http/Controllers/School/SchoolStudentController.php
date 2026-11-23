@@ -364,7 +364,7 @@ class SchoolStudentController extends Controller
                 'previous_school_tc_number' => $validated['previous_school_tc_number'] ?? null,
                 'previous_school_remarks' => $validated['previous_school_remarks'] ?? null,
                 'is_approved' => true,
-                'academic_tier' => 'Primary Scholar',
+                'academic_tier' => 'Primary School',
             ]);
 
             ClassEnrollment::create([
@@ -1240,7 +1240,7 @@ class SchoolStudentController extends Controller
                     $s->guardian_phone ?? 'N/A',
                     $s->guardian_email ?? 'N/A',
                     $s->address ?? 'N/A',
-                    $s->academic_tier ?? 'Junior Scholar',
+                    $s->academic_tier ?? 'Enrolled Student',
                     $s->xp_points ?? 0,
                     $s->streak_count ?? 0,
                     $s->is_approved ? 'Active / Approved' : 'Pending Verification',

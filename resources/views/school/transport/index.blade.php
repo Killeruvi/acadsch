@@ -516,7 +516,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
                 <div class="flex items-center space-x-2">
                     <span class="text-sm font-black text-slate-900 dark:text-white">Bulk Assign Unregistered Students</span>
-                    <span class="text-[10px] text-slate-400">Select unassigned scholars below to batch enroll them into transit routes</span>
+                    <span class="text-[10px] text-slate-400">Select unassigned students below to batch enroll them into transit routes</span>
                 </div>
                 <div class="text-xs text-purple-600 font-bold" id="selected-count-badge">0 students selected</div>
             </div>
@@ -1044,7 +1044,7 @@
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">End Point</label>
-                    <input type="text" name="end_point" placeholder="Main Academy Gate" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                    <input type="text" name="end_point" placeholder="Main School Gate" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                 </div>
             </div>
 

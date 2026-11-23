@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Select Class & Batch' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Select Class & Batch' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4" 

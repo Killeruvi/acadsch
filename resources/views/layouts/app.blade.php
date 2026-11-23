@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', ($school['name'] ?? 'Infix LMS') . ' — Academic ERP')</title>
+    <title>@yield('title', ($school['name'] ?? 'PrimeArc Public School') . ' — School ERP')</title>
 
     <!-- Progressive Web App (PWA) Manifest & Meta Tags -->
     <link rel="manifest" href="{{ asset('manifest.json') }}">
@@ -184,7 +184,7 @@
                             {{ $school['name'] }}
                         </span>
                         <span class="text-[9px] font-bold tracking-wider uppercase theme_color">
-                            {{ $school['short_name'] ?? 'INFIX' }} &bull; LMS
+                            {{ $school['short_name'] ?? 'PAS' }} &bull; SCHOOL ERP
                         </span>
                     </div>
                 </a>
@@ -603,47 +603,41 @@
                 </li>
                 @endif
 
-                <!-- ================= 8. LEARNING & CBT ARENA ================= -->
-                <span class="menu_seperator">LEARNING ARENA</span>
+                <!-- ================= 8. COURSEWORK & LEARNING ================= -->
+                <span class="menu_seperator">COURSEWORK &amp; LEARNING</span>
 
                 @php
-                    $isLearningOpen = request()->routeIs('courses.*', 'dpp.*', 'quizzes.*', 'homework.*', 'assignments.*', 'projects.*', 'leaderboard.*');
+                    $isLearningOpen = request()->routeIs('homework.*', 'assignments.*', 'dpp.*', 'quizzes.*', 'projects.*', 'courses.*', 'leaderboard.*');
                 @endphp
                 <li class="sidebar-dropdown {{ $isLearningOpen ? 'dropdown-open' : '' }}">
                     <a href="javascript:void(0)" class="has-arrow {{ $isLearningOpen ? 'active-category' : '' }}" aria-expanded="{{ $isLearningOpen ? 'true' : 'false' }}">
                         <div class="infix-nav-icon"><i class="ti-desktop"></i></div>
-                        <div class="nav_title"><span>Academic Arena</span></div>
+                        <div class="nav_title"><span>Coursework &amp; E-Learning</span></div>
                         <i class="ti-angle-down dropdown-chevron"></i>
                     </a>
                     <ul class="sidebar-submenu" style="{{ $isLearningOpen ? 'display: block;' : 'display: none;' }}">
                         <li>
-                            <a href="{{ route('courses.index') }}" class="{{ request()->routeIs('courses.*') ? 'active infix-nav-active' : '' }}">
-                                <span class="sub-bullet"></span>
-                                <span>Courses &amp; Handouts</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('dpp.index') }}" class="{{ request()->routeIs('dpp.*') ? 'active infix-nav-active' : '' }}">
-                                <span class="sub-bullet"></span>
-                                <span>Daily DPPs &amp; CBT</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('quizzes.index') }}" class="{{ request()->routeIs('quizzes.*') ? 'active infix-nav-active' : '' }}">
-                                <span class="sub-bullet"></span>
-                                <span>Live Quizzes</span>
-                            </a>
-                        </li>
-                        <li>
                             <a href="{{ route('homework.index') }}" class="{{ request()->routeIs('homework.*') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
-                                <span>Homework &amp; Tasks</span>
+                                <span>Daily Homework</span>
                             </a>
                         </li>
                         <li>
                             <a href="{{ route('assignments.index') }}" class="{{ request()->routeIs('assignments.*') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
-                                <span>Assignments</span>
+                                <span>Class Assignments</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('dpp.index') }}" class="{{ request()->routeIs('dpp.*') ? 'active infix-nav-active' : '' }}">
+                                <span class="sub-bullet"></span>
+                                <span>Practice Worksheets (DPP)</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('quizzes.index') }}" class="{{ request()->routeIs('quizzes.*') ? 'active infix-nav-active' : '' }}">
+                                <span class="sub-bullet"></span>
+                                <span>Quizzes &amp; Tests</span>
                             </a>
                         </li>
                         <li>
@@ -653,41 +647,47 @@
                             </a>
                         </li>
                         <li>
+                            <a href="{{ route('courses.index') }}" class="{{ request()->routeIs('courses.*') ? 'active infix-nav-active' : '' }}">
+                                <span class="sub-bullet"></span>
+                                <span>E-Learning Courses</span>
+                            </a>
+                        </li>
+                        <li>
                             <a href="{{ route('leaderboard.index') }}" class="{{ request()->routeIs('leaderboard.*') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
-                                <span>Leaderboard &amp; Ranks</span>
+                                <span>Student Academic Rankings</span>
                             </a>
                         </li>
                     </ul>
                 </li>
 
-                <!-- ================= 9. DIGITAL CAMPUS & MEDIA ================= -->
+                <!-- ================= 9. CAMPUS LIFE & ACTIVITIES ================= -->
                 @php
-                    $isCampusOpen = request()->routeIs('virtual-classes.*', 'videos.*', 'events.*');
+                    $isCampusOpen = request()->routeIs('events.*', 'virtual-classes.*', 'videos.*');
                 @endphp
                 <li class="sidebar-dropdown {{ $isCampusOpen ? 'dropdown-open' : '' }}">
                     <a href="javascript:void(0)" class="has-arrow {{ $isCampusOpen ? 'active-category' : '' }}" aria-expanded="{{ $isCampusOpen ? 'true' : 'false' }}">
                         <div class="infix-nav-icon"><i class="ti-video-camera"></i></div>
-                        <div class="nav_title"><span>Virtual Campus</span></div>
+                        <div class="nav_title"><span>Campus &amp; Activities</span></div>
                         <i class="ti-angle-down dropdown-chevron"></i>
                     </a>
                     <ul class="sidebar-submenu" style="{{ $isCampusOpen ? 'display: block;' : 'display: none;' }}">
                         <li>
+                            <a href="{{ route('events.index') }}" class="{{ request()->routeIs('events.*') ? 'active infix-nav-active' : '' }}">
+                                <span class="sub-bullet"></span>
+                                <span>School Events &amp; Calendar</span>
+                            </a>
+                        </li>
+                        <li>
                             <a href="{{ route('virtual-classes.index') }}" class="{{ request()->routeIs('virtual-classes.*') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
-                                <span>Virtual Live Classes</span>
+                                <span>Virtual Classrooms</span>
                             </a>
                         </li>
                         <li>
                             <a href="{{ route('videos.index') }}" class="{{ request()->routeIs('videos.*') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
-                                <span>Video Lecture Library</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('events.index') }}" class="{{ request()->routeIs('events.*') ? 'active infix-nav-active' : '' }}">
-                                <span class="sub-bullet"></span>
-                                <span>Academy Events</span>
+                                <span>Video Lessons Library</span>
                             </a>
                         </li>
                     </ul>
@@ -1086,9 +1086,9 @@
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs" style="background: var(--system_primary_gradient);">
-                        {{ $appearance['theme']['name'] ?? 'Infix LMS Classic' }}
+                        {{ $appearance['theme']['name'] ?? 'School ERP System' }}
                     </span>
-                    <span class="text-[11px] font-semibold text-slate-400">⚡ Powered by PrimeOS &bull; Infix Design</span>
+                    <span class="text-[11px] font-semibold text-slate-400">⚡ Powered by PrimeOS &bull; School ERP</span>
                 </div>
             </footer>
 
@@ -1185,7 +1185,7 @@
             // Digital Campus
             { title: 'Virtual Live Classes', category: 'Campus', icon: 'ti-video-camera', url: '{{ route('virtual-classes.index') }}', keywords: 'virtual classes live zoom google meet video conference' },
             { title: 'Video Lecture Library', category: 'Campus', icon: 'ti-video-clapper', url: '{{ route('videos.index') }}', keywords: 'videos lecture recordings class playback watch' },
-            { title: 'Academy Events', category: 'Campus', icon: 'ti-flag-alt', url: '{{ route('events.index') }}', keywords: 'events seminars workshops sports sports day annual day' },
+            { title: 'School Events & Calendar', category: 'Campus', icon: 'ti-flag-alt', url: '{{ route('events.index') }}', keywords: 'events seminars workshops sports sports day annual day school events' },
 
             // Communication & Notices
             { title: 'Circulars & Notices', category: 'Communication', icon: 'ti-bell', url: '{{ route('notices.index') }}', keywords: 'notices circulars announcements alerts bulletin' },

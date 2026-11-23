@@ -51,7 +51,7 @@
         <div class="grid grid-cols-2 gap-4 py-4 border-b border-slate-200 text-xs">
             <div>
                 <span class="text-[10px] font-bold text-slate-400 uppercase block">Student Name</span>
-                <span class="font-bold text-slate-900 text-sm block">{{ $payment->invoice?->student?->name ?? 'Scholar' }}</span>
+                <span class="font-bold text-slate-900 text-sm block">{{ $payment->invoice?->student?->name ?? 'Student' }}</span>
                 <span class="text-[10px] text-slate-500 font-mono">Adm: {{ $payment->invoice?->student?->admission_number ?? '-' }}</span>
             </div>
             <div>

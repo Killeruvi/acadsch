@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Debates' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Debates' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-4">
@@ -28,7 +28,7 @@
                     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative text-left" @click.away="openCreateModal = false">
                         <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
                             <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
-                                <span>🏆</span> <span>Host Academy Tournament / Show</span>
+                                <span>🏆</span> <span>Host School Event / Competition</span>
                             </h3>
                             <button @click="openCreateModal = false" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
                         </div>

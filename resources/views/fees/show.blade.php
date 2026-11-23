@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Invoice #' . $invoice->invoice_number . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Invoice #' . $invoice->invoice_number . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-5xl mx-auto space-y-4">
@@ -48,7 +48,7 @@
                 </div>
                 <div>
                     <span class="text-[10px] font-black uppercase tracking-widest text-emerald-400 block">Verified Fee Demand Note</span>
-                    <h1 class="text-lg sm:text-xl font-black text-white tracking-tight">{{ $instituteName ?? ($school['name'] ?? 'PrimeOS Academy') }}</h1>
+                    <h1 class="text-lg sm:text-xl font-black text-white tracking-tight">{{ $instituteName ?? ($school['name'] ?? 'PrimeArc Public School') }}</h1>
                     <span class="text-xs text-slate-400 font-mono">Invoice Reference: <strong class="text-slate-200">{{ $invoice->invoice_number }}</strong></span>
                 </div>
             </div>
@@ -73,13 +73,13 @@
         <div class="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-slate-100 dark:border-slate-800">
             <!-- Col 1: Student Information -->
             <div class="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 space-y-1 text-xs">
-                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Scholar Information</span>
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Student Information</span>
                 <strong class="text-sm font-extrabold text-slate-900 dark:text-white block">{{ $invoice->student->name }}</strong>
                 <div class="flex items-center space-x-1 font-mono text-emerald-600 dark:text-emerald-400 font-bold">
                     <span>ID:</span>
                     <span>{{ $invoice->student->student_id_number ?? 'PA-STU-2026' }}</span>
                 </div>
-                <div class="text-slate-600 dark:text-slate-400">Class: <strong class="text-slate-800 dark:text-slate-200">{{ $invoice->student->academicClass->name ?? 'Enrolled Scholar' }}</strong></div>
+                <div class="text-slate-600 dark:text-slate-400">Class: <strong class="text-slate-800 dark:text-slate-200">{{ $invoice->student->academicClass->name ?? 'Enrolled Student' }}</strong></div>
                 <div class="text-slate-600 dark:text-slate-400">Roll No: <span class="font-mono">{{ $invoice->student->roll_number ?? 'N/A' }}</span></div>
                 <div class="text-slate-400 dark:text-slate-500 text-[11px] truncate pt-0.5">{{ $invoice->student->email }}</div>
             </div>

@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Contact Us — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Contact Us — ' . ($school['name'] ?? 'PrimeArc Public School'))
 @section('meta_description', 'Connect with Academic Relations, admissions advisors, and student support. Powered by PrimeOS.')
 
 @section('content')
@@ -13,7 +13,7 @@
             </div>
             <h1 class="font-display text-3xl sm:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                 Connect With <br>
-                <span class="text-emerald-700">{{ $school['name'] ?? 'PrimeOS Academy' }}.</span>
+                <span class="text-emerald-700">{{ $school['name'] ?? 'PrimeArc Public School' }}.</span>
             </h1>
             <p class="text-sm sm:text-base text-slate-600 leading-relaxed">
                 Whether you have questions regarding syllabus coverage, batch scheduling, admissions, or student verification, we are here to assist.

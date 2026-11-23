@@ -4,15 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     
-    <title>@yield('title', ($school['name'] ?? 'PrimeOS Academy') . ' — Powered by PrimeOS')</title>
-    <meta name="description" content="@yield('meta_description', ($school['name'] ?? 'PrimeOS Academy') . ' — ' . ($school['motto'] ?? 'Excellence in Education') . '. Powered by PrimeOS.')">
+    <title>@yield('title', ($school['name'] ?? 'PrimeArc Public School') . ' — Powered by PrimeOS')</title>
+    <meta name="description" content="@yield('meta_description', ($school['name'] ?? 'PrimeArc Public School') . ' — ' . ($school['motto'] ?? 'Excellence in Education') . '. Powered by PrimeOS.')">
     <link rel="canonical" href="{{ url()->current() }}">
 
     <!-- Open Graph / Social Sharing -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:title" content="@yield('title', ($school['name'] ?? 'PrimeOS Academy') . ' — Powered by PrimeOS')">
-    <meta property="og:description" content="@yield('meta_description', ($school['name'] ?? 'PrimeOS Academy') . ' — ' . ($school['motto'] ?? 'Excellence in Education') . '. Powered by PrimeOS.')">
+    <meta property="og:title" content="@yield('title', ($school['name'] ?? 'PrimeArc Public School') . ' — Powered by PrimeOS')">
+    <meta property="og:description" content="@yield('meta_description', ($school['name'] ?? 'PrimeArc Public School') . ' — ' . ($school['motto'] ?? 'Excellence in Education') . '. Powered by PrimeOS.')">
     <meta property="og:image" content="{{ asset('icons/icon-180x180.png') }}">
     <meta name="twitter:card" content="summary_large_image">
 
@@ -251,7 +251,7 @@
                         <span class="font-heading text-lg font-black tracking-tight text-white">{{ strtoupper($school['name'] ?? 'INFIX LMS') }}</span>
                     </div>
                     <p class="text-xs opacity-80 leading-relaxed max-w-md">
-                        Comprehensive learning management system and institutional school ERP. Empowering educators and scholars with concept mastery, Bloom's cognitive taxonomy, daily CBT assessments, and student lifecycle management.
+                        Comprehensive learning management system and institutional school ERP. Empowering educators and students with concept mastery, Bloom's cognitive taxonomy, daily CBT assessments, and student lifecycle management.
                     </p>
                     <div class="flex items-center space-x-2 text-xs font-semibold theme_color">
                         <span class="w-2 h-2 rounded-full animate-ping" style="background-color: var(--system_primery_color);"></span>
@@ -275,7 +275,7 @@
                 <div class="space-y-2 text-xs">
                     <h3 class="font-bold uppercase tracking-wider text-white text-[11px]">Institutional</h3>
                     <ul class="space-y-1.5 opacity-80 font-medium">
-                        <li><a href="{{ route('about') }}" class="hover:text-white transition">About Academy</a></li>
+                        <li><a href="{{ route('about') }}" class="hover:text-white transition">About School</a></li>
                         <li><a href="{{ route('admissions') }}" class="hover:text-white transition">Admissions &amp; Enrollment</a></li>
                         <li><a href="{{ route('contact') }}" class="hover:text-white transition">Contact &amp; Inquiries</a></li>
                         <li><a href="{{ route('privacy-policy') }}" class="hover:text-white transition">Privacy Policy</a></li>
@@ -295,7 +295,7 @@
                 <div class="flex items-center space-x-3 text-[11px]">
                     <a href="{{ route('login') }}" class="hover:text-white transition">Faculty &amp; Student Sign In</a>
                     <span>&bull;</span>
-                    <a href="{{ route('register') }}" class="hover:text-white transition">Enroll Scholar</a>
+                    <a href="{{ route('register') }}" class="hover:text-white transition">Student Registration</a>
                 </div>
             </div>
         </div>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'My Bloom Assignments' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'My Bloom Assignments' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="space-y-4" x-data="{ activeTab: 'assignments' }">

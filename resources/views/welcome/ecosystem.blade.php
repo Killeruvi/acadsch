@@ -499,7 +499,7 @@
             <div class="pt-6 border-t border-slate-700 flex items-center justify-between">
                 <div>
                     <div class="text-sm font-bold text-white">{{ $school['principal'] ?? 'Prithviraj & Academic Faculty Council' }}</div>
-                    <div class="text-xs text-slate-400">Founders &bull; {{ $school['name'] ?? 'Prime Arc Academy' }}</div>
+                    <div class="text-xs text-slate-400">Founders &bull; {{ $school['name'] ?? 'PrimeArc Public School' }}</div>
                 </div>
                 <div class="text-xs font-mono text-emerald-400 bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-800">
                     A Non-Conventional Commitment

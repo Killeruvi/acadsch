@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $certificate->title }} - Certificate &bull; {{ $school["name"] ?? "PrimeOS Academy" }}</title>
+    <title>{{ $certificate->title }} - Certificate &bull; {{ $school["name"] ?? "PrimeArc Public School" }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -41,13 +41,13 @@
             PA
         </div>
 
-        <!-- Top Emblem & Academy Crest -->
+        <!-- Top Emblem & School Crest -->
         <div class="space-y-2 relative z-10">
             <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-700 text-white font-black text-2xl flex items-center justify-center shadow-lg border-2 border-amber-400">
                 PA
             </div>
             <h2 class="text-2xl sm:text-3xl font-serif font-black uppercase tracking-widest text-amber-900">
-                {{ $school["name"] ?? "PrimeOS Academy" }}
+                {{ $school["name"] ?? "PrimeArc Public School" }}
             </h2>
             <p class="text-xs font-serif uppercase tracking-widest text-amber-700 font-bold">
                 Center for Scholastic Excellence &bull; Aim, Ascend, Achieve
@@ -117,7 +117,7 @@
 
     <!-- Footer for page -->
     <div class="text-center text-xs text-slate-400 mt-6 no-print">
-        {{ $school["name"] ?? "PrimeOS Academy" }} Institutional Management &bull; Certificate record — check online status before relying on it
+        {{ $school["name"] ?? "PrimeArc Public School" }} Institutional Management &bull; Certificate record — check online status before relying on it
     </div>
 
 </body>

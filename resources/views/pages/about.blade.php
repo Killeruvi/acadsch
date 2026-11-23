@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'About Us — ' . ($school['name'] ?? 'PrimeOS Academy'))
-@section('meta_description', 'Learn about ' . ($school['name'] ?? 'PrimeOS Academy') . ', our philosophy of conceptual mastery over memorisation, core scientific inquiry, and long-term academic excellence.')
+@section('title', 'About Us — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('meta_description', 'Learn about ' . ($school['name'] ?? 'PrimeArc Public School') . ', our philosophy of conceptual mastery over memorisation, core scientific inquiry, and long-term academic excellence.')
 
 @section('content')
 <!-- About Hero -->
@@ -9,14 +9,14 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div class="max-w-3xl space-y-3">
             <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                <span>About {{ $school['name'] ?? 'PrimeOS Academy' }}</span>
+                <span>About {{ $school['name'] ?? 'PrimeArc Public School' }}</span>
             </div>
             <h1 class="font-display text-3xl sm:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                 Building Minds. <br>
                 <span class="text-emerald-700">Enabling Futures.</span>
             </h1>
             <p class="text-sm sm:text-base text-slate-600 leading-relaxed">
-                An education and innovation academy designed to cultivate deep conceptual understanding, scientific curiosity, and enduring practical capability across Classes 1 to 12.
+                A premier educational institution and school designed to cultivate deep conceptual understanding, scientific curiosity, and enduring practical capability across Classes 1 to 12.
             </p>
         </div>
     </div>
@@ -30,17 +30,17 @@
             <div class="lg:col-span-7 space-y-4">
                 <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 block">Our Origin &amp; Purpose</span>
                 <h2 class="font-display text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-                    Why {{ $school['name'] ?? 'PrimeOS Academy' }} Exists.
+                    Why {{ $school['name'] ?? 'PrimeArc Public School' }} Exists.
                 </h2>
                 <div class="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
                     <p>
                         {{ $school['name'] ?? 'Our Institution' }} is founded on the fundamental conviction that education should develop genuine understanding, curiosity, practical intelligence, and the capacity to create meaningful things.
                     </p>
                     <p>
-                        Too often, conventional coaching reduces the magnificent human enterprise of learning to mechanical memorisation and anxiety-driven test preparation. In that process, the wonder of science, the beauty of mathematical reasoning, and the thrill of discovery are frequently lost.
+                        Too often, conventional rote schooling reduces the magnificent human enterprise of learning to mechanical memorisation and anxiety-driven test preparation. In that process, the wonder of science, the beauty of mathematical reasoning, and the thrill of discovery are frequently lost.
                     </p>
                     <p>
-                        We seek to move beyond these passive methods. Here, students are not passive consumers of lecture slides; they are active investigators, problem-solvers, and scholars. We structure our curriculum, tools, and mentors to help young learners build robust intellectual foundations that will serve them for a lifetime.
+                        We seek to move beyond these passive methods. Here, students are not passive consumers of lecture slides; they are active investigators, problem-solvers, and learners. We structure our curriculum, tools, and mentors to help young learners build robust intellectual foundations that will serve them for a lifetime.
                     </p>
                 </div>
             </div>
@@ -52,7 +52,7 @@
                     </div>
                     <h3 class="font-bold text-slate-900 text-base">Active Participation &amp; Inquiry</h3>
                     <p class="text-xs text-slate-600 leading-relaxed">
-                        Transforming scholars from passive note-takers into independent thinkers through Bloom's 6-tier cognitive progression, daily CBT drills, and peer debate societies.
+                        Transforming students from passive note-takers into independent thinkers through Bloom's 6-tier cognitive progression, daily CBT drills, and peer debate societies.
                     </p>
                     <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-emerald-700">
                         <span>CBSE &bull; Classes 1–12</span>
@@ -74,7 +74,7 @@
                 <span class="text-xs font-bold text-emerald-700 uppercase tracking-wider">Direction</span>
                 <h3 class="font-display text-xl font-black text-slate-900">Our Vision</h3>
                 <p class="text-xs text-slate-600 leading-relaxed">
-                    To cultivate scholars who possess profound conceptual mastery, intellectual independence, and genuine scientific curiosity.
+                    To cultivate students who possess profound conceptual mastery, intellectual independence, and genuine scientific curiosity.
                 </p>
             </div>
 

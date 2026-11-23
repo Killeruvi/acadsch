@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Academic Leaderboard' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Academic Leaderboard' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-5xl mx-auto space-y-4">
@@ -119,9 +119,9 @@
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden">
         <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Full Scholar Rankings
+                Student Academic Rankings
             </h3>
-            <span class="text-xs text-slate-400">{{ $leaderboardUsers->total() }} Ranked Scholars</span>
+            <span class="text-xs text-slate-400">{{ $leaderboardUsers->total() }} Ranked Students</span>
         </div>
 
         <div class="overflow-x-auto">
@@ -129,9 +129,9 @@
                 <thead>
                     <tr class="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-[11px] font-black uppercase text-slate-600 dark:text-slate-300">
                         <th class="p-3 w-16 text-center">Rank</th>
-                        <th class="p-3">Scholar</th>
-                        <th class="p-3">Class &amp; Batch</th>
-                        <th class="p-3">Scholar Tier</th>
+                        <th class="p-3">Student</th>
+                        <th class="p-3">Class &amp; Section</th>
+                        <th class="p-3">Academic Level</th>
                         <th class="p-3">Active Streak</th>
                         <th class="p-3 text-right">XP Points</th>
                     </tr>
@@ -142,7 +142,7 @@
                         $rank = ($leaderboardUsers->currentPage() - 1) * $leaderboardUsers->perPage() + $index + 1;
                         $isMe = ($currentUser->id === $u->id);
                         $enrollment = $u->classEnrollments->first();
-                        $className = $enrollment?->academicClass?->name ?? ($u->batch?->academicClass?->name ?? 'Class 8');
+                        $className = $enrollment?->academicClass?->display_name ?? ($u->currentClass?->display_name ?? 'Class');
                     @endphp
                     <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition {{ $isMe ? 'bg-emerald-50/50 dark:bg-emerald-950/20 font-bold' : '' }}">
                         <td class="p-3 text-center align-middle">
@@ -173,7 +173,7 @@
                         </td>
                         <td class="p-3 align-middle">
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
-                                {{ $u->academic_tier ?? 'Junior Scholar' }}
+                                {{ $u->academic_tier ?? 'Enrolled Student' }}
                             </span>
                         </td>
                         <td class="p-3 align-middle">

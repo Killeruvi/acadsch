@@ -19,17 +19,18 @@ class AcademyInstitutionalSeeder extends Seeder
 
         // 1. Seed Institutional Settings
         $settings = [
-            'institute_name' => 'Prime Arc Academy',
+            'institute_name' => 'PrimeArc Public School',
+            'school_short_name' => 'PAS',
             'campus_name' => 'New Delhi Central Campus',
             'affiliation_number' => 'CBSE/AFF/2026/089',
             'academic_session' => '2026–2027',
             'principal_name' => 'Dr. Rajeshwar Sharma',
             'institution_phone' => '+91 98765 43210',
-            'institution_email' => 'admissions@primearc.academy',
+            'institution_email' => 'admin@primearc.school',
             'institution_address' => 'Plot 42, Knowledge Corridor, Institutional Area, New Delhi 110092',
             'upi_vpa' => 'primearc@upi',
             'currency_symbol' => '₹',
-            'motto' => 'विद्या ददाति विनयं',
+            'motto' => 'विद्या ददाति विनयं • Knowledge, Character, Excellence',
             'established_year' => '2018',
         ];
 

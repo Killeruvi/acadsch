@@ -432,7 +432,7 @@
                         <div class="text-2xl font-black text-amber-600 mt-1 font-mono">
                             {{ $defaultersCount }} Defaulters
                         </div>
-                        <div class="text-[10px] text-slate-500 mt-0.5">{{ $studentsWithoutInvoice }} new scholars pending fee plan</div>
+                        <div class="text-[10px] text-slate-500 mt-0.5">{{ $studentsWithoutInvoice }} new students pending fee plan</div>
                     </a>
                 </div>
             </div>
@@ -455,7 +455,7 @@
                     <table class="w-full text-xs text-left">
                         <thead>
                             <tr class="text-slate-400 uppercase text-[10px] font-bold border-b border-slate-100 dark:border-slate-800">
-                                <th class="pb-2">Scholar</th>
+                                <th class="pb-2">Student</th>
                                 <th class="pb-2">Class / Section</th>
                                 <th class="pb-2">Receipt No</th>
                                 <th class="pb-2">Mode</th>
@@ -472,7 +472,7 @@
                                         <div class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-[11px] text-slate-700 dark:text-slate-200 uppercase">
                                             {{ substr($payment->student?->name ?? 'S', 0, 1) }}
                                         </div>
-                                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ $payment->student?->name ?? 'Scholar' }}</span>
+                                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ $payment->student?->name ?? 'Student' }}</span>
                                     </div>
                                 </td>
                                 <td class="py-2.5 text-slate-500">
@@ -538,7 +538,7 @@
                     <a href="{{ route('school.students.index') }}" class="p-3.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 block group hover:shadow-xs transition">
                         <div class="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Approved &amp; Enrolled</div>
                         <div class="text-2xl font-black text-emerald-600 mt-1 font-mono">{{ $approvedStudents }}</div>
-                        <div class="text-[10px] text-slate-500 mt-0.5">Active scholar profiles</div>
+                        <div class="text-[10px] text-slate-500 mt-0.5">Active student profiles</div>
                     </a>
                     <a href="{{ route('school.students.index') }}" class="p-3.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/60 block group hover:shadow-xs transition">
                         <div class="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">Conversion &amp; Gaps</div>
@@ -564,7 +564,7 @@
 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                     <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700">
-                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Enrolled Scholars</div>
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Enrolled Students</div>
                         <div class="text-2xl font-black text-slate-900 dark:text-white mt-1 font-mono">{{ $totalStudents }}</div>
                         <div class="text-[10px] text-slate-500 mt-0.5">+{{ $newAdmissionsTerm }} new this term</div>
                     </div>
@@ -607,7 +607,7 @@
                             {{ $cls->display_name }}
                         </div>
                         <div class="flex items-center justify-between text-[10px] text-slate-500 mt-2 font-mono">
-                            <span>{{ $cls->students_count }} scholars</span>
+                            <span>{{ $cls->students_count }} students</span>
                             <span class="text-emerald-600 font-bold">Cap: {{ $cls->capacity }}</span>
                         </div>
                     </a>
@@ -649,7 +649,7 @@
                     </a>
                     <a href="{{ route('school.students.create') }}" class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200/80 dark:border-slate-700 flex items-center space-x-2 transition text-xs font-bold text-slate-800 dark:text-slate-200 group">
                         <i class="ti-plus text-emerald-600 group-hover:scale-110 transition-transform"></i>
-                        <span class="truncate">Admit Scholar</span>
+                        <span class="truncate">Admit Student</span>
                     </a>
                     <a href="{{ route('school.classes.index') }}" class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200/80 dark:border-slate-700 flex items-center space-x-2 transition text-xs font-bold text-slate-800 dark:text-slate-200 group">
                         <i class="ti-layout-grid2 text-emerald-600 group-hover:scale-110 transition-transform"></i>

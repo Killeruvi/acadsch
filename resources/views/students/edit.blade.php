@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $student->name . ' — Student Dossier' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', $student->name . ' — Student Dossier' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-4">
@@ -19,11 +19,11 @@
     <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 sm:p-7 shadow-xs space-y-5">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <div>
-                <h2 class="text-lg font-black text-slate-900 dark:text-white">Edit Scholar Information</h2>
+                <h2 class="text-lg font-black text-slate-900 dark:text-white">Edit Student Information</h2>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Update student demographics and guardian contacts. Academic placement and admission identity are managed separately.</p>
             </div>
             <span class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                Scholar Management
+                Student Management
             </span>
         </div>
 

@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Privacy Policy — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Privacy Policy — ' . ($school['name'] ?? 'PrimeArc Public School'))
 @section('meta_description', 'Official Privacy Policy detailing strict student data protection, parental consent safeguards, and institutional security standards. Powered by PrimeOS.')
 
 @section('content')
@@ -26,7 +26,7 @@
                 <span>Our Unwavering Commitment to Student Data Privacy</span>
             </h2>
             <p>
-                {{ $school['name'] ?? 'Our Institution' }} ("we", "our", or "the Institution", powered by PrimeOS) considers the privacy of our scholars, parents, and faculty paramount. We categorically reject the commercial exploitation of student data. We do not sell, rent, monetize, or broker student academic logs, contact records, or assessment metrics to advertisers or commercial data brokers under any circumstances.
+                {{ $school['name'] ?? 'Our Institution' }} ("we", "our", or "the Institution", powered by PrimeOS) considers the privacy of our students, parents, and faculty paramount. We categorically reject the commercial exploitation of student data. We do not sell, rent, monetize, or broker student academic logs, contact records, or assessment metrics to advertisers or commercial data brokers under any circumstances.
             </p>
         </div>
 
@@ -40,7 +40,7 @@
                 To provide structured educational instruction and accurate academic record-keeping, we collect minimal, necessary information:
             </p>
             <ul class="list-disc list-inside space-y-1.5 pl-2 text-xs">
-                <li><strong>Scholar Identity &amp; Enrollment:</strong> Scholar's full name, assigned academic class (Classes 1–12), allocated batch (morning/evening), roll number, and enrolled subjects.</li>
+                <li><strong>Student Identity &amp; Enrollment:</strong> Student's full name, assigned academic class (Classes 1–12), allocated section, roll number, and enrolled subjects.</li>
                 <li><strong>Contact Verification:</strong> Mandatory permanent guardian phone number and registered email address utilized strictly for institutional alerts, attendance notifications, and two-factor portal security.</li>
                 <li><strong>Academic Performance Records:</strong> Homework submissions, Daily Practice Problem (DPP) scores, Bloom's cognitive taxonomy evaluations, and examination grading.</li>
                 <li><strong>Portal Logs &amp; Attendance:</strong> Daily digital session check-ins, time-stamped attendance logs, and video lecture completion metrics.</li>
@@ -54,7 +54,7 @@
                 <span>Protection of Minors &amp; Parental Consent</span>
             </h2>
             <p>
-                Because {{ $school['name'] ?? 'our academy' }} serves students from Classes 1 through 12, guardian consent is verified during enrollment. Guardians have the continuous right to review their child's academic records, request corrections, or export assessment performance logs.
+                Because {{ $school['name'] ?? 'our school' }} serves students from Classes 1 through 12, guardian consent is verified during enrollment. Guardians have the continuous right to review their child's academic records, request corrections, or export assessment performance logs.
             </p>
         </div>
 

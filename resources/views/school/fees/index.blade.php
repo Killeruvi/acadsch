@@ -260,7 +260,7 @@
                                     <span class="text-[10px] text-slate-400 block font-sans">{{ $inv->title }}</span>
                                 </td>
                                 <td class="p-3">
-                                    <span class="font-bold text-slate-900 dark:text-white block">{{ $inv->student ? $inv->student->name : 'Scholar' }}</span>
+                                    <span class="font-bold text-slate-900 dark:text-white block">{{ $inv->student ? $inv->student->name : 'Student' }}</span>
                                     <span class="text-[10px] text-slate-400">{{ $inv->student?->currentClass?->display_name }}</span>
                                 </td>
                                 <td class="p-3 font-mono font-bold text-slate-900 dark:text-white">

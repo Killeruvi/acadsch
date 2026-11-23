@@ -28,7 +28,7 @@
                 </span>
             </div>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Catalog academic literature, manage circulation, issue books to scholars and faculty, and track returns.
+                Catalog academic literature, manage circulation, issue books to students and faculty, and track returns.
             </p>
         </div>
 
@@ -301,7 +301,7 @@
 <div id="issue-book-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs hidden p-4">
     <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full shadow-2xl">
         <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">Issue Book to Scholar/Faculty</h3>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">Issue Book to Student/Faculty</h3>
             <button onclick="document.getElementById('issue-book-modal').classList.add('hidden')" class="text-slate-400 hover:text-white text-sm">✕</button>
         </div>
 
@@ -319,7 +319,7 @@
             </div>
 
             <div>
-                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Select Member (Scholar / Staff) *</label>
+                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Select Member (Student / Staff) *</label>
                 <select name="member_id" required class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                     @foreach($members as $m)
                     <option value="{{ $m->id }}">{{ $m->name }} ({{ strtoupper($m->role) }}) - {{ $m->student_id_number ?? $m->email }}</option>

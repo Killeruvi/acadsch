@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Event: ' . $event->title . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Event: ' . $event->title . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-3xl mx-auto space-y-6">
@@ -14,7 +14,7 @@
     </div>
 
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xs">
-        <h1 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white mb-1">Edit Academy Competition Event</h1>
+        <h1 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white mb-1">Edit School Event / Activity</h1>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Modify date, venue, rules, or status for this debate or talent organization.</p>
 
         <form action="{{ route('events.update', $event->id) }}" method="POST" class="space-y-4 text-xs">

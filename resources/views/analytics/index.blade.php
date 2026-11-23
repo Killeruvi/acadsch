@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <!-- 6 Primary Coaching Core Cards -->
+    <!-- 6 Primary Academic Metric Cards -->
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
         <div class="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Daily DPPs</div>
@@ -89,7 +89,7 @@
             <div class="flex items-center justify-between mb-2">
                 <div>
                     <h3 class="font-black text-slate-900 dark:text-white text-sm">Batch Attendance &amp; Engagement</h3>
-                    <p class="text-[11px] text-slate-500">Roll-call adherence % across active coaching batches</p>
+                    <p class="text-[11px] text-slate-500">Roll-call adherence % across active school sections</p>
                 </div>
                 <span class="text-[10px] font-bold px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-md">Roll-Call Audit</span>
             </div>
@@ -99,7 +99,7 @@
         </div>
     </div>
 
-    <!-- 2 Column: Coaching Deep-Dive & Curriculum Distribution -->
+    <!-- 2 Column: Academic Deep-Dive & Curriculum Distribution -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         <!-- Bloom's Taxonomy Cognitive Distribution -->
@@ -138,7 +138,7 @@
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h3 class="font-black text-slate-900 dark:text-white text-base">Academic Hall of Fame</h3>
-                    <p class="text-xs text-slate-500">Top scholars by Academic XP and active daily streaks</p>
+                    <p class="text-xs text-slate-500">Top students by Academic XP and active daily streaks</p>
                 </div>
                 <span class="text-xs font-bold px-2 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-lg">🔥 Streaks</span>
             </div>

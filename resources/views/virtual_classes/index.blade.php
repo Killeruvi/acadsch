@@ -330,7 +330,7 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Target Class / Grade</label>
                         <select name="class_id" class="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-slate-900 dark:text-white">
-                            <option value="">-- All Academy Students --</option>
+                            <option value="">-- All Enrolled Students (School-Wide) --</option>
                             @foreach($academicClasses as $c)
                             <option value="{{ $c->id }}">{{ $c->display_name }}</option>
                             @endforeach

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'DPP & Timed Tests' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'DPP & Timed Tests' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div x-data="dppComponent()" class="space-y-4">
@@ -78,7 +78,7 @@
                     2. Select Subject
                 </label>
                 <select id="dpp_subject_id" name="subject_id" data-spa-filter="true" class="spa-auto-submit w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden">
-                    <option value="">{{ $selectedClass ? 'All Subjects in ' . $selectedClass->display_name : 'All Subjects (Academy Wide)' }}</option>
+                    <option value="">{{ $selectedClass ? 'All Subjects in ' . $selectedClass->display_name : 'All Subjects (School-Wide)' }}</option>
                     @foreach($subjects ?? [] as $subj)
                     <option value="{{ $subj->id }}" {{ (string)($selectedSubjectId ?? '') === (string)$subj->id ? 'selected' : '' }}>
                         {{ $subj->name }} ({{ $subj->code }})
@@ -106,7 +106,7 @@
     <!-- Active Filter Indicator -->
     <div class="flex items-center justify-between px-1">
         <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Showing practice sheets for: <strong class="text-slate-900 dark:text-white">{{ $selectedClass->display_name ?? 'All Classes (Full Academy)' }}</strong>
+            Showing practice sheets for: <strong class="text-slate-900 dark:text-white">{{ $selectedClass->display_name ?? 'All Classes (Whole School)' }}</strong>
             @if(!empty($selectedSubjectId))
             &bull; Subject: <strong class="text-indigo-600 dark:text-indigo-400">{{ ($subjects ?? collect())->firstWhere('id', (int)$selectedSubjectId)?->name }}</strong>
             @endif

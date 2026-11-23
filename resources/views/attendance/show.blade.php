@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $session->title . ' — Attendance Details' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', $session->title . ' — Attendance Details' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 @php

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Faculty Authorization Codes & Teacher Approval' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Faculty Authorization Codes & Teacher Approval' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6" x-data="{ copiedCode: null }">

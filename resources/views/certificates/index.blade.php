@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Certificates & Digital Badges' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Certificates & Digital Badges' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-4">
@@ -85,7 +85,7 @@
 
         @if($certificates->isEmpty())
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 text-center text-xs text-slate-400">
-            No official certificates issued yet for this scholar account. Certificates are awarded upon completion of capstones, Olympiad milestones, and term examinations.
+            No official certificates issued yet for this student account. Certificates are awarded upon completion of capstones, Olympiad milestones, and term examinations.
         </div>
         @else
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800 shadow-2xs overflow-hidden">

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Forgot Password' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Forgot Password' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-md mx-auto my-8">

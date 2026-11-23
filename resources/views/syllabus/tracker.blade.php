@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Whole Syllabus & Chapter Activities Dual Tracker' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Whole Syllabus & Chapter Activities Dual Tracker' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div x-data="{ 

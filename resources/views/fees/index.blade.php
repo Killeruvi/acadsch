@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Online Fees & Invoicing' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Online Fees & Invoicing' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div x-data="{ openInvoiceModal: false, openMonthlyModal: false, openConfigModal: false, openPayModal: false, activeInvoice: null, targetScope: 'all' }" class="space-y-4">
@@ -43,7 +43,7 @@
                 @csrf
                 <button type="submit"
                         class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-xs transition"
-                        title="Auto-calculate and issue monthly tuition dues for all active scholars">
+                        title="Auto-calculate and issue monthly tuition dues for all active students">
                     <span>⚡ Run Auto-Charge Now</span>
                 </button>
             </form>
@@ -189,7 +189,7 @@
                                     Manual
                                 </span>
                                 @endif
-                                <span class="text-[11px] text-slate-500">{{ $inv->category }} &bull; {{ $inv->course?->code ?? 'Academy Wide' }}</span>
+                                <span class="text-[11px] text-slate-500">{{ $inv->category }} &bull; {{ $inv->course?->code ?? 'School-Wide' }}</span>
                             </div>
                         </td>
 
@@ -526,7 +526,7 @@
                     <span class="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center justify-center text-xs font-bold">⚡</span>
                     <div>
                         <h3 class="text-sm font-bold">Auto Monthly Fee Invoicing</h3>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400">Generate recurring monthly invoices in bulk across scholars</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400">Generate recurring monthly invoices in bulk across students</p>
                     </div>
                 </div>
                 <button type="button" @click="openMonthlyModal = false" class="text-slate-400 hover:text-slate-600">
@@ -558,10 +558,10 @@
 
                 <!-- Scope Selection -->
                 <div>
-                    <label class="block font-semibold mb-1">Target Scholars *</label>
+                    <label class="block font-semibold mb-1">Target Students *</label>
                     <div class="grid grid-cols-3 gap-2 mb-2">
                         <button type="button" @click="targetScope = 'all'" :class="targetScope === 'all' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'" class="py-1.5 px-2 rounded-lg border text-center font-bold text-[11px] transition">
-                            All Scholars
+                            All Students
                         </button>
                         <button type="button" @click="targetScope = 'class'" :class="targetScope === 'class' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'" class="py-1.5 px-2 rounded-lg border text-center font-bold text-[11px] transition">
                             By Class
@@ -612,7 +612,7 @@
                 <!-- Idempotency Notice -->
                 <div class="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-[11px] text-purple-900 dark:text-purple-300 flex items-start space-x-2">
                     <span class="text-sm">🛡️</span>
-                    <span><strong>Double-Billing Protection:</strong> Scholars who already have an invoice for this target month will be safely skipped automatically.</span>
+                    <span><strong>Double-Billing Protection:</strong> Students who already have an invoice for this target month will be safely skipped automatically.</span>
                 </div>
 
                 <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-800">

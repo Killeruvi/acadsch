@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $reportData['title'] }} • {{ $school['name'] ?? 'Prime Arc Academy' }}</title>
+    <title>{{ $reportData['title'] }} • {{ $school['name'] ?? 'PrimeArc Public School' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -50,7 +50,7 @@
             <img src="{{ $school['logo_url'] }}" alt="{{ $school['name'] }}" class="w-14 h-14 object-contain mx-auto mb-2">
             @endif
             <h1 class="text-2xl font-black uppercase tracking-tight text-slate-900">
-                {{ $school['name'] ?? 'PRIME ARC ACADEMY' }}
+                {{ $school['name'] ?? 'PRIMEARC PUBLIC SCHOOL' }}
             </h1>
             <p class="text-[11px] font-bold text-emerald-800 tracking-wider uppercase mt-0.5">
                 {{ $school['motto'] ?? 'Aim, Ascend, Achieve • Center for Academic & Technological Excellence' }}
@@ -130,7 +130,7 @@
         <!-- 5. REGULATORY DISCLAIMER & OFFICIAL SIGN-OFF -->
         <div class="pt-6 border-t border-slate-300 mt-12">
             <p class="text-[10px] text-slate-500 text-center mb-8">
-                This document is generated directly from the verified institutional database of {{ $school['name'] ?? 'Prime Arc Academy' }}. Any unauthorized alteration, erasure, or duplication renders this report invalid.
+                This document is generated directly from the verified institutional database of {{ $school['name'] ?? 'PrimeArc Public School' }}. Any unauthorized alteration, erasure, or duplication renders this report invalid.
             </p>
 
             <div class="grid grid-cols-3 gap-6 text-center text-xs">

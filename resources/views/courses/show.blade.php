@@ -226,7 +226,7 @@
             </div>
 
             <div>
-                <span class="text-slate-400 dark:text-slate-500 block">Enrolled Scholars</span>
+                <span class="text-slate-400 dark:text-slate-500 block">Enrolled Students</span>
                 <span class="font-bold text-slate-900 dark:text-white text-sm">{{ $course->enrollments_count }} / {{ $course->capacity }} Seats</span>
             </div>
 
@@ -1510,17 +1510,17 @@
 
                 <!-- Assigned To Target Selector -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Assigned To (Target Scholars) *</label>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Assigned To (Target Students) *</label>
                     <select name="target_type" x-model="targetType" required class="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-semibold">
-                        <option value="all_enrolled">👥 All Enrolled Scholars in this Course</option>
-                        <option value="all_students">🏫 All Active Scholars in Academy</option>
-                        <option value="specific_student">👤 Specific Individual Scholar</option>
+                        <option value="all_enrolled">👥 All Enrolled Students in this Course</option>
+                        <option value="all_students">🏫 All Students (School-Wide)</option>
+                        <option value="specific_student">👤 Specific Individual Student</option>
                     </select>
                 </div>
 
                 <!-- Specific Student Dropdown -->
                 <div x-show="targetType === 'specific_student'" x-cloak>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Select Specific Scholar *</label>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Select Specific Student *</label>
                     <select name="student_id" class="w-full px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs">
                         @foreach(\App\Models\User::where('role', 'student')->orderBy('name')->get() as $std)
                             <option value="{{ $std->id }}">{{ $std->name }} ({{ $std->student_id_number ?? $std->email }})</option>

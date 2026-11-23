@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Offline Mode &bull; {{ $school["name"] ?? "PrimeOS Academy" }}</title>
+    <title>Offline Mode &bull; {{ $school["name"] ?? "PrimeArc Public School" }}</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f172a">
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
@@ -29,7 +29,7 @@
                 PA
             </div>
             <div>
-                <span class="text-base font-extrabold tracking-tight text-white block">{{ !empty($school["name"]) && $school["name"] !== 'Prime Arc Academy' ? ($school["name"] . ' • Prime Arc Academy') : 'Prime Arc Academy' }}</span>
+                <span class="text-base font-extrabold tracking-tight text-white block">{{ !empty($school["name"]) && $school["name"] !== 'PrimeArc Public School' ? ($school["name"] . ' • PrimeArc Public School') : 'PrimeArc Public School' }}</span>
                 <span class="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase">Institutional Offline Gateway</span>
             </div>
         </div>

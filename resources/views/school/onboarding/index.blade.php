@@ -107,7 +107,7 @@
             </div>
             <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <span class="text-[10px] text-slate-400 font-bold uppercase block">Current Records</span>
-                <span class="text-sm font-black text-slate-800 dark:text-slate-200 font-mono">{{ $dbStatus['total_classes'] }} Classes &bull; {{ $dbStatus['total_students'] }} Scholars</span>
+                <span class="text-sm font-black text-slate-800 dark:text-slate-200 font-mono">{{ $dbStatus['total_classes'] }} Classes &bull; {{ $dbStatus['total_students'] }} Students</span>
             </div>
             <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <span class="text-[10px] text-slate-400 font-bold uppercase block">Database State</span>
@@ -479,9 +479,9 @@
         <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <div>
                 <h2 class="text-sm font-bold text-slate-900 dark:text-white">Step 5: Student Admissions Roster</h2>
-                <span class="text-[11px] text-slate-400">Import student scholars with roll numbers and class assignments</span>
+                <span class="text-[11px] text-slate-400">Import students with roll numbers and class assignments</span>
             </div>
-            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">Current: {{ $stats['total_students'] }} Scholars Admitted</span>
+            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">Current: {{ $stats['total_students'] }} Students Admitted</span>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -510,7 +510,7 @@
             <div class="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2.5 text-xs">
                 <h3 class="font-bold text-slate-900 dark:text-white">Formal Single Admission</h3>
                 <p class="text-slate-500 dark:text-slate-400 text-[11px]">
-                    To admit scholars individually with complete guardian documentation and health data, use the formal Admission Form.
+                    To admit students individually with complete guardian documentation and health data, use the formal Admission Form.
                 </p>
                 <div class="pt-1 flex items-center justify-between">
                     <a href="{{ route('school.students.create') }}" target="_blank" class="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
@@ -609,7 +609,7 @@
                     </span>
                     <div>
                         <strong class="text-slate-900 dark:text-white">Student Admissions</strong>
-                        <div class="text-[11px] text-slate-400">{{ $stats['total_students'] }} Enrolled Scholars Active</div>
+                        <div class="text-[11px] text-slate-400">{{ $stats['total_students'] }} Enrolled Students Active</div>
                     </div>
                 </div>
                 <a href="{{ route('school.onboarding.index', ['step' => 5]) }}" class="text-[11px] font-bold text-indigo-600 hover:underline">Edit</a>

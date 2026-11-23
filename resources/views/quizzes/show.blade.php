@@ -83,7 +83,7 @@
             setTimeout(() => this.playTone(freq, 'triangle', 0.2, 0.16), idx * 85);
         });
     },
-    getLiveScholarsCount(idx) {
+    getLiveStudentsCount(idx) {
         if (!this.liveAnswered[idx]) {
             this.liveAnswered[idx] = 19 + ((idx * 8 + 3) % 21);
         }
@@ -342,11 +342,11 @@
                                 {{ $q->points }} Points
                             </span>
 
-                            <!-- Real-time Scholars Completed Indicator -->
+                            <!-- Real-time Students Completed Indicator -->
                             <div class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-300 border border-orange-200 dark:border-orange-800/80 text-[11px] font-bold">
                                 <span>🔥</span>
-                                <span x-text="getLiveScholarsCount({{ $idx }})"></span>
-                                <span>scholars answered</span>
+                                <span x-text="getLiveStudentsCount({{ $idx }})"></span>
+                                <span>students answered</span>
                             </div>
                         </div>
 

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $staff->name . ' — Faculty Dossier' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', $staff->name . ' — Faculty Dossier' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-4">

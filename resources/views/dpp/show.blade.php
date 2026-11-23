@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $dpp->dpp_number . ' — ' . $dpp->title . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', $dpp->dpp_number . ' — ' . $dpp->title . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @if(Auth::user()->isStudent() && (!$submission || ($isResolving ?? false)))
 @section('hide_bottom_nav', 'true')

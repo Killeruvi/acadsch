@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Student Directory & Roster' . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Student Directory & Roster' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div x-data="{
@@ -8,7 +8,7 @@
     copiedToast: false,
     toastMessage: '',
     copyStudentInfo(student) {
-        const text = `=== {{ strtoupper($school['name'] ?? 'PRIMEOS ACADEMY') }} - STUDENT DOSSIER ===\n` +
+        const text = `=== {{ strtoupper($school['name'] ?? 'PRIMEOS PUBLIC SCHOOL') }} - STUDENT DOSSIER ===\n` +
             `Student ID: ${student.student_id_number || 'N/A'}\n` +
             `Full Name: ${student.name}\n` +
             `Class: ${student.class_name || 'Unassigned'} (Section: ${student.section || 'A'})\n` +
@@ -22,7 +22,7 @@
             `Guardian Phone: ${student.guardian_phone || 'N/A'}\n` +
             `Guardian Email: ${student.guardian_email || 'N/A'}\n` +
             `Residential Address: ${student.address || 'N/A'}\n` +
-            `Academic Tier: ${student.academic_tier || 'Junior Scholar'} (${student.xp_points || 0} XP)\n` +
+            `Academic Level: ${student.academic_tier || 'Enrolled Student'} (${student.xp_points || 0} XP)\n` +
             `Status: ${student.is_approved ? 'Active / Approved' : 'Pending Verification'}\n` +
             `===========================================`;
 
@@ -221,9 +221,9 @@
                             name="tier" 
                             class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs">
                         <option value="all">All Tiers</option>
-                        <option value="Junior Scholar" {{ $tierFilter === 'Junior Scholar' ? 'selected' : '' }}>Junior Scholar</option>
-                        <option value="Honors Scholar" {{ $tierFilter === 'Honors Scholar' ? 'selected' : '' }}>Honors Scholar</option>
-                        <option value="Distinguished Scholar" {{ $tierFilter === 'Distinguished Scholar' ? 'selected' : '' }}>Distinguished Scholar</option>
+                        <option value="Elementary Level" {{ $tierFilter === 'Elementary Level' ? 'selected' : '' }}>Elementary Level</option>
+                        <option value="Secondary Level" {{ $tierFilter === 'Secondary Level' ? 'selected' : '' }}>Secondary Level</option>
+                        <option value="Senior Secondary Level" {{ $tierFilter === 'Senior Secondary Level' ? 'selected' : '' }}>Senior Secondary Level</option>
                         <option value="Presidential Fellow" {{ $tierFilter === 'Presidential Fellow' ? 'selected' : '' }}>Presidential Fellow</option>
                     </select>
                 </div>
@@ -299,7 +299,7 @@
                         <th class="p-3">Class &amp; Section</th>
                         <th class="p-3">Contact Details</th>
                         <th class="p-3">Guardian Info</th>
-                        <th class="p-3">Scholar Tier &amp; XP</th>
+                        <th class="p-3">Academic Level &amp; XP</th>
                         <th class="p-3 text-right">Grab / Actions</th>
                     </tr>
                 </thead>
@@ -333,7 +333,7 @@
                             'address' => $s->address,
                             'blood_group' => $s->blood_group,
                             'date_of_birth' => $s->date_of_birth ? $s->date_of_birth->format('d M Y') : 'N/A',
-                            'academic_tier' => $s->academic_tier ?? 'Junior Scholar',
+                            'academic_tier' => $s->academic_tier ?? 'Enrolled Student',
                             'xp_points' => $s->xp_points ?? 0,
                             'streak_count' => $s->streak_count ?? 0,
                             'is_approved' => (bool) $s->is_approved,
@@ -443,11 +443,11 @@
                             <div class="space-y-1">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black
                                     @if(($s->academic_tier ?? '') === 'Presidential Fellow') bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-300
-                                    @elseif(($s->academic_tier ?? '') === 'Distinguished Scholar') bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300
-                                    @elseif(($s->academic_tier ?? '') === 'Honors Scholar') bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300
+                                    @elseif(($s->academic_tier ?? '') === 'Senior Secondary Level') bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300
+                                    @elseif(($s->academic_tier ?? '') === 'Secondary Level') bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300
                                     @else bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300
                                     @endif">
-                                    {{ $s->academic_tier ?? 'Junior Scholar' }}
+                                    {{ $s->academic_tier ?? 'Enrolled Student' }}
                                 </span>
                                 <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center space-x-2">
                                     <span class="font-bold text-amber-600 dark:text-amber-400">⚡ {{ $s->xp_points ?? 0 }} XP</span>

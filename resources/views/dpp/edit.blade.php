@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $dpp->dpp_number . ' — ' . $dpp->title . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', $dpp->dpp_number . ' — ' . $dpp->title . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
 
 @section('content')
 <div x-data="dppEditorComponent()" class="space-y-4">

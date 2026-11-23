@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $event->title . ' - Academy Tournament')
+@section('title', $event->title . ' - School Event')
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">

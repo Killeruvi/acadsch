@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Certificate Registry Verification &bull; {{ $school["name"] ?? "PrimeOS Academy" }}</title>
+    <title>Certificate Registry Verification &bull; {{ $school["name"] ?? "PrimeArc Public School" }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between font-sans p-4 sm:p-8">
@@ -15,7 +15,7 @@
                 PA
             </div>
             <div>
-                <span class="text-base font-extrabold text-white block">{{ $school["name"] ?? "PrimeOS Academy" }}</span>
+                <span class="text-base font-extrabold text-white block">{{ $school["name"] ?? "PrimeArc Public School" }}</span>
                 <span class="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase">Institutional Credential Registry</span>
             </div>
         </div>
@@ -73,7 +73,7 @@
 
     <!-- Footer -->
     <footer class="max-w-xl mx-auto w-full pt-4 text-center text-xs text-slate-500 border-t border-slate-800">
-        {{ $school["name"] ?? "PrimeOS Academy" }} &bull; Certificate Registry &bull; Aim, Ascend, Achieve
+        {{ $school["name"] ?? "PrimeArc Public School" }} &bull; Certificate Registry &bull; Aim, Ascend, Achieve
     </footer>
 
 </body>

@@ -289,7 +289,7 @@ class WebAuthController extends Controller
             'student_id_number' => $studentIdNum,
             'roll_number' => ($classId && $role === 'student') ? ClassEnrollment::generateNextRollNumber($classId, null, $classAcademicYear) : null,
             'xp_points' => 100,
-            'academic_tier' => $role === 'teacher' ? 'Faculty Associate' : 'Junior Scholar',
+            'academic_tier' => $role === 'teacher' ? 'Faculty Member' : 'Enrolled Student',
             'streak_count' => 1,
             'last_active_date' => now()->toDateString(),
             'card_valid_until' => now()->addYears(2),
