@@ -5,6 +5,7 @@ namespace App\Http\Controllers\School;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
 use App\Models\AcademySetting;
+use App\Models\AttendanceRecord;
 use App\Models\Batch;
 use App\Models\ClassEnrollment;
 use App\Models\FeeInvoice;
@@ -541,8 +542,9 @@ class SchoolStudentController extends Controller
     /**
      * Show detailed student file and academic records.
      */
-    public function show(int $id): View
+    public function show(int|User $id): View
     {
+        $studentId = $id instanceof User ? $id->id : (int) $id;
         $user = Auth::user();
         abort_unless($user && ($user->isAdmin() || $user->isTeacher()), 403,
             'Unauthorized. Student profile access is reserved for faculty and administrators.');
@@ -569,7 +571,7 @@ class SchoolStudentController extends Controller
         // Attendance must be calculated from this student's own recorded sessions.
         // Counting all class sessions and comparing them with this student's records
         // mixed two different populations and could produce misleading percentages.
-        $attendanceStats = \App\Models\AttendanceRecord::query()
+        $attendanceStats = AttendanceRecord::query()
             ->where('student_id', $student->id)
             ->whereIn('status', ['present', 'absent', 'late', 'half_day', 'excused'])
             ->selectRaw("COUNT(CASE WHEN status <> 'excused' THEN 1 END) as total_sessions")
@@ -623,8 +625,9 @@ class SchoolStudentController extends Controller
         return Storage::disk('local')->download($document->file_path, $document->original_filename);
     }
 
-    public function edit(int $id): View
+    public function edit(int|User $id): View
     {
+        $studentId = $id instanceof User ? $id->id : (int) $id;
         $actor = request()->user();
         abort_unless($actor && ($actor->isAdmin() || $actor->isTeacher()), 403);
 
@@ -647,12 +650,13 @@ class SchoolStudentController extends Controller
      * parent ownership, or academic placement. Transfers and parent-link changes must
      * use dedicated workflows with their own audit and validation rules.
      */
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(Request $request, int|User $id): RedirectResponse
     {
+        $studentId = $id instanceof User ? $id->id : (int) $id;
         $actor = $request->user();
         abort_unless($actor && ($actor->isAdmin() || $actor->isTeacher()), 403);
 
-        $student = User::query()->where('role', 'student')->findOrFail($id);
+        $student = User::query()->where('role', 'student')->findOrFail($studentId);
         $this->authorizeStudentScope($student, $actor);
 
         $validated = $request->validate([

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SubjectMaster extends Model
 {
@@ -96,6 +98,22 @@ class SubjectMaster extends Model
             return $collection->where('is_already_assigned', false)->values();
         });
 
+    }
+
+    /**
+     * The default assigned teacher for this subject master.
+     */
+    public function defaultTeacher(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'default_teacher_id');
+    }
+
+    /**
+     * Academic subjects linked to this master.
+     */
+    public function subjects(): HasMany
+    {
+        return $this->hasMany(AcademicSubject::class, 'subject_master_id');
     }
 
     /**

@@ -7,8 +7,8 @@ use App\Models\AcademySetting;
 use App\Models\SchoolAdminAudit;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Http\StreamedResponse;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdministrationController extends Controller
 {

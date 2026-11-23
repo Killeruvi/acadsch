@@ -60,7 +60,31 @@
         </div>
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
             <h2 class="font-black text-sm mb-3">Leave encashment requests</h2>
-            <div class="space-y-3">@forelse($encashments as $item)<div class="border-b border-slate-100 dark:border-slate-800 pb-3"><div class="flex justify-between gap-2 text-xs"><strong>{{ Auth::user()->isAdmin() ? $item->staff_name : 'My request' }}</strong><span class="font-bold uppercase">{{ $item->status }}</span></div><p class="text-[11px] text-slate-500">{{ $item->leave_type }} · {{ $item->days_requested }} days · payroll {{ $item->payroll_month }} · {{ $item->leave_year }}</p>@if($item->approved_amount)<p class="text-xs">Approved amount: ₹{{ number_format($item->approved_amount,2) }}</p>@endif@if(Auth::user()->isAdmin() && $item->status==='pending' && (int)$item->staff_id !== (int)Auth::id())<form method="POST" action="{{ route('school.staff-attendance.leave.encashment.review',$item->id) }}" class="grid grid-cols-2 gap-2 mt-2">@csrf<input type="number" name="approved_amount" min="0.01" step="0.01" required placeholder="Approved ₹ amount" class="rounded border bg-transparent p-2 text-xs"><input name="review_remarks" maxlength="2000" placeholder="Remarks" class="rounded border bg-transparent p-2 text-xs"><button name="decision" value="approve" class="rounded bg-emerald-600 text-white p-2 text-xs font-bold">Approve</button><button name="decision" value="reject" class="rounded bg-rose-600 text-white p-2 text-xs font-bold">Reject</button></form>@endif</div>@empty<p class="text-xs text-slate-500">No encashment requests.</p>@endforelse</div>
+            <div class="space-y-3">
+                @forelse($encashments as $item)
+                    <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div class="flex justify-between gap-2 text-xs">
+                            <strong>{{ Auth::user()->isAdmin() ? $item->staff_name : 'My request' }}</strong>
+                            <span class="font-bold uppercase">{{ $item->status }}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">{{ $item->leave_type }} · {{ $item->days_requested }} days · payroll {{ $item->payroll_month }} · {{ $item->leave_year }}</p>
+                        @if($item->approved_amount)
+                            <p class="text-xs">Approved amount: ₹{{ number_format($item->approved_amount,2) }}</p>
+                        @endif
+                        @if(Auth::user()->isAdmin() && $item->status==='pending' && (int)$item->staff_id !== (int)Auth::id())
+                            <form method="POST" action="{{ route('school.staff-attendance.leave.encashment.review',$item->id) }}" class="grid grid-cols-2 gap-2 mt-2">
+                                @csrf
+                                <input type="number" name="approved_amount" min="0.01" step="0.01" required placeholder="Approved ₹ amount" class="rounded border bg-transparent p-2 text-xs">
+                                <input name="review_remarks" maxlength="2000" placeholder="Remarks" class="rounded border bg-transparent p-2 text-xs">
+                                <button name="decision" value="approve" class="rounded bg-emerald-600 text-white p-2 text-xs font-bold">Approve</button>
+                                <button name="decision" value="reject" class="rounded bg-rose-600 text-white p-2 text-xs font-bold">Reject</button>
+                            </form>
+                        @endif
+                    </div>
+                @empty
+                    <p class="text-xs text-slate-500">No encashment requests.</p>
+                @endforelse
+            </div>
         </div>
     </section>
 
