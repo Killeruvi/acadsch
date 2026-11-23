@@ -10,6 +10,7 @@ use App\Models\Course;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
 use App\Models\SchoolFeeStructure;
+use App\Models\SchoolSection;
 use App\Models\User;
 use App\Services\MonthlyFeeService;
 use App\Services\NotificationService;
@@ -865,7 +866,8 @@ class SchoolFeeController extends Controller
             $students = User::where('role', 'student')->orderBy('name')->get();
             $courses = Course::orderBy('title')->get();
             $classes = AcademicClass::orderBy('grade_level')->get();
-            $batches = Batch::where('is_active', true)->orderBy('name')->get();
+            $sections = SchoolSection::where('is_active', true)->orderBy('name')->get();
+            $batches = $sections;
             $monthlyConfig = MonthlyFeeService::getMonthlyFeeConfig();
             $manualCount = FeeInvoice::where(fn ($q) => $q->whereNull('billing_type')->orWhere('billing_type', 'manual'))->count();
             $monthlyAutoCount = FeeInvoice::where('billing_type', 'monthly_auto')->count();
@@ -891,6 +893,7 @@ class SchoolFeeController extends Controller
             'students',
             'courses',
             'classes',
+            'sections',
             'batches',
             'monthlyConfig',
             'manualCount',
@@ -999,18 +1002,22 @@ class SchoolFeeController extends Controller
             'month' => 'nullable|integer|min:1|max:12',
             'year' => 'nullable|integer|min:2020|max:2099',
             'class_id' => 'nullable|exists:academic_classes,id',
-            'batch_id' => 'nullable|exists:batches,id',
+            'section_id' => 'nullable|exists:school_sections,id',
+            'batch_id' => 'nullable',
             'amount' => 'nullable|numeric|min:1',
             'due_date' => 'nullable|date',
             'title' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:500',
         ]);
 
+        $sectionId = ! empty($validated['section_id']) ? (int) $validated['section_id'] : (! empty($validated['batch_id']) ? (int) $validated['batch_id'] : null);
+
         $result = MonthlyFeeService::generateMonthlyInvoices(
             month: ! empty($validated['month']) ? (int) $validated['month'] : null,
             year: ! empty($validated['year']) ? (int) $validated['year'] : null,
             classId: ! empty($validated['class_id']) ? (int) $validated['class_id'] : null,
-            batchId: ! empty($validated['batch_id']) ? (int) $validated['batch_id'] : null,
+            sectionId: $sectionId,
+            batchId: $sectionId,
             customAmount: ! empty($validated['amount']) ? (float) $validated['amount'] : null,
             customDueDate: $validated['due_date'] ?? null,
             customTitle: $validated['title'] ?? null,

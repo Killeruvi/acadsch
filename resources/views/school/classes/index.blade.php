@@ -204,7 +204,7 @@
                 :style="activeTab === 'classes' ? 'background: var(--system_primary_gradient);' : ''"
                 class="px-4 py-2 rounded-xl text-xs transition flex items-center space-x-2">
             <i class="ti-blackboard"></i>
-            <span>Classes &amp; Batches ({{ $stats['total_classes'] }})</span>
+            <span>Classes &amp; Sections ({{ $stats['total_classes'] }})</span>
         </button>
 
         <button type="button" 

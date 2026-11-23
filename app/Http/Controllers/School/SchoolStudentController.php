@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
 use App\Models\AcademySetting;
 use App\Models\AttendanceRecord;
-use App\Models\Batch;
 use App\Models\ClassEnrollment;
 use App\Models\FeeInvoice;
+use App\Models\SchoolSection;
 use App\Models\StudentAdmissionDocument;
 use App\Models\StudentTransportAssignment;
 use App\Models\TransportAuditLog;
@@ -981,10 +981,12 @@ class SchoolStudentController extends Controller
         }
 
         $allClasses = AcademicClass::orderBy('grade_level')->get();
-        $allBatches = Batch::where('is_active', true)->orderBy('name')->get();
+        $allSections = SchoolSection::where('is_active', true)->orderBy('name')->get();
+        $allBatches = $allSections; // Backward compatibility
 
         $selectedClassId = $request->filled('class_id') ? (int) $request->query('class_id') : null;
-        $selectedBatchId = $request->filled('batch_id') ? (int) $request->query('batch_id') : null;
+        $selectedSectionId = $request->filled('section_id') ? (int) $request->query('section_id') : ($request->filled('batch_id') ? (int) $request->query('batch_id') : null);
+        $selectedBatchId = $selectedSectionId;
         $searchTerm = trim($request->query('search', ''));
         $statusFilter = $request->query('status', 'all');
         $tierFilter = $request->query('tier', 'all');
@@ -996,8 +998,8 @@ class SchoolStudentController extends Controller
 
         $query = User::where('role', 'student')
             ->with([
-                'batch.academicClass',
-                'classEnrollments.academicClass',
+                'currentClass.schoolSection',
+                'classEnrollments.academicClass.schoolSection',
                 'feeInvoices',
                 'attendanceRecords',
             ]);
@@ -1005,12 +1007,18 @@ class SchoolStudentController extends Controller
         if ($selectedClassId) {
             $query->where(function ($q) use ($selectedClassId) {
                 $q->whereHas('classEnrollments', fn ($sub) => $sub->where('class_id', $selectedClassId))
-                    ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $selectedClassId));
+                    ->orWhere('current_class_id', $selectedClassId);
             });
         }
 
-        if ($selectedBatchId) {
-            $query->where('batch_id', $selectedBatchId);
+        if ($selectedSectionId) {
+            $sectionModel = SchoolSection::find($selectedSectionId);
+            $query->whereHas('currentClass', function ($q) use ($selectedSectionId, $sectionModel) {
+                $q->where('section_id', $selectedSectionId);
+                if ($sectionModel) {
+                    $q->orWhere('section', $sectionModel->name);
+                }
+            });
         }
 
         if (! empty($searchTerm)) {
@@ -1054,15 +1062,17 @@ class SchoolStudentController extends Controller
             $classCounts[$c->id] = User::where('role', 'student')
                 ->where(function ($q) use ($c) {
                     $q->whereHas('classEnrollments', fn ($sub) => $sub->where('class_id', $c->id))
-                        ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $c->id));
+                        ->orWhere('current_class_id', $c->id);
                 })->count();
         }
 
         return view('students.index', compact(
             'students',
             'allClasses',
+            'allSections',
             'allBatches',
             'selectedClassId',
+            'selectedSectionId',
             'selectedBatchId',
             'searchTerm',
             'statusFilter',
@@ -1153,22 +1163,28 @@ class SchoolStudentController extends Controller
         }
 
         $selectedClassId = $request->filled('class_id') ? (int) $request->query('class_id') : null;
-        $selectedBatchId = $request->filled('batch_id') ? (int) $request->query('batch_id') : null;
+        $selectedSectionId = $request->filled('section_id') ? (int) $request->query('section_id') : ($request->filled('batch_id') ? (int) $request->query('batch_id') : null);
         $searchTerm = trim($request->query('search', ''));
 
         $query = User::where('role', 'student')
-            ->with(['batch.academicClass', 'classEnrollments.academicClass', 'feeInvoices'])
+            ->with(['currentClass.schoolSection', 'classEnrollments.academicClass.schoolSection', 'feeInvoices'])
             ->orderBy('name', 'asc');
 
         if ($selectedClassId) {
             $query->where(function ($q) use ($selectedClassId) {
                 $q->whereHas('classEnrollments', fn ($sub) => $sub->where('class_id', $selectedClassId))
-                    ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $selectedClassId));
+                    ->orWhere('current_class_id', $selectedClassId);
             });
         }
 
-        if ($selectedBatchId) {
-            $query->where('batch_id', $selectedBatchId);
+        if ($selectedSectionId) {
+            $sectionModel = SchoolSection::find($selectedSectionId);
+            $query->whereHas('currentClass', function ($q) use ($selectedSectionId, $sectionModel) {
+                $q->where('section_id', $selectedSectionId);
+                if ($sectionModel) {
+                    $q->orWhere('section', $sectionModel->name);
+                }
+            });
         }
 
         if (! empty($searchTerm)) {
@@ -1197,15 +1213,15 @@ class SchoolStudentController extends Controller
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             fputcsv($handle, [
-                'Student ID', 'Full Name', 'Academic Class', 'Section', 'Roll Number',
-                'Batch Name', 'Batch Shift', 'Batch Timings', 'Phone Number', 'Email Address',
+                'Student ID', 'Full Name', 'Academic Class', 'Section', 'Stream', 'Roll Number',
+                'Room Number', 'Phone Number', 'Email Address',
                 'Date of Birth', 'Blood Group', 'Guardian Name', 'Guardian Phone', 'Guardian Email',
                 'Residential Address', 'Academic Tier', 'XP Points', 'Streak Count', 'Approval Status', 'Card Valid Until',
             ]);
 
             foreach ($students as $s) {
                 $enrollment = $s->classEnrollments->first();
-                $academicClass = $enrollment?->academicClass ?? $s->batch?->academicClass;
+                $academicClass = $enrollment?->academicClass ?? $s->currentClass;
                 $rollNumber = $enrollment?->roll_number ?? 'N/A';
 
                 fputcsv($handle, [
@@ -1213,10 +1229,9 @@ class SchoolStudentController extends Controller
                     $s->name,
                     $academicClass?->name ?? 'Unassigned',
                     $academicClass?->section ?? 'A',
+                    $academicClass?->stream ?? 'General',
                     $rollNumber,
-                    $s->batch?->name ?? 'Unassigned Batch',
-                    $s->batch?->shift ?? 'N/A',
-                    $s->batch?->timing_slot ?? 'N/A',
+                    $academicClass?->room_number ?? 'Room 101',
                     $s->phone ?? 'N/A',
                     $s->email,
                     $s->date_of_birth ? $s->date_of_birth->format('Y-m-d') : 'N/A',
@@ -1247,22 +1262,28 @@ class SchoolStudentController extends Controller
         }
 
         $selectedClassId = $request->filled('class_id') ? (int) $request->query('class_id') : null;
-        $selectedBatchId = $request->filled('batch_id') ? (int) $request->query('batch_id') : null;
+        $selectedSectionId = $request->filled('section_id') ? (int) $request->query('section_id') : ($request->filled('batch_id') ? (int) $request->query('batch_id') : null);
         $searchTerm = trim($request->query('search', ''));
 
         $query = User::where('role', 'student')
-            ->with(['batch.academicClass', 'classEnrollments.academicClass'])
+            ->with(['currentClass.schoolSection', 'classEnrollments.academicClass.schoolSection'])
             ->orderBy('name', 'asc');
 
         if ($selectedClassId) {
             $query->where(function ($q) use ($selectedClassId) {
                 $q->whereHas('classEnrollments', fn ($sub) => $sub->where('class_id', $selectedClassId))
-                    ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $selectedClassId));
+                    ->orWhere('current_class_id', $selectedClassId);
             });
         }
 
-        if ($selectedBatchId) {
-            $query->where('batch_id', $selectedBatchId);
+        if ($selectedSectionId) {
+            $sectionModel = SchoolSection::find($selectedSectionId);
+            $query->whereHas('currentClass', function ($q) use ($selectedSectionId, $sectionModel) {
+                $q->where('section_id', $selectedSectionId);
+                if ($sectionModel) {
+                    $q->orWhere('section', $sectionModel->name);
+                }
+            });
         }
 
         if (! empty($searchTerm)) {
@@ -1276,7 +1297,7 @@ class SchoolStudentController extends Controller
 
         $students = $query->get()->map(function ($s) {
             $enrollment = $s->classEnrollments->first();
-            $academicClass = $enrollment?->academicClass ?? $s->batch?->academicClass;
+            $academicClass = $enrollment?->academicClass ?? $s->currentClass;
 
             return [
                 'id' => $s->id,
@@ -1284,10 +1305,9 @@ class SchoolStudentController extends Controller
                 'name' => $s->name,
                 'class' => $academicClass?->name ?? 'Unassigned',
                 'section' => $academicClass?->section ?? 'A',
+                'stream' => $academicClass?->stream ?? 'General',
                 'roll_number' => $enrollment?->roll_number ?? null,
-                'batch_name' => $s->batch?->name ?? null,
-                'batch_shift' => $s->batch?->shift ?? null,
-                'batch_timings' => $s->batch?->timing_slot ?? null,
+                'room_number' => $academicClass?->room_number ?? '101',
                 'phone' => $s->phone,
                 'email' => $s->email,
                 'guardian_name' => $s->guardian_name,

@@ -205,7 +205,11 @@
                     <span class="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs" style="background: var(--system_primary_gradient);">
                         {{ Auth::user()->isAdmin() ? 'ADMIN' : (Auth::user()->isTeacher() ? 'FACULTY' : (Auth::user()->isParent() ? 'GUARDIAN' : (Auth::user()->isCashier() ? 'CASHIER' : 'STUDENT'))) }}
                     </span>
-                    @if(Auth::user()->batch)
+                    @if(Auth::user()->currentClass)
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        {{ Auth::user()->currentClass->display_name }}
+                    </span>
+                    @elseif(Auth::user()->batch)
                     <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                         {{ $user->batch->name ?? Auth::user()->batch->name }}
                     </span>
@@ -284,9 +288,9 @@
                         </li>
                         @endif
                         <li>
-                            <a href="{{ route('my-batch') }}" class="{{ request()->routeIs('my-batch*') || request()->routeIs('batches.*') ? 'active infix-nav-active' : '' }}">
+                            <a href="{{ route('school.sections.index') }}" class="{{ request()->routeIs('school.sections.*') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
-                                <span>Batches &amp; Shifts</span>
+                                <span>Class Sections Hub</span>
                             </a>
                         </li>
                         <li>
@@ -754,7 +758,7 @@
                 <li>
                     <a href="{{ route('my-batch') }}" class="{{ request()->routeIs('my-batch*') ? 'active infix-nav-active' : '' }}">
                         <div class="infix-nav-icon"><i class="ti-bookmark-alt"></i></div>
-                        <div class="nav_title"><span>My Class &amp; Batch</span></div>
+                        <div class="nav_title"><span>My Class &amp; Section</span></div>
                     </a>
                 </li>
                 <li>
@@ -1124,9 +1128,8 @@
         const GLOBAL_SEARCH_INDEX = [
             // Academics
             { title: 'Classes & Streams', category: 'Academics', icon: 'ti-layers-alt', url: '{{ route('school.classes.index') }}', keywords: 'class grade stream section academic setup' },
-            { title: 'Sections Hub', category: 'Academics', icon: 'ti-layout-grid2', url: '{{ route('school.sections.index') }}', keywords: 'sections division class room batches' },
+            { title: 'Sections Hub', category: 'Academics', icon: 'ti-layout-grid2', url: '{{ route('school.sections.index') }}', keywords: 'sections division class room' },
             { title: 'Curriculum Subjects', category: 'Academics', icon: 'ti-book', url: '{{ route('school.subjects.index') }}', keywords: 'subjects courses curriculum books syllabus' },
-            { title: 'Batches & Shifts', category: 'Academics', icon: 'ti-archive', url: '{{ route('my-batch') }}', keywords: 'batch shifts timings morning evening' },
             { title: 'Chapterwise Syllabus', category: 'Academics', icon: 'ti-view-list', url: '{{ route('syllabus.index') }}', keywords: 'syllabus chapters topics lesson plan progress' },
             { title: 'Class Timetable', category: 'Academics', icon: 'ti-calendar', url: '{{ route('school.timetable.index') }}', keywords: 'timetable schedule routine periods slots' },
             { title: 'School Holidays', category: 'Academics', icon: 'ti-calendar', url: '{{ route('school.holidays.index') }}', keywords: 'holidays vacation calendar festival leaves' },

@@ -566,8 +566,8 @@
                         <button type="button" @click="targetScope = 'class'" :class="targetScope === 'class' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'" class="py-1.5 px-2 rounded-lg border text-center font-bold text-[11px] transition">
                             By Class
                         </button>
-                        <button type="button" @click="targetScope = 'batch'" :class="targetScope === 'batch' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'" class="py-1.5 px-2 rounded-lg border text-center font-bold text-[11px] transition">
-                            By Batch
+                        <button type="button" @click="targetScope = 'section'" :class="targetScope === 'section' ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'" class="py-1.5 px-2 rounded-lg border text-center font-bold text-[11px] transition">
+                            By Section
                         </button>
                     </div>
 
@@ -580,11 +580,11 @@
                         </select>
                     </div>
 
-                    <div x-show="targetScope === 'batch'" x-cloak class="mt-2">
-                        <select name="batch_id" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs">
-                            <option value="">Select Class Batch...</option>
-                            @foreach($batches ?? [] as $bt)
-                                <option value="{{ $bt->id }}">{{ $bt->name }} ({{ $bt->code }})</option>
+                    <div x-show="targetScope === 'section'" x-cloak class="mt-2">
+                        <select name="section_id" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs">
+                            <option value="">Select Class Section...</option>
+                            @foreach($sections ?? $batches ?? [] as $sec)
+                                <option value="{{ $sec->id }}">Section {{ $sec->name }} ({{ $sec->stream ?? 'General' }})</option>
                             @endforeach
                         </select>
                     </div>

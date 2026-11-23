@@ -42,7 +42,7 @@
                 </span>
             </div>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Manage reusable class divisions, room capacities, and batch assignments across streams.
+                Manage reusable class divisions, room capacities, and section assignments across streams.
             </p>
         </div>
 

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AcademicClass;
 use App\Models\AcademySetting;
 use App\Models\FeeInvoice;
+use App\Models\SchoolSection;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -87,7 +88,8 @@ class MonthlyFeeService
         ?float $customAmount = null,
         ?string $customDueDate = null,
         ?string $customTitle = null,
-        ?string $notes = null
+        ?string $notes = null,
+        ?int $sectionId = null
     ): array {
         self::ensureSchemaExists();
 
@@ -128,18 +130,23 @@ class MonthlyFeeService
         $invoiceNotes = $notes ?: ($config['notes_template']." ({$monthName} {$year})");
 
         // Identify Target Students
-        $query = User::with(['currentClass.feeStructures', 'batch.academicClass.feeStructures', 'parent'])
+        $query = User::with(['currentClass.feeStructures', 'currentClass.schoolSection', 'parent'])
             ->where('role', 'student')
             ->where('is_approved', true);
 
-        if ($batchId) {
-            $query->where('batch_id', $batchId);
+        $targetSection = $sectionId ?? $batchId;
+        if ($targetSection) {
+            $query->whereHas('currentClass', function ($q) use ($targetSection) {
+                $q->where('section_id', $targetSection)
+                    ->orWhere('section', function ($sq) use ($targetSection) {
+                        return SchoolSection::where('id', $targetSection)->select('name');
+                    });
+            });
         }
 
         if ($classId) {
             $query->where(function ($sub) use ($classId) {
-                $sub->whereHas('batch', fn ($q) => $q->where('class_id', $classId))
-                    ->orWhereHas('classEnrollments', fn ($q) => $q->where('class_id', $classId))
+                $sub->whereHas('classEnrollments', fn ($q) => $q->where('class_id', $classId))
                     ->orWhere('current_class_id', $classId);
             });
         }

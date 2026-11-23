@@ -24,8 +24,8 @@
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                         <span>{{ $academicClass->name ?? 'Grade ' . $academicClass->grade_level }}</span>
                     </span>
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                        {{ $batch->code ?? 'BATCH' }}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
+                        Section {{ $academicClass?->section ?? 'A' }}
                     </span>
                     @if(!empty($batch->timing_slot))
                     <span class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
@@ -45,7 +45,7 @@
                 <a href="{{ route('batches.select', ['class_id' => $batch->class_id]) }}"
                    class="px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center space-x-1">
                     <span>🔄</span>
-                    <span>Change Class / Batch</span>
+                    <span>Change Class / Section</span>
                 </a>
             </div>
             @endif

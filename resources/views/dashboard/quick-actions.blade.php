@@ -24,8 +24,8 @@
             <i class="ti-palette text-xs"></i> <span>Themes</span>
         </a>
         @endif
-        <a href="{{ route('my-batch') }}" class="primary-btn" style="padding: 0.4rem 1rem; font-size: 0.75rem;">
-            <span>🎒 My Batch</span>
+        <a href="{{ $user->isAdmin() || $user->isTeacher() ? route('school.sections.index') : route('my-batch') }}" class="primary-btn" style="padding: 0.4rem 1rem; font-size: 0.75rem;">
+            <span>🏫 Class &amp; Sections</span>
         </a>
         <a href="{{ route('schedules.index') }}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold transition flex items-center space-x-1">
             <i class="ti-calendar text-xs"></i>

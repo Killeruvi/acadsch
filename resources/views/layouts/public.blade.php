@@ -267,7 +267,7 @@
                         <li><a href="{{ route('blooms.index') }}" class="hover:text-white transition">Bloom's Taxonomy Framework</a></li>
                         <li><a href="{{ route('syllabus.index') }}" class="hover:text-white transition">Chapterwise Syllabus</a></li>
                         <li><a href="{{ route('videos.index') }}" class="hover:text-white transition">Video Lecture Hub</a></li>
-                        <li><a href="{{ route('my-batch') }}" class="hover:text-white transition">My Class &amp; Batch</a></li>
+                        <li><a href="{{ route('my-batch') }}" class="hover:text-white transition">My Class &amp; Section</a></li>
                     </ul>
                 </div>
 
@@ -276,7 +276,7 @@
                     <h3 class="font-bold uppercase tracking-wider text-white text-[11px]">Institutional</h3>
                     <ul class="space-y-1.5 opacity-80 font-medium">
                         <li><a href="{{ route('about') }}" class="hover:text-white transition">About Academy</a></li>
-                        <li><a href="{{ route('admissions') }}" class="hover:text-white transition">Admissions &amp; Batches</a></li>
+                        <li><a href="{{ route('admissions') }}" class="hover:text-white transition">Admissions &amp; Enrollment</a></li>
                         <li><a href="{{ route('contact') }}" class="hover:text-white transition">Contact &amp; Inquiries</a></li>
                         <li><a href="{{ route('privacy-policy') }}" class="hover:text-white transition">Privacy Policy</a></li>
                         <li><a href="{{ route('terms') }}" class="hover:text-white transition">Terms &amp; Conditions</a></li>

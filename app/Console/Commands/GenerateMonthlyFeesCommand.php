@@ -14,7 +14,8 @@ class GenerateMonthlyFeesCommand extends Command
                             {--month= : Target month (1-12)}
                             {--year= : Target 4-digit year}
                             {--class= : Filter by Class ID}
-                            {--batch= : Filter by Batch ID}
+                            {--section= : Filter by Section ID}
+                            {--batch= : Legacy alias for Section ID}
                             {--amount= : Custom monthly fee amount}
                             {--due= : Custom due date (YYYY-MM-DD)}
                             {--title= : Custom invoice title}
@@ -42,7 +43,7 @@ class GenerateMonthlyFeesCommand extends Command
         $month = $this->option('month') ? (int) $this->option('month') : null;
         $year = $this->option('year') ? (int) $this->option('year') : null;
         $classId = $this->option('class') ? (int) $this->option('class') : null;
-        $batchId = $this->option('batch') ? (int) $this->option('batch') : null;
+        $sectionId = $this->option('section') ? (int) $this->option('section') : ($this->option('batch') ? (int) $this->option('batch') : null);
         $amount = $this->option('amount') ? (float) $this->option('amount') : null;
         $due = $this->option('due') ?: null;
         $title = $this->option('title') ?: null;
@@ -53,10 +54,11 @@ class GenerateMonthlyFeesCommand extends Command
             month: $month,
             year: $year,
             classId: $classId,
-            batchId: $batchId,
+            batchId: $sectionId,
             customAmount: $amount,
             customDueDate: $due,
-            customTitle: $title
+            customTitle: $title,
+            sectionId: $sectionId
         );
 
         $this->table(

@@ -13,7 +13,7 @@
             `Full Name: ${student.name}\n` +
             `Class: ${student.class_name || 'Unassigned'} (Section: ${student.section || 'A'})\n` +
             `Roll Number: ${student.roll_number || 'N/A'}\n` +
-            `Batch: ${student.batch_name || 'N/A'} (${student.batch_shift || ''} ${student.batch_timings || ''})\n` +
+            `Section: Section ${student.section || 'A'} (${student.stream || 'General'})\n` +
             `Phone: ${student.phone || 'N/A'}\n` +
             `Email: ${student.email}\n` +
             `Date of Birth: ${student.date_of_birth || 'N/A'}\n` +
@@ -35,19 +35,19 @@
     copyAllVisible() {
         const table = document.getElementById('students-roster-table');
         if (!table) return;
-        let text = 'Roll\tStudent ID\tName\tClass\tBatch\tPhone\tEmail\tGuardian\tGuardian Phone\n';
+        let text = 'Roll\tStudent ID\tName\tClass\tSection\tPhone\tEmail\tGuardian\tGuardian Phone\n';
         const rows = table.querySelectorAll('tbody tr.student-row');
         rows.forEach(r => {
             const roll = r.dataset.roll || '-';
             const sid = r.dataset.sid || '-';
             const name = r.dataset.name || '-';
             const cls = r.dataset.cls || '-';
-            const batch = r.dataset.batch || '-';
+            const section = r.dataset.section || r.dataset.batch || 'A';
             const phone = r.dataset.phone || '-';
             const email = r.dataset.email || '-';
             const gname = r.dataset.gname || '-';
             const gphone = r.dataset.gphone || '-';
-            text += `${roll}\t${sid}\t${name}\t${cls}\t${batch}\t${phone}\t${email}\t${gname}\t${gphone}\n`;
+            text += `${roll}\t${sid}\t${name}\t${cls}\t${section}\t${phone}\t${email}\t${gname}\t${gphone}\n`;
         });
         navigator.clipboard.writeText(text).then(() => {
             this.toastMessage = `Copied ${rows.length} visible student records to clipboard!`;
@@ -137,8 +137,8 @@
                 <div class="text-lg font-black text-blue-700 dark:text-blue-300">{{ $allClasses->count() }} Classes</div>
             </div>
             <div class="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/60">
-                <span class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Active Batches</span>
-                <div class="text-lg font-black text-amber-700 dark:text-amber-300">{{ $allBatches->count() }} Batches</div>
+                <span class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Class Sections</span>
+                <div class="text-lg font-black text-amber-700 dark:text-amber-300">{{ ($allSections ?? $allBatches)->count() }} Sections</div>
             </div>
         </div>
     </div>
@@ -195,18 +195,18 @@
                     </div>
                 </div>
 
-                <!-- Batch Filter -->
+                <!-- Section Filter -->
                 <div>
-                    <label for="batch_id" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                        Batch / Shift
+                    <label for="section_id" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                        Class Section
                     </label>
-                    <select id="batch_id" 
-                            name="batch_id" 
+                    <select id="section_id" 
+                            name="section_id" 
                             class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs">
-                        <option value="">All Batches</option>
-                        @foreach($allBatches as $b)
-                            <option value="{{ $b->id }}" {{ $selectedBatchId == $b->id ? 'selected' : '' }}>
-                                {{ $b->name }} ({{ ucfirst($b->shift ?? 'standard') }})
+                        <option value="">All Sections</option>
+                        @foreach($allSections ?? $allBatches as $sec)
+                            <option value="{{ $sec->id }}" {{ ($selectedSectionId ?? $selectedBatchId) == $sec->id ? 'selected' : '' }}>
+                                Section {{ $sec->name }} ({{ $sec->stream ?? 'General' }})
                             </option>
                         @endforeach
                     </select>
@@ -296,7 +296,7 @@
                     <tr class="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                         <th class="p-3 w-14 text-center">Roll</th>
                         <th class="p-3">Student Dossier</th>
-                        <th class="p-3">Class &amp; Batch</th>
+                        <th class="p-3">Class &amp; Section</th>
                         <th class="p-3">Contact Details</th>
                         <th class="p-3">Guardian Info</th>
                         <th class="p-3">Scholar Tier &amp; XP</th>
@@ -307,11 +307,11 @@
                     @foreach($students as $s)
                     @php
                         $enrollment = $s->classEnrollments->first();
-                        $academicClass = $enrollment?->academicClass ?? $s->batch?->academicClass;
+                        $academicClass = $enrollment?->academicClass ?? $s->currentClass;
                         $rollNumber = $enrollment?->roll_number ?? 'N/A';
-                        $batchName = $s->batch?->name ?? 'Unassigned';
-                        $batchShift = $s->batch?->shift ? ucfirst($s->batch->shift) : '';
-                        $batchTiming = $s->batch?->timing_slot ?? '';
+                        $sectionName = $academicClass?->section ?? 'A';
+                        $streamName = $academicClass?->stream ?? 'General';
+                        $batchName = 'Section ' . $sectionName;
 
                         // Prepare student json for Alpine modal
                         $modalStudentData = [
@@ -320,12 +320,13 @@
                             'student_id_number' => $s->student_id_number,
                             'email' => $s->email,
                             'phone' => $s->phone,
-                            'class_name' => $academicClass?->display_name ?? 'Unassigned',
-                            'section' => $academicClass?->section ?? 'A',
+                            'class_name' => $academicClass?->name ?? 'Unassigned',
+                            'section' => $sectionName,
+                            'stream' => $streamName,
                             'roll_number' => $rollNumber,
                             'batch_name' => $batchName,
-                            'batch_shift' => $batchShift,
-                            'batch_timings' => $batchTiming,
+                            'batch_shift' => $streamName,
+                            'batch_timings' => $academicClass?->room_number ?? 'Room 101',
                             'guardian_name' => $s->guardian_name,
                             'guardian_phone' => $s->guardian_phone,
                             'guardian_email' => $s->guardian_email,
@@ -344,6 +345,7 @@
                         data-sid="{{ $s->student_id_number }}"
                         data-name="{{ $s->name }}"
                         data-cls="{{ $academicClass?->display_name ?? 'N/A' }}"
+                        data-section="{{ $sectionName }}"
                         data-batch="{{ $batchName }}"
                         data-phone="{{ $s->phone ?? 'N/A' }}"
                         data-email="{{ $s->email }}"
@@ -387,23 +389,20 @@
                             </div>
                         </td>
 
-                        <!-- 3. CLASS & BATCH -->
+                        <!-- 3. CLASS & SECTION -->
                         <td class="p-3 align-middle">
                             <div class="space-y-1">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                                     {{ $academicClass?->display_name ?? 'Unassigned Class' }}
                                 </span>
                                 <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                                    {{ $batchName }}
-                                    @if($batchShift)
-                                        &bull; <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $batchShift }}</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300">
+                                        Section {{ $academicClass?->section ?? 'A' }}
+                                    </span>
+                                    @if($academicClass?->room_number)
+                                        &bull; <span class="font-semibold text-slate-600 dark:text-slate-400">📍 {{ $academicClass->room_number }}</span>
                                     @endif
                                 </div>
-                                @if($batchTiming)
-                                <div class="text-[10px] text-slate-400 dark:text-slate-500">
-                                    ⏰ {{ $batchTiming }}
-                                </div>
-                                @endif
                             </div>
                         </td>
 
@@ -538,8 +537,8 @@
                                 <div class="font-bold text-slate-900 dark:text-white mt-0.5" x-text="activeModalStudent.class_name + ' (Sec ' + activeModalStudent.section + ')'"></div>
                             </div>
                             <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                                <span class="text-[10px] font-bold uppercase text-slate-500">Batch &amp; Shift</span>
-                                <div class="font-bold text-slate-900 dark:text-white mt-0.5" x-text="activeModalStudent.batch_name + ' (' + activeModalStudent.batch_shift + ')'"></div>
+                                <span class="text-[10px] font-bold uppercase text-slate-500">Section &amp; Stream</span>
+                                <div class="font-bold text-slate-900 dark:text-white mt-0.5" x-text="'Section ' + activeModalStudent.section + ' (' + activeModalStudent.stream + ')'"></div>
                             </div>
                         </div>
 

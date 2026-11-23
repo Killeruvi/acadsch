@@ -124,17 +124,17 @@
 
         <!-- 3. MINIMALIST BORDER DIVIDERS: 2 COLUMN FLAT PANELS (ENROLLED COURSES, DELIVERABLES & SCHEDULE) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <!-- Left 2 Cols: My Batch & Assignments Table -->
+            <!-- Left 2 Cols: My Section & Assignments Table -->
             <div class="lg:col-span-2 space-y-3">
-                <!-- Enrolled Courses & My Batch Flat Panel -->
+                <!-- Enrolled Courses & My Section Flat Panel -->
                 <div class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-3 transition-colors">
                     <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                         <div>
-                            <h3 class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">My Academic Batch &amp; Courses</h3>
-                            <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ $user->batch->name ?? 'Enrolled Batch' }}</span>
+                            <h3 class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">My Class, Section &amp; Courses</h3>
+                            <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ $user->currentClass?->display_name ?? $user->batch?->name ?? 'Enrolled Class' }}</span>
                         </div>
                         <a href="{{ route('my-batch') }}" class="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-xs">
-                            Open My Batch &rarr;
+                            Open Classroom &rarr;
                         </a>
                     </div>
 

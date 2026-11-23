@@ -48,11 +48,11 @@
                     </span>
                 </div>
                 <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
-                    <span>Class: <strong class="text-slate-700 dark:text-slate-300">{{ $activeEnrollment?->academicClass?->name ?? 'Unassigned' }}</strong></span>
+                    <span>Class: <strong class="text-slate-700 dark:text-slate-300">{{ $activeEnrollment?->academicClass?->name ?? $student->currentClass?->name ?? 'Unassigned' }}</strong></span>
+                    <span>&bull;</span>
+                    <span>Section: <strong class="text-slate-700 dark:text-slate-300">Section {{ $activeEnrollment?->academicClass?->section ?? $student->currentClass?->section ?? 'A' }}</strong></span>
                     <span>&bull;</span>
                     <span>Roll: <strong class="font-mono text-slate-700 dark:text-slate-300">{{ $activeEnrollment?->roll_number ?? 'Not assigned' }}</strong></span>
-                    <span>&bull;</span>
-                    <span>Batch: <strong class="text-slate-700 dark:text-slate-300">{{ $student->batch?->name ?? 'Not assigned' }}</strong></span>
                 </div>
             </div>
         </div>
@@ -166,16 +166,16 @@
                     <strong class="text-slate-800 dark:text-slate-200">{{ $activeEnrollment?->academicClass?->name ?? 'Unassigned' }}</strong>
                 </div>
                 <div class="py-2 flex justify-between">
-                    <span class="text-slate-500">Assigned Batch:</span>
-                    <strong class="text-slate-800 dark:text-slate-200">{{ $student->batch?->name ?? 'Not assigned' }}</strong>
+                    <span class="text-slate-500">Section:</span>
+                    <strong class="text-slate-800 dark:text-slate-200">Section {{ $activeEnrollment?->academicClass?->section ?? $student->currentClass?->section ?? 'A' }}</strong>
                 </div>
                 <div class="py-2 flex justify-between">
-                    <span class="text-slate-500">Batch Shift:</span>
-                    <strong class="text-slate-800 dark:text-slate-200 uppercase font-mono">{{ $student->batch?->shift ?? 'Not configured' }}</strong>
+                    <span class="text-slate-500">Stream:</span>
+                    <strong class="text-slate-800 dark:text-slate-200">{{ $activeEnrollment?->academicClass?->stream ?? $student->currentClass?->stream ?? 'General' }}</strong>
                 </div>
                 <div class="py-2 flex justify-between">
-                    <span class="text-slate-500">Schedule Timings:</span>
-                    <strong class="text-slate-800 dark:text-slate-200 font-mono">{{ $student->batch?->timing_slot ?? 'Not configured' }}</strong>
+                    <span class="text-slate-500">Room Number:</span>
+                    <strong class="text-slate-800 dark:text-slate-200 font-mono">{{ $activeEnrollment?->academicClass?->room_number ?? 'Room 101' }}</strong>
                 </div>
                 <div class="py-2 flex justify-between">
                     <span class="text-slate-500">Registration Date:</span>
