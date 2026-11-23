@@ -1,0 +1,271 @@
+/* ========================================================================= */
+/* INFIX LMS PURE GLASS BLUR SPINNER SYSTEM — STRICTLY NO SOLID BACKGROUND   */
+/* ========================================================================= */
+
+/* Fullscreen Initial Page Blur Overlay */
+.preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    z-index: 99999;
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .preloader {
+    background: transparent !important;
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+/* SPA Transition Inline Backdrop Blur */
+.spa-spinner-backdrop {
+    background: transparent !important;
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+}
+
+.dark .spa-spinner-backdrop {
+    background: transparent !important;
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+}
+
+/* Pure Frosted Glass Capsule (Translucent Glass — No Solid Background) */
+.preloader .preloader-card,
+.spa-spinner-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.75rem 2.25rem;
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.45);
+    position: relative;
+    overflow: hidden;
+    min-width: 170px;
+}
+
+.dark .preloader .preloader-card,
+.dark .spa-spinner-card {
+    background: rgba(15, 23, 42, 0.25) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+/* Subtle Shimmer Sheen Behind the Spinner */
+.preloader .preloader-card::before,
+.spa-spinner-card::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, var(--system_primery_color_20, rgba(124, 50, 255, 0.15)) 0%, transparent 65%);
+    pointer-events: none;
+    animation: infixAuraPulse 4s ease-in-out infinite alternate;
+}
+
+/* ========================================================================= */
+/* LUXURY MULTI-RING ORBITAL SPINNER ANIMATION                               */
+/* ========================================================================= */
+
+.infix-spinner-wrapper,
+.infix-spinner {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Outer Orbiting Gradient Ring */
+.infix-spinner-ring.outer-ring,
+.infix-spinner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3.5px solid transparent;
+    border-top-color: var(--system_primery_color, #7c32ff);
+    border-right-color: var(--system_accent_color, #c738d8);
+    animation: infixOrbitalSpin 1.35s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+    filter: drop-shadow(0 0 10px var(--system_primery_color_50, rgba(124, 50, 255, 0.55)));
+}
+
+/* Middle Counter-Rotating Accent Ring */
+.infix-spinner-ring.middle-ring,
+.infix-spinner::after {
+    content: "";
+    position: absolute;
+    inset: 9px;
+    border-radius: 50%;
+    border: 2.5px solid transparent;
+    border-bottom-color: var(--system_accent_color, #c738d8);
+    border-left-color: #38bdf8;
+    animation: infixCounterSpin 1.05s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite reverse;
+    filter: drop-shadow(0 0 8px var(--system_accent_color_40, rgba(199, 56, 216, 0.4)));
+}
+
+/* Inner Precision Micro-Ring */
+.infix-spinner-ring.inner-ring {
+    position: absolute;
+    inset: 18px;
+    border-radius: 50%;
+    border: 1.5px dashed rgba(255, 255, 255, 0.65);
+    border-top-color: var(--system_primery_color, #7c32ff);
+    animation: infixOrbitalSpin 0.85s linear infinite;
+    opacity: 0.85;
+}
+
+.dark .infix-spinner-ring.inner-ring {
+    border-color: rgba(255, 255, 255, 0.35);
+    border-top-color: var(--system_accent_color, #c738d8);
+}
+
+/* Central Radiant Gemstone Core */
+.infix-spinner-core {
+    position: relative;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, var(--system_accent_color, #c738d8) 45%, var(--system_primery_color, #7c32ff) 100%);
+    box-shadow: 0 0 18px var(--system_primery_color, #7c32ff), 0 0 8px #ffffff;
+    animation: infixCorePulse 1.25s ease-in-out infinite alternate;
+    z-index: 2;
+}
+
+/* Satellite Orbital Particle 1 (Outer Orbit) */
+.infix-spinner-orbit-dot {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 10px #ffffff, 0 0 14px var(--system_accent_color, #c738d8);
+    top: -3.5px;
+    left: calc(50% - 3.5px);
+    transform-origin: 3.5px 37.5px;
+    animation: infixSatelliteOuter 1.35s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+    z-index: 3;
+}
+
+/* Satellite Orbital Particle 2 (Middle Orbit, Counter-spinning) */
+.infix-spinner-orbit-dot-2 {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8, 0 0 12px var(--system_primery_color, #7c32ff);
+    bottom: 6px;
+    left: calc(50% - 2.5px);
+    transform-origin: 2.5px -22px;
+    animation: infixSatelliteInner 1.05s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite reverse;
+    z-index: 3;
+}
+
+/* Keyframe Animations */
+@keyframes infixOrbitalSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes infixCounterSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes infixSatelliteOuter {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes infixSatelliteInner {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes infixCorePulse {
+    0% {
+        transform: scale(0.85);
+        opacity: 0.85;
+        box-shadow: 0 0 12px var(--system_primery_color, #7c32ff), 0 0 4px #ffffff;
+    }
+    100% {
+        transform: scale(1.2);
+        opacity: 1;
+        box-shadow: 0 0 24px var(--system_primery_color, #7c32ff), 0 0 12px var(--system_accent_color, #c738d8), 0 0 6px #ffffff;
+    }
+}
+
+@keyframes infixAuraPulse {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.4;
+    }
+    100% {
+        transform: scale(1.2);
+        opacity: 0.85;
+    }
+}
+
+/* Shimmer Brand Typography */
+.preloader .spinner-title,
+.spa-spinner-title {
+    margin-top: 1.15rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-family: var(--font_family1, 'Poppins', sans-serif);
+    background: linear-gradient(90deg, var(--system_primery_color, #7c32ff) 0%, var(--system_accent_color, #c738d8) 50%, var(--system_primery_color, #7c32ff) 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: infixShimmer 2.2s linear infinite;
+    display: inline-block;
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes infixShimmer {
+    0% {
+        background-position: 0% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}

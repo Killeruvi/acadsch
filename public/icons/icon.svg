@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#020617"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="crestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="50%" stop-color="#14b8a6"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fcd34d"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded rectangle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- Outer subtle border -->
+  <rect x="8" y="8" width="496" height="496" rx="104" fill="none" stroke="url(#crestGrad)" stroke-width="4" stroke-opacity="0.35"/>
+
+  <!-- Shield Crest Background -->
+  <path d="M256 64 C350 64 400 90 400 190 C400 320 256 420 256 420 C256 420 112 320 112 190 C112 90 162 64 256 64 Z" 
+        fill="url(#crestGrad)" filter="url(#glow)" opacity="0.95"/>
+
+  <!-- Inner Shield Contrast -->
+  <path d="M256 84 C335 84 376 106 376 194 C376 304 256 392 256 392 C256 392 136 304 136 194 C136 106 177 84 256 84 Z" 
+        fill="#0b1120"/>
+
+  <!-- Academic Star of Excellence -->
+  <polygon points="256,108 266,134 294,134 271,151 280,176 256,160 232,176 241,151 218,134 246,134" 
+           fill="url(#goldGrad)"/>
+
+  <!-- Institutional Monogram PA -->
+  <text x="256" y="295" 
+        font-family="system-ui, -apple-system, sans-serif" 
+        font-size="150" 
+        font-weight="900" 
+        fill="#ffffff" 
+        text-anchor="middle" 
+        letter-spacing="-6">PA</text>
+
+  <!-- Laurel / Ribbon Arc Accent -->
+  <path d="M176 330 Q256 364 336 330" 
+        fill="none" 
+        stroke="url(#crestGrad)" 
+        stroke-width="10" 
+        stroke-linecap="round"/>
+
+  <!-- Bharat Chakra Motif Subtle Center Accent -->
+  <circle cx="256" cy="347" r="6" fill="url(#goldGrad)"/>
+</svg>

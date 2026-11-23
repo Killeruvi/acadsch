@@ -1,0 +1,6 @@
+Admission No,Roll No,Class,Section,Student Name,Email,Phone,Guardian Name,Guardian Phone,Guardian Email,Blood Group
+ADM-2026-0001,101,Class 10,A,Aarav Sharma,aarav.sharma@example.com,+91 98765 43210,Rajesh Sharma,+91 98765 00001,rajesh.sharma@example.com,O+
+ADM-2026-0002,102,Class 10,A,Diya Patel,diya.patel@example.com,+91 98765 43211,Suresh Patel,+91 98765 00002,suresh.patel@example.com,B+
+ADM-2026-0003,103,Class 10,B,Rohan Verma,rohan.verma@example.com,+91 98765 43212,Anil Verma,+91 98765 00003,anil.verma@example.com,A+
+ADM-2026-0004,104,Class 9,A,Ananya Deshmukh,ananya.deshmukh@example.com,+91 98765 43213,Prakash Deshmukh,+91 98765 00004,prakash.deshmukh@example.com,AB+
+ADM-2026-0005,105,Class 9,A,Kabir Khan,kabir.khan@example.com,+91 98765 43214,Tariq Khan,+91 98765 00005,tariq.khan@example.com,O+

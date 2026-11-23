@@ -1,0 +1,39 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('submissions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('assignment_id')->constrained('assignments')->cascadeOnDelete();
+            $table->foreignId('student_id')->constrained('users')->cascadeOnDelete();
+            $table->text('content');
+            $table->string('attachment_url')->nullable();
+            $table->timestamp('submitted_at')->useCurrent();
+            $table->decimal('grade', 5, 2)->nullable();
+            $table->string('status')->default('submitted')->index(); // 'submitted', 'graded', 'late'
+            $table->text('feedback')->nullable();
+            $table->foreignId('graded_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('graded_at')->nullable();
+            $table->timestamps();
+
+            $table->unique(['assignment_id', 'student_id']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('submissions');
+    }
+};
