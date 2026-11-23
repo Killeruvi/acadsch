@@ -12,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('subject_masters')) {
+        if (! Schema::hasTable('subject_masters')) {
             Schema::create('subject_masters', function (Blueprint $table) {
                 $table->id();
                 $table->string('name', 120);

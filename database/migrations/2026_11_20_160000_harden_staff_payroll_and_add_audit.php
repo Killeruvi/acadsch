@@ -4,7 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Log;
 
 return new class extends Migration
 {
@@ -18,7 +17,7 @@ return new class extends Migration
             ->get();
 
         if ($duplicates->isNotEmpty()) {
-            throw new RuntimeException('Cannot add the staff/month payroll uniqueness constraint: duplicate payroll rows exist. Reconcile these records manually first: ' . $duplicates->map(fn ($r) => "staff {$r->staff_id}, month {$r->payroll_month} ({$r->row_count} rows)")->implode('; '));
+            throw new RuntimeException('Cannot add the staff/month payroll uniqueness constraint: duplicate payroll rows exist. Reconcile these records manually first: '.$duplicates->map(fn ($r) => "staff {$r->staff_id}, month {$r->payroll_month} ({$r->row_count} rows)")->implode('; '));
         }
 
         Schema::table('staff_payrolls', function (Blueprint $table) {

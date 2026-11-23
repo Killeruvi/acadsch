@@ -14,9 +14,13 @@ class CurriculumCollapseAndSpaConfirmTest extends TestCase
     use RefreshDatabase;
 
     protected User $teacher;
+
     protected Course $course;
+
     protected CourseModule $module;
+
     protected CourseLesson $lessonW1;
+
     protected CourseLesson $lessonW2;
 
     protected function setUp(): void
@@ -110,8 +114,8 @@ class CurriculumCollapseAndSpaConfirmTest extends TestCase
         $response->assertSee('Active Listening Dynamics');
 
         // Verify Week expand/collapse trigger
-        $response->assertSee('toggleWeek(' . $this->module->id . ', 1)', false);
-        $response->assertSee('toggleWeek(' . $this->module->id . ', 2)', false);
+        $response->assertSee('toggleWeek('.$this->module->id.', 1)', false);
+        $response->assertSee('toggleWeek('.$this->module->id.', 2)', false);
     }
 
     public function test_spa_engine_prevents_default_cancelled_confirm_submissions(): void
@@ -122,7 +126,7 @@ class CurriculumCollapseAndSpaConfirmTest extends TestCase
         $spaJs = file_get_contents($spaEnginePath);
 
         // Must check e.defaultPrevented before intercepting submit
-        $this->assertStringContainsString("if (e.defaultPrevented) return;", $spaJs);
+        $this->assertStringContainsString('if (e.defaultPrevented) return;', $spaJs);
 
         // Must check data-confirm
         $this->assertStringContainsString("form.hasAttribute('data-confirm')", $spaJs);

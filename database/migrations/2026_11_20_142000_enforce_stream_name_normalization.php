@@ -9,10 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('school_streams')) {
+        if (! Schema::hasTable('school_streams')) {
             return;
         }
-        if (!Schema::hasColumn('school_streams', 'name_key')) {
+        if (! Schema::hasColumn('school_streams', 'name_key')) {
             Schema::table('school_streams', function (Blueprint $table) {
                 $table->string('name_key', 50)->nullable();
             });

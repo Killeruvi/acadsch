@@ -13,7 +13,7 @@ class RoleMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
@@ -23,6 +23,7 @@ class RoleMiddleware
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json(['message' => 'Unauthenticated.'], 401);
             }
+
             return redirect()->route('login');
         }
 
@@ -31,7 +32,7 @@ class RoleMiddleware
         }
 
         if (! in_array($user->role, $roles, true)) {
-            $reason = 'Unauthorized role [' . ($user->role ?? 'unknown') . ']. Required roles: ' . implode(', ', $roles);
+            $reason = 'Unauthorized role ['.($user->role ?? 'unknown').']. Required roles: '.implode(', ', $roles);
 
             // Log rejected attempt to system logger
             Log::warning('Security: Rejected unauthorized access attempt', [
@@ -70,7 +71,7 @@ class RoleMiddleware
 
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
-                    'message' => 'Unauthorized. This action requires one of the following roles: ' . implode(', ', $roles)
+                    'message' => 'Unauthorized. This action requires one of the following roles: '.implode(', ', $roles),
                 ], 403);
             }
             abort(403, 'Unauthorized access.');

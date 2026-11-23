@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
-use App\Models\AcademicHoliday;
 use App\Models\AcademicSubject;
 use App\Models\CurriculumTopic;
 use App\Models\HomeworkSubmission;
@@ -22,12 +21,19 @@ class HomeworkAttachmentsAndAnnualPlanChartTest extends TestCase
     use RefreshDatabase;
 
     protected User $teacher;
+
     protected User $student1;
+
     protected User $student2;
+
     protected AcademicClass $academicClass;
+
     protected AcademicSubject $physics;
+
     protected AcademicSubject $chemistry;
+
     protected AcademicSubject $biology;
+
     protected AcademicSubject $maths;
 
     protected function setUp(): void

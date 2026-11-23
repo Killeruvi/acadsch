@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 class BloomAssignment extends Model
 {
@@ -76,7 +75,7 @@ class BloomAssignment extends Model
      */
     public function hasSubmissionAttachment(): bool
     {
-        return !empty($this->submission_attachment_path);
+        return ! empty($this->submission_attachment_path);
     }
 
     /**
@@ -84,7 +83,7 @@ class BloomAssignment extends Model
      */
     public function hasTeacherAttachment(): bool
     {
-        return !empty($this->teacher_attachment_path);
+        return ! empty($this->teacher_attachment_path);
     }
 
     /**
@@ -92,7 +91,7 @@ class BloomAssignment extends Model
      */
     public function getSubmissionAttachmentUrlAttribute(): ?string
     {
-        if (!$this->hasSubmissionAttachment()) {
+        if (! $this->hasSubmissionAttachment()) {
             return null;
         }
 
@@ -104,7 +103,7 @@ class BloomAssignment extends Model
      */
     public function getTeacherAttachmentUrlAttribute(): ?string
     {
-        if (!$this->hasTeacherAttachment()) {
+        if (! $this->hasTeacherAttachment()) {
             return null;
         }
 
@@ -116,7 +115,7 @@ class BloomAssignment extends Model
      */
     public static function getFileIconByExtension(?string $ext): string
     {
-        $ext = strtolower(trim((string)$ext));
+        $ext = strtolower(trim((string) $ext));
 
         return match ($ext) {
             'pdf' => '📄',
@@ -144,19 +143,19 @@ class BloomAssignment extends Model
      */
     public static function formatBytes(?int $bytes): string
     {
-        if (!$bytes || $bytes <= 0) {
+        if (! $bytes || $bytes <= 0) {
             return '—';
         }
 
         if ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 1) . ' MB';
+            return number_format($bytes / 1048576, 1).' MB';
         }
 
         if ($bytes >= 1024) {
-            return number_format($bytes / 1024, 0) . ' KB';
+            return number_format($bytes / 1024, 0).' KB';
         }
 
-        return $bytes . ' B';
+        return $bytes.' B';
     }
 
     public function getFormattedSubmissionAttachmentSizeAttribute(): string

@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicClass;
+use App\Models\AcademicHoliday;
+use App\Models\AttendanceRecord;
+use App\Models\AttendanceSession;
+use App\Models\SchoolExamSchedule;
 use App\Models\StudentLeaveRequest;
 use App\Models\User;
 use App\Services\NotificationService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 use Illuminate\View\View;
 
 class LeaveRequestController extends Controller
@@ -74,8 +79,8 @@ class LeaveRequestController extends Controller
         $query = StudentLeaveRequest::with(['student.currentClass', 'reviewer:id,name'])->latest('created_at');
 
         if ($user->isTeacher()) {
-            $assignedClassIds = \App\Models\AcademicClass::where('class_teacher_id', $user->id)->pluck('id');
-            $query->whereHas('student', fn($sq) => $sq->whereIn('current_class_id', $assignedClassIds));
+            $assignedClassIds = AcademicClass::where('class_teacher_id', $user->id)->pluck('id');
+            $query->whereHas('student', fn ($sq) => $sq->whereIn('current_class_id', $assignedClassIds));
         }
 
         if ($request->filled('status') && $request->query('status') !== 'all') {
@@ -101,11 +106,11 @@ class LeaveRequestController extends Controller
             $children = User::where('role', 'student')
                 ->where(fn ($q) => $q->where('parent_id', $user->id)->orWhere(fn ($legacy) => $legacy->whereNull('parent_id')->whereRaw('LOWER(TRIM(guardian_email)) = ?', [mb_strtolower(trim((string) $user->email))])))
                 ->pluck('id')->all();
-            if (!$children) {
+            if (! $children) {
                 return back()->with('error', 'No enrolled child is linked to this parent account.');
             }
             $validated = $request->validate([
-                'student_id' => ['required', 'integer', 'in:' . implode(',', $children)],
+                'student_id' => ['required', 'integer', 'in:'.implode(',', $children)],
                 'start_date' => ['required', 'date_format:Y-m-d'],
                 'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
                 'type' => ['required', 'in:medical,family,academic,other'],
@@ -135,8 +140,8 @@ class LeaveRequestController extends Controller
         $weekends = config('attendance.weekend_days', ['Sunday']);
         for ($curr = $start->copy(); $curr->lte($end); $curr->addDay()) {
             $isWeekend = in_array($curr->format('l'), $weekends, true);
-            $isHoliday = \App\Models\AcademicHoliday::findHolidayForDate($curr);
-            if (!$isWeekend && !$isHoliday) {
+            $isHoliday = AcademicHoliday::findHolidayForDate($curr);
+            if (! $isWeekend && ! $isHoliday) {
                 $instructionalDays++;
             }
         }
@@ -161,14 +166,14 @@ class LeaveRequestController extends Controller
                 }
                 $examCount = 0;
                 if ($student->current_class_id) {
-                    $examCount = \App\Models\SchoolExamSchedule::query()
+                    $examCount = SchoolExamSchedule::query()
                         ->where('class_id', $student->current_class_id)
                         ->whereBetween('exam_date', [$validated['start_date'], $validated['end_date']])
                         ->count();
                 }
                 $finalReason = trim($validated['reason']);
                 if ($examCount > 0) {
-                    $finalReason = "[Notice: {$examCount} exam(s) scheduled during this leave period] " . $finalReason;
+                    $finalReason = "[Notice: {$examCount} exam(s) scheduled during this leave period] ".$finalReason;
                 }
 
                 return StudentLeaveRequest::create([
@@ -226,17 +231,19 @@ class LeaveRequestController extends Controller
                 $today = Carbon::today();
                 $weekends = config('attendance.weekend_days', ['Sunday']);
                 for ($date = $start->copy(); $date->lte($end) && $date->lte($today); $date->addDay()) {
-                    if (in_array($date->format('l'), $weekends, true) || \App\Models\AcademicHoliday::findHolidayForDate($date)) {
+                    if (in_array($date->format('l'), $weekends, true) || AcademicHoliday::findHolidayForDate($date)) {
                         continue;
                     }
-                    $session = \App\Models\AttendanceSession::query()->where('class_id', $classId)
+                    $session = AttendanceSession::query()->where('class_id', $classId)
                         ->whereDate('session_date', $date->toDateString())->lockForUpdate()->first();
-                    if (!$session) continue;
-                    $record = \App\Models\AttendanceRecord::query()
+                    if (! $session) {
+                        continue;
+                    }
+                    $record = AttendanceRecord::query()
                         ->where('session_id', $session->id)->where('student_id', $leave->student_id)
                         ->lockForUpdate()->first();
-                    if (!$record) {
-                        \App\Models\AttendanceRecord::create([
+                    if (! $record) {
+                        AttendanceRecord::create([
                             'session_id' => $session->id, 'student_id' => $leave->student_id,
                             'status' => 'excused', 'remarks' => 'Approved leave (reviewer-synced)',
                         ]);
@@ -252,20 +259,21 @@ class LeaveRequestController extends Controller
                     }
                 }
             }
+
             return $leave->load('student:id,name');
         });
 
         try {
             NotificationService::notifyUser(
-                $result->student_id, 'attendance', 'Leave Application ' . ucfirst($result->status),
-                'Your leave request from ' . $result->start_date->format('M d') . ' to ' . $result->end_date->format('M d, Y') . ' has been ' . $result->status . '.',
+                $result->student_id, 'attendance', 'Leave Application '.ucfirst($result->status),
+                'Your leave request from '.$result->start_date->format('M d').' to '.$result->end_date->format('M d, Y').' has been '.$result->status.'.',
                 route('leaves.index'), $result->status === 'approved' ? 'check-circle' : 'x-circle'
             );
         } catch (\Throwable $e) {
             Log::warning('Leave review notification failed.', ['leave_id' => $result->id, 'error' => $e->getMessage()]);
         }
 
-        return redirect()->route('leaves.index')->with('success', 'Leave request for ' . $result->student->name . ' marked as ' . ucfirst($result->status) . '.');
+        return redirect()->route('leaves.index')->with('success', 'Leave request for '.$result->student->name.' marked as '.ucfirst($result->status).'.');
     }
 
     /**
@@ -281,20 +289,20 @@ class LeaveRequestController extends Controller
         $isAdmin = $user->isAdmin();
         abort_unless($ownsRequest || $isLinkedParent || $isAdmin, 403, 'Only the applicant, linked parent, or administrator can cancel this request.');
 
-        if (!in_array($leave->status, ['pending', 'approved'], true)) {
+        if (! in_array($leave->status, ['pending', 'approved'], true)) {
             return back()->with('error', 'Only pending or approved leave requests can be cancelled.');
         }
 
         DB::transaction(function () use ($leave, $user) {
             $locked = StudentLeaveRequest::query()->lockForUpdate()->findOrFail($leave->id);
-            if (!in_array($locked->status, ['pending', 'approved'], true)) {
+            if (! in_array($locked->status, ['pending', 'approved'], true)) {
                 abort(409, 'Only pending or approved leave requests can be cancelled.');
             }
 
             $previousStatus = $locked->status;
             $locked->update([
                 'status' => 'cancelled',
-                'teacher_remarks' => ($locked->teacher_remarks ? $locked->teacher_remarks . ' | ' : '') . 'Cancelled by ' . $user->name . ' on ' . now()->format('M d, Y H:i'),
+                'teacher_remarks' => ($locked->teacher_remarks ? $locked->teacher_remarks.' | ' : '').'Cancelled by '.$user->name.' on '.now()->format('M d, Y H:i'),
             ]);
 
             // If an approved leave is cancelled, sync any attendance records back if needed
@@ -305,10 +313,12 @@ class LeaveRequestController extends Controller
                 $today = Carbon::today();
 
                 for ($date = $start->copy(); $date->lte($end) && $date->lte($today); $date->addDay()) {
-                    $session = \App\Models\AttendanceSession::query()->where('class_id', $classId)
+                    $session = AttendanceSession::query()->where('class_id', $classId)
                         ->whereDate('session_date', $date->toDateString())->lockForUpdate()->first();
-                    if (!$session) continue;
-                    $record = \App\Models\AttendanceRecord::query()
+                    if (! $session) {
+                        continue;
+                    }
+                    $record = AttendanceRecord::query()
                         ->where('session_id', $session->id)->where('student_id', $locked->student_id)
                         ->where('status', 'excused')
                         ->where('remarks', 'like', '%Approved leave%')
@@ -333,5 +343,4 @@ class LeaveRequestController extends Controller
 
         return redirect()->route('leaves.index', ['tab' => 'view'])->with('success', 'Leave request cancelled successfully. Attendance records have been synchronized.');
     }
-
 }

@@ -9,7 +9,6 @@ use App\Models\AttendanceSession;
 use App\Models\CurriculumTopic;
 use App\Models\DailyDpp;
 use App\Models\DppQuestion;
-use App\Models\DppSubmission;
 use App\Models\HomeworkSubmission;
 use App\Models\HomeworkTask;
 use App\Models\InAppNotification;
@@ -31,7 +30,7 @@ class AcademicAdditionsSeeder extends Seeder
             ->whereDate('session_date', now()->toDateString())
             ->first();
 
-        if (!$session) {
+        if (! $session) {
             $session = AttendanceSession::create([
                 'class_id' => $class8->id,
                 'session_date' => now()->toDateString(),

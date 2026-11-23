@@ -3,24 +3,32 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
-use App\Models\AcademySetting;
-use App\Models\SchoolFeeStructure;
 use App\Models\AcademicHoliday;
+use App\Models\AcademicProject;
 use App\Models\AcademicSubject;
+use App\Models\AcademySetting;
+use App\Models\Assignment;
 use App\Models\Batch;
 use App\Models\BatchChangeRequest;
 use App\Models\ClassEnrollment;
+use App\Models\Course;
+use App\Models\DailyDpp;
+use App\Models\DppSubmission;
 use App\Models\FacultyAccessCode;
-use App\Models\FacultyDeviceLock;
+use App\Models\ProjectSubmission;
+use App\Models\Schedule;
 use App\Models\SchoolExamSchedule;
 use App\Models\SchoolExamTerm;
+use App\Models\SchoolFeeStructure;
 use App\Models\SchoolSection;
+use App\Models\Submission;
 use App\Models\User;
 use App\Models\UserCertificate;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
@@ -28,7 +36,9 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private AcademicClass $classA;
+
     private AcademicClass $classB;
 
     protected function setUp(): void
@@ -90,7 +100,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
         $this->assertStringStartsWith("ADM-{$year}-", $adm2);
 
         // Pre-create an artificial future number e.g. ADM-YYYY-0050
-        $futureAdm = sprintf("ADM-%s-0050", $year);
+        $futureAdm = sprintf('ADM-%s-0050', $year);
         User::factory()->create([
             'role' => 'student',
             'admission_number' => $futureAdm,
@@ -99,7 +109,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
 
         // Next generated number should jump past 0050 to 0051
         $adm3 = User::generateNextAdmissionNumber();
-        $this->assertEquals(sprintf("ADM-%s-0051", $year), $adm3);
+        $this->assertEquals(sprintf('ADM-%s-0051', $year), $adm3);
     }
 
     public function test_class_enrollment_generate_next_roll_number_is_per_class_and_fills_gaps(): void
@@ -373,7 +383,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
                 'citation' => "Exemplary Academic Excellence {$c}",
                 'certificate_number' => "CERT-2026-{$c}",
                 'category' => 'academics',
-                'verification_hash' => "HASH{$c}" . time(),
+                'verification_hash' => "HASH{$c}".time(),
                 'issued_date' => now(),
             ]);
         }
@@ -417,7 +427,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
         // 6. Faculty Codes Pagination
         for ($fc = 1; $fc <= 12; $fc++) {
             FacultyAccessCode::create([
-                'code' => "FACCODE-{$fc}-" . time(),
+                'code' => "FACCODE-{$fc}-".time(),
                 'generated_by' => $this->admin->id,
                 'is_used' => false,
             ]);
@@ -453,12 +463,12 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
         $resSectionsIndex->assertSee('page=2');
 
         // 9. API Schedule Endpoint Pagination
-        $course = \App\Models\Course::firstOrCreate(
+        $course = Course::firstOrCreate(
             ['id' => 1],
             ['title' => 'Sample Course', 'code' => 'CRS-PAG-01', 'category' => 'General', 'teacher_id' => $this->admin->id, 'capacity' => 50]
         );
         for ($sch = 1; $sch <= 25; $sch++) {
-            \App\Models\Schedule::create([
+            Schedule::create([
                 'course_id' => $course->id,
                 'title' => "Schedule Slot {$sch}",
                 'day_of_week' => 'Monday',
@@ -466,7 +476,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
                 'end_time' => '11:00',
             ]);
         }
-        \Laravel\Sanctum\Sanctum::actingAs($this->admin);
+        Sanctum::actingAs($this->admin);
         $resApiSched = $this->json('GET', '/api/v1/schedules', ['page' => 2, 'per_page' => 10]);
         $resApiSched->assertOk();
         $resApiSched->assertJsonStructure([
@@ -476,7 +486,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
         ]);
 
         // 10. DPP Submissions Pagination
-        $dpp = \App\Models\DailyDpp::create([
+        $dpp = DailyDpp::create([
             'title' => 'Pagination DPP Test',
             'type' => 'dpp',
             'dpp_number' => 999,
@@ -489,7 +499,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
         ]);
         for ($s = 1; $s <= 20; $s++) {
             $student = User::factory()->create(['role' => 'student']);
-            \App\Models\DppSubmission::create([
+            DppSubmission::create([
                 'dpp_id' => $dpp->id,
                 'student_id' => $student->id,
                 'score' => 15,
@@ -506,7 +516,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
         $resDpp->assertSee('submissions_page=2');
 
         // 11. Assignment Submissions Pagination
-        $assignment = \App\Models\Assignment::create([
+        $assignment = Assignment::create([
             'course_id' => $course->id,
             'teacher_id' => $this->admin->id,
             'title' => 'Pagination Assignment Test',
@@ -516,7 +526,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
         ]);
         for ($as = 1; $as <= 15; $as++) {
             $student = User::factory()->create(['role' => 'student']);
-            \App\Models\Submission::create([
+            Submission::create([
                 'assignment_id' => $assignment->id,
                 'student_id' => $student->id,
                 'content' => "Student solution content {$as}",
@@ -541,7 +551,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
         ]);
 
         // 12. Project Submissions Pagination
-        $project = \App\Models\AcademicProject::create([
+        $project = AcademicProject::create([
             'class_id' => $this->classA->id,
             'subject_id' => 1,
             'teacher_id' => $this->admin->id,
@@ -554,7 +564,7 @@ class AutogenerateAdmissionAndRollNumberPaginationTest extends TestCase
         ]);
         for ($ps = 1; $ps <= 15; $ps++) {
             $student = User::factory()->create(['role' => 'student']);
-            \App\Models\ProjectSubmission::create([
+            ProjectSubmission::create([
                 'project_id' => $project->id,
                 'student_id' => $student->id,
                 'solution_summary' => "Solution summary description {$ps}",

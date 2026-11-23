@@ -6,9 +6,7 @@ use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
 use App\Models\AcademySetting;
 use App\Models\AttendanceRejectionLog;
-use App\Models\AttendanceSession;
 use App\Models\SchoolPeriodTimetable;
-use App\Models\StudentLeaveRequest;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,9 +17,13 @@ class AttendanceAccessControlRulesTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $assignedTeacher;
+
     private User $unassignedTeacher;
+
     private User $student;
+
     private AcademicClass $class;
 
     protected function setUp(): void

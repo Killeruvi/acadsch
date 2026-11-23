@@ -64,15 +64,15 @@ class DailySchoolDigestCommand extends Command
         $otherRevenue = $totalRevenueToday - ($upiRevenue + $cashRevenue);
 
         $overdueInvoicesCount = FeeInvoice::where('status', 'overdue')->count();
-        $overdueBalance = (float) FeeInvoice::where('status', 'overdue')->get()->sum(fn($i) => $i->balance);
+        $overdueBalance = (float) FeeInvoice::where('status', 'overdue')->get()->sum(fn ($i) => $i->balance);
 
         // 3. Operational Exceptions
         $pendingLeaves = StudentLeaveRequest::where('status', 'pending')->count();
 
         // 4. Deliver Briefing to Administrators
         $admins = User::where('role', 'admin')->get();
-        $digestTitle = "📊 Daily Operational Digest — " . date('D, M d, Y', strtotime($dateStr));
-        $digestMessage = "Attendance: {$attendanceRate}% ({$presentCount} present, {$absentCount} absent, {$missedClasses} classes unrecorded). Revenue Collected: {$currencySymbol}" . number_format($totalRevenueToday, 2) . " ({$todayPayments->count()} payments). Pending Leaves: {$pendingLeaves}.";
+        $digestTitle = '📊 Daily Operational Digest — '.date('D, M d, Y', strtotime($dateStr));
+        $digestMessage = "Attendance: {$attendanceRate}% ({$presentCount} present, {$absentCount} absent, {$missedClasses} classes unrecorded). Revenue Collected: {$currencySymbol}".number_format($totalRevenueToday, 2)." ({$todayPayments->count()} payments). Pending Leaves: {$pendingLeaves}.";
 
         foreach ($admins as $admin) {
             NotificationService::notifyUser(
@@ -87,18 +87,18 @@ class DailySchoolDigestCommand extends Command
 
         // Send Telegram briefing if configured
         try {
-            $telegramText = "<b>[Daily School Briefing — " . date('M d, Y', strtotime($dateStr)) . "]</b>\n\n"
-                . "🏫 <b>Student Attendance:</b> {$attendanceRate}%\n"
-                . "   • Present: {$presentCount}\n"
-                . "   • Absent: {$absentCount} (Excused: {$excusedCount})\n"
-                . "   • Incomplete Class Registers: {$missedClasses}\n\n"
-                . "💰 <b>Fee Treasury Collected:</b> {$currencySymbol}" . number_format($totalRevenueToday, 2) . "\n"
-                . "   • UPI: {$currencySymbol}" . number_format($upiRevenue, 2) . "\n"
-                . "   • Cash: {$currencySymbol}" . number_format($cashRevenue, 2) . "\n"
-                . "   • Other: {$currencySymbol}" . number_format($otherRevenue, 2) . "\n\n"
-                . "⚠️ <b>Action Items:</b>\n"
-                . "   • Unreviewed Leaves: {$pendingLeaves}\n"
-                . "   • Total Overdue Invoices: {$overdueInvoicesCount} ({$currencySymbol}" . number_format($overdueBalance, 2) . ")";
+            $telegramText = '<b>[Daily School Briefing — '.date('M d, Y', strtotime($dateStr))."]</b>\n\n"
+                ."🏫 <b>Student Attendance:</b> {$attendanceRate}%\n"
+                ."   • Present: {$presentCount}\n"
+                ."   • Absent: {$absentCount} (Excused: {$excusedCount})\n"
+                ."   • Incomplete Class Registers: {$missedClasses}\n\n"
+                ."💰 <b>Fee Treasury Collected:</b> {$currencySymbol}".number_format($totalRevenueToday, 2)."\n"
+                ."   • UPI: {$currencySymbol}".number_format($upiRevenue, 2)."\n"
+                ."   • Cash: {$currencySymbol}".number_format($cashRevenue, 2)."\n"
+                ."   • Other: {$currencySymbol}".number_format($otherRevenue, 2)."\n\n"
+                ."⚠️ <b>Action Items:</b>\n"
+                ."   • Unreviewed Leaves: {$pendingLeaves}\n"
+                ."   • Total Overdue Invoices: {$overdueInvoicesCount} ({$currencySymbol}".number_format($overdueBalance, 2).')';
 
             TelegramService::sendMessage($telegramText);
         } catch (\Throwable $e) {
@@ -112,14 +112,15 @@ class DailySchoolDigestCommand extends Command
                 ['Student Attendance Rate', "{$attendanceRate}% ({$presentCount}/{$totalMarked})"],
                 ['Students Absent', $absentCount],
                 ['Unrecorded Class Registers', $missedClasses],
-                ['Today\'s Revenue Collection', "{$currencySymbol}" . number_format($totalRevenueToday, 2)],
+                ['Today\'s Revenue Collection', "{$currencySymbol}".number_format($totalRevenueToday, 2)],
                 ['Payments Settled Today', $todayPayments->count()],
                 ['Pending Leave Applications', $pendingLeaves],
-                ['Active Overdue Invoices', "{$overdueInvoicesCount} ({$currencySymbol}" . number_format($overdueBalance, 2) . ")"],
+                ['Active Overdue Invoices', "{$overdueInvoicesCount} ({$currencySymbol}".number_format($overdueBalance, 2).')'],
             ]
         );
 
-        $this->info("Daily executive briefing dispatched successfully to " . $admins->count() . " administrators.");
+        $this->info('Daily executive briefing dispatched successfully to '.$admins->count().' administrators.');
+
         return self::SUCCESS;
     }
 }

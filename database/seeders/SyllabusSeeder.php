@@ -32,11 +32,11 @@ class SyllabusSeeder extends Seeder
                 $subject = AcademicSubject::where('class_id', $class->id)
                     ->where(function ($q) use ($subjData, $codeKey) {
                         $q->where('name', $subjData['name'])
-                          ->orWhere('code_key', $codeKey)
-                          ->orWhere('code', $codeKey);
+                            ->orWhere('code_key', $codeKey)
+                            ->orWhere('code', $codeKey);
                     })
                     ->first();
-                if (!$subject) {
+                if (! $subject) {
                     $subject = AcademicSubject::create([
                         'class_id' => $class->id,
                         'name' => $subjData['name'],
@@ -159,10 +159,14 @@ class SyllabusSeeder extends Seeder
 
         foreach ($additions as $entry) {
             $class = AcademicClass::where('grade_level', $entry['class'])->first();
-            if (!$class) continue;
+            if (! $class) {
+                continue;
+            }
 
             $subject = AcademicSubject::where('class_id', $class->id)->where('name', $entry['subject'])->first();
-            if (!$subject) continue;
+            if (! $subject) {
+                continue;
+            }
 
             foreach ($entry['chapters'] as $ch) {
                 $topic = CurriculumTopic::updateOrCreate(
@@ -206,10 +210,10 @@ class SyllabusSeeder extends Seeder
                     'bloom_level' => $level,
                 ],
                 [
-                    'level_name' => $meta['name'] ?? 'Level ' . $level,
+                    'level_name' => $meta['name'] ?? 'Level '.$level,
                     'verb_keywords' => $actionVerbs,
                     'activity_prompt' => $defaultPrompt,
-                    'rubric_guide' => "Demonstrate conceptual clarity, precise terminology, logical structure, and standard academic conventions for Bloom Level " . $level . ".",
+                    'rubric_guide' => 'Demonstrate conceptual clarity, precise terminology, logical structure, and standard academic conventions for Bloom Level '.$level.'.',
                 ]
             );
         }

@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 class AutoAbsentDayChangeCommand extends Command
 {
     protected $signature = 'attendance:auto-absent {--date= : Target date (defaults to today for the scheduled end-of-day run)}';
+
     protected $description = 'Mark unrecorded active students absent after the instructional day, respecting holidays and approved leave.';
 
     public function handle(): int
@@ -25,17 +26,20 @@ class AutoAbsentDayChangeCommand extends Command
 
         if ($date->isFuture()) {
             $this->error('Auto-absent cannot process a future date.');
+
             return self::FAILURE;
         }
         if (in_array($date->format('l'), config('attendance.weekend_days', []), true) || AcademicHoliday::findHolidayForDate($dateStr)) {
             $this->info("{$dateStr} is a non-instructional day; no absences were generated.");
+
             return self::SUCCESS;
         }
 
         $adminId = User::query()->where('role', 'admin')->value('id');
-        if (!$adminId) {
+        if (! $adminId) {
             $this->error('No administrator account exists to own system-generated attendance sessions.');
             Log::critical('Auto-absent stopped: no administrator account exists.', ['date' => $dateStr]);
+
             return self::FAILURE;
         }
 
@@ -57,7 +61,7 @@ class AutoAbsentDayChangeCommand extends Command
                         ->lockForUpdate()
                         ->first();
 
-                    if (!$session) {
+                    if (! $session) {
                         $session = AttendanceSession::create([
                             'class_id' => $class->id,
                             'teacher_id' => $class->class_teacher_id ?: $adminId,
@@ -96,6 +100,7 @@ class AutoAbsentDayChangeCommand extends Command
                                 $existing->update(['status' => 'excused', 'remarks' => 'Approved leave (system-synced)']);
                                 $excused++;
                             }
+
                             continue;
                         }
                         AttendanceRecord::create([
@@ -114,6 +119,7 @@ class AutoAbsentDayChangeCommand extends Command
         $summary = "Auto-absent completed for {$dateStr}: {$processed} classes, {$absent} absent, {$excused} excused.";
         $this->info($summary);
         Log::info($summary);
+
         return self::SUCCESS;
     }
 }

@@ -61,7 +61,7 @@ class CurriculumVideo extends Model
     public function isWatchedBy(?int $userId = null): bool
     {
         $uid = $userId ?? auth()->id();
-        if (!$uid) {
+        if (! $uid) {
             return false;
         }
 
@@ -83,6 +83,7 @@ class CurriculumVideo extends Model
         if ($minutes >= 60) {
             $hours = floor($minutes / 60);
             $remainingMinutes = $minutes % 60;
+
             return "{$hours}h {$remainingMinutes}m";
         }
 
@@ -103,7 +104,7 @@ class CurriculumVideo extends Model
 
         // Standard YouTube URL: https://www.youtube.com/watch?v=VIDEO_ID
         if (preg_match('/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $url, $matches)) {
-            return 'https://www.youtube-nocookie.com/embed/' . $matches[1] . '?rel=0&modestbranding=1';
+            return 'https://www.youtube-nocookie.com/embed/'.$matches[1].'?rel=0&modestbranding=1';
         }
 
         return $url;

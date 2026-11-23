@@ -8,13 +8,16 @@ use App\Models\Batch;
 use App\Models\BatchChangeRequest;
 use App\Models\CurriculumNote;
 use App\Models\CurriculumTopic;
+use App\Models\CurriculumVideo;
 use App\Models\DailyDpp;
+use App\Models\DppSubmission;
 use App\Models\HomeworkTask;
 use App\Models\User;
 use App\Models\UserVideoProgress;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -44,26 +47,29 @@ class BatchController extends Controller
                 if ($user->batch_id !== $batch->id && ($user->isTeacher() || $user->isAdmin())) {
                     $user->update(['batch_id' => $batch->id]);
                 }
+
                 return redirect()->route('batches.subjects', ['batch' => $batch->id]);
             }
         }
 
         // If student has no batch, check if there's any batch available in their enrolled class first
-        if ($user->isStudent() && !$user->batch_id) {
+        if ($user->isStudent() && ! $user->batch_id) {
             $enrolledClassId = $user->classEnrollments()->first()?->class_id;
             $classBatch = $enrolledClassId
                 ? Batch::where('class_id', $enrolledClassId)->where('is_active', true)->first()
                 : null;
             if ($classBatch) {
                 $user->update(['batch_id' => $classBatch->id]);
+
                 return redirect()->route('batches.subjects', ['batch' => $classBatch->id]);
             }
         }
 
         // If user has no batch, check if there's any batch available or go to selection
         $defaultBatch = Batch::where('is_active', true)->first();
-        if ($defaultBatch && !$user->batch_id) {
+        if ($defaultBatch && ! $user->batch_id) {
             $user->update(['batch_id' => $defaultBatch->id]);
+
             return redirect()->route('batches.subjects', ['batch' => $defaultBatch->id]);
         }
 
@@ -87,17 +93,17 @@ class BatchController extends Controller
             $selectedClassId = $userBatch?->class_id ?? $user->classEnrollments()->first()?->class_id;
         } else {
             $selectedClassId = $request->query('class_id');
-            if (!$selectedClassId && $user->batch_id) {
+            if (! $selectedClassId && $user->batch_id) {
                 $userBatch = Batch::find($user->batch_id);
                 $selectedClassId = $userBatch?->class_id;
             }
         }
 
-        if (!$selectedClassId) {
+        if (! $selectedClassId) {
             $selectedClassId = $classes->firstWhere('grade_level', 10)?->id ?? $classes->first()?->id;
         }
 
-        $selectedClass = $classes->firstWhere('id', (int)$selectedClassId) ?? $classes->first();
+        $selectedClass = $classes->firstWhere('id', (int) $selectedClassId) ?? $classes->first();
 
         // Get batches for this class
         $batches = collect();
@@ -161,7 +167,7 @@ class BatchController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isStudent()) {
+        if (! $user->isStudent()) {
             return redirect()->back()->with('error', 'Only students submit batch change requests.');
         }
 
@@ -182,6 +188,7 @@ class BatchController extends Controller
                 'requested_batch_id' => $batch->id,
                 'reason' => $validated['reason'],
             ]);
+
             return redirect()->route('batches.select')
                 ->with('success', "Updated your pending batch change request to \"{$batch->name}\".");
         }
@@ -205,7 +212,7 @@ class BatchController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403, 'Unauthorized. Only teachers and administrators can review batch change requests.');
         }
 
@@ -234,7 +241,7 @@ class BatchController extends Controller
                 'admin_notes' => $validated['admin_notes'] ?? 'Rejected by faculty',
             ]);
 
-            return redirect()->back()->with('success', "Batch change request rejected.");
+            return redirect()->back()->with('success', 'Batch change request rejected.');
         }
     }
 
@@ -245,7 +252,7 @@ class BatchController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403, 'Unauthorized. Only teachers and administrators can create academic batches.');
         }
 
@@ -262,11 +269,11 @@ class BatchController extends Controller
         $class = AcademicClass::findOrFail($validated['class_id']);
 
         $timingSlot = $validated['timing_slot'] ?? null;
-        if (empty($timingSlot) && !empty($validated['start_time']) && !empty($validated['end_time'])) {
-            $timingSlot = $validated['start_time'] . ' - ' . $validated['end_time'];
+        if (empty($timingSlot) && ! empty($validated['start_time']) && ! empty($validated['end_time'])) {
+            $timingSlot = $validated['start_time'].' - '.$validated['end_time'];
         }
 
-        $code = 'BATCH-' . $class->grade_level . '-' . strtoupper(Str::random(5));
+        $code = 'BATCH-'.$class->grade_level.'-'.strtoupper(Str::random(5));
 
         $batch = Batch::create([
             'class_id' => $class->id,
@@ -292,7 +299,7 @@ class BatchController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403, 'Unauthorized. Only teachers and administrators can update academic batches.');
         }
 
@@ -308,8 +315,8 @@ class BatchController extends Controller
         ]);
 
         $timingSlot = $validated['timing_slot'] ?? null;
-        if (empty($timingSlot) && !empty($validated['start_time']) && !empty($validated['end_time'])) {
-            $timingSlot = $validated['start_time'] . ' - ' . $validated['end_time'];
+        if (empty($timingSlot) && ! empty($validated['start_time']) && ! empty($validated['end_time'])) {
+            $timingSlot = $validated['start_time'].' - '.$validated['end_time'];
         }
 
         $batch->update([
@@ -320,7 +327,7 @@ class BatchController extends Controller
             'start_time' => $validated['start_time'] ?? $batch->start_time,
             'end_time' => $validated['end_time'] ?? $batch->end_time,
             'description' => $validated['description'] ?? $batch->description,
-            'is_active' => $request->has('is_active') ? (bool)$request->input('is_active') : true,
+            'is_active' => $request->has('is_active') ? (bool) $request->input('is_active') : true,
         ]);
 
         return redirect()->route('batches.select', ['class_id' => $batch->class_id])
@@ -334,7 +341,7 @@ class BatchController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403, 'Unauthorized. Only teachers and administrators can delete academic batches.');
         }
 
@@ -357,7 +364,7 @@ class BatchController extends Controller
     public function subjects(Batch $batch, Request $request): View
     {
         $batch->load('academicClass');
-        
+
         $subjects = AcademicSubject::where('class_id', $batch->class_id)
             ->withCount('topics')
             ->orderBy('name')
@@ -365,7 +372,7 @@ class BatchController extends Controller
 
         foreach ($subjects as $subject) {
             $topicIds = CurriculumTopic::where('subject_id', $subject->id)->pluck('id');
-            $subject->videos_count = \App\Models\CurriculumVideo::where('subject_id', $subject->id)->count();
+            $subject->videos_count = CurriculumVideo::where('subject_id', $subject->id)->count();
             $subject->dpps_count = DailyDpp::whereIn('topic_id', $topicIds)->where('type', 'dpp')->count();
             $subject->tests_count = DailyDpp::whereIn('topic_id', $topicIds)->where('type', 'test')->count();
         }
@@ -383,13 +390,13 @@ class BatchController extends Controller
     public function chapters(Batch $batch, AcademicSubject $subject, Request $request): View
     {
         $batch->load('academicClass');
-        
+
         $chapters = CurriculumTopic::where('subject_id', $subject->id)
             ->orderBy('chapter_number')
             ->get();
 
         foreach ($chapters as $ch) {
-            $ch->videos_count = \App\Models\CurriculumVideo::where('topic_id', $ch->id)->count();
+            $ch->videos_count = CurriculumVideo::where('topic_id', $ch->id)->count();
             $ch->dpps_count = DailyDpp::where('topic_id', $ch->id)->where('type', 'dpp')->count();
             $ch->tests_count = DailyDpp::where('topic_id', $ch->id)->where('type', 'test')->count();
             $ch->homework_count = HomeworkTask::where('topic_id', $ch->id)->count();
@@ -422,14 +429,14 @@ class BatchController extends Controller
         if ($chapter instanceof CurriculumTopic) {
             $selectedChapter = $chapter;
         } elseif (is_numeric($chapter)) {
-            $selectedChapter = $chapters->firstWhere('id', (int)$chapter);
+            $selectedChapter = $chapters->firstWhere('id', (int) $chapter);
         }
 
-        if (!$selectedChapter && $request->filled('chapter_id')) {
-            $selectedChapter = $chapters->firstWhere('id', (int)$request->query('chapter_id'));
+        if (! $selectedChapter && $request->filled('chapter_id')) {
+            $selectedChapter = $chapters->firstWhere('id', (int) $request->query('chapter_id'));
         }
 
-        if (!$selectedChapter && $chapters->isNotEmpty()) {
+        if (! $selectedChapter && $chapters->isNotEmpty()) {
             $selectedChapter = $chapters->first();
         }
 
@@ -458,19 +465,19 @@ class BatchController extends Controller
             // Tab 3: Daily DPPs (List of DPP sheets with Solve / Resolve status)
             $isFirstChapter = $chapters->isNotEmpty() && $chapters->first()->id === $selectedChapter->id;
             $dpps = DailyDpp::where(function ($query) use ($selectedChapter, $subject, $isFirstChapter) {
-                    $query->where('topic_id', $selectedChapter->id);
-                    if ($isFirstChapter) {
-                        $query->orWhere(function ($sub) use ($subject) {
-                            $sub->whereNull('topic_id')->where('subject_id', $subject->id);
-                        });
-                    }
-                })
+                $query->where('topic_id', $selectedChapter->id);
+                if ($isFirstChapter) {
+                    $query->orWhere(function ($sub) use ($subject) {
+                        $sub->whereNull('topic_id')->where('subject_id', $subject->id);
+                    });
+                }
+            })
                 ->where('type', 'dpp')
                 ->withCount('questions')
                 ->orderBy('dpp_number')
                 ->get();
 
-            $dppSubmissions = \App\Models\DppSubmission::where('student_id', $user->id)
+            $dppSubmissions = DppSubmission::where('student_id', $user->id)
                 ->whereIn('dpp_id', $dpps->pluck('id'))
                 ->get()
                 ->keyBy('dpp_id');
@@ -481,13 +488,13 @@ class BatchController extends Controller
 
             // Tab 4: Assignments (Homework Tasks)
             $assignments = HomeworkTask::where(function ($query) use ($selectedChapter, $subject, $isFirstChapter) {
-                    $query->where('topic_id', $selectedChapter->id);
-                    if ($isFirstChapter) {
-                        $query->orWhere(function ($sub) use ($subject) {
-                            $sub->whereNull('topic_id')->where('subject_id', $subject->id);
-                        });
-                    }
-                })
+                $query->where('topic_id', $selectedChapter->id);
+                if ($isFirstChapter) {
+                    $query->orWhere(function ($sub) use ($subject) {
+                        $sub->whereNull('topic_id')->where('subject_id', $subject->id);
+                    });
+                }
+            })
                 ->with(['submissions' => function ($query) use ($user) {
                     $query->where('student_id', $user->id);
                 }])
@@ -496,19 +503,19 @@ class BatchController extends Controller
 
             // Tab 5: Tests (with user submission for Solve vs Retest)
             $tests = DailyDpp::where(function ($query) use ($selectedChapter, $subject, $isFirstChapter) {
-                    $query->where('topic_id', $selectedChapter->id);
-                    if ($isFirstChapter) {
-                        $query->orWhere(function ($sub) use ($subject) {
-                            $sub->whereNull('topic_id')->where('subject_id', $subject->id);
-                        });
-                    }
-                })
+                $query->where('topic_id', $selectedChapter->id);
+                if ($isFirstChapter) {
+                    $query->orWhere(function ($sub) use ($subject) {
+                        $sub->whereNull('topic_id')->where('subject_id', $subject->id);
+                    });
+                }
+            })
                 ->where('type', 'test')
                 ->withCount('questions')
                 ->orderBy('assigned_date', 'desc')
                 ->get();
 
-            $testSubmissions = \App\Models\DppSubmission::where('student_id', $user->id)
+            $testSubmissions = DppSubmission::where('student_id', $user->id)
                 ->whereIn('dpp_id', $tests->pluck('id'))
                 ->get()
                 ->keyBy('dpp_id');
@@ -520,14 +527,14 @@ class BatchController extends Controller
 
         // Calculate overall subject video progress
         $allSubjectTopicIds = $chapters->pluck('id');
-        $allSubjectVideoIds = \App\Models\CurriculumVideo::whereIn('topic_id', $allSubjectTopicIds)->pluck('id');
+        $allSubjectVideoIds = CurriculumVideo::whereIn('topic_id', $allSubjectTopicIds)->pluck('id');
         $totalSubjectVideos = $allSubjectVideoIds->count();
         $completedSubjectVideos = UserVideoProgress::where('user_id', $user->id)
             ->whereIn('video_id', $allSubjectVideoIds)
             ->where('is_completed', true)
             ->count();
-        $overallProgressPercent = $totalSubjectVideos > 0 
-            ? round(($completedSubjectVideos / $totalSubjectVideos) * 100) 
+        $overallProgressPercent = $totalSubjectVideos > 0
+            ? round(($completedSubjectVideos / $totalSubjectVideos) * 100)
             : 0;
 
         // Calculate chapter progress
@@ -570,7 +577,7 @@ class BatchController extends Controller
     public function uploadNote(Request $request, Batch $batch, AcademicSubject $subject, CurriculumTopic $chapter): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403, 'Only faculty and administrators can upload curriculum notes.');
         }
 
@@ -586,9 +593,9 @@ class BatchController extends Controller
         ]);
 
         $file = $request->file('pdf_file');
-        $fileName = 'note_' . $chapter->id . '_' . time() . '_' . Str::random(6) . '.' . $file->getClientOriginalExtension();
+        $fileName = 'note_'.$chapter->id.'_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
         $path = $file->storeAs('notes', $fileName, 'public');
-        $downloadUrl = asset('storage/' . $path);
+        $downloadUrl = asset('storage/'.$path);
 
         CurriculumNote::create([
             'topic_id' => $chapter->id,
@@ -613,19 +620,20 @@ class BatchController extends Controller
     public function deleteNote(CurriculumNote $note): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
 
         if ($note->download_url) {
             $parsed = parse_url($note->download_url, PHP_URL_PATH);
             $filePath = ltrim(str_replace('/storage/', '', $parsed), '/');
-            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($filePath)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($filePath);
+            if (Storage::disk('public')->exists($filePath)) {
+                Storage::disk('public')->delete($filePath);
             }
         }
 
         $note->delete();
+
         return back()->with('success', 'Curriculum PDF note removed successfully.');
     }
 

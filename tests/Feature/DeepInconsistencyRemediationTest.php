@@ -5,15 +5,12 @@ namespace Tests\Feature;
 use App\Models\AcademicClass;
 use App\Models\AcademicHoliday;
 use App\Models\AcademicSubject;
-use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\ClassEnrollment;
 use App\Models\FeeInvoice;
 use App\Models\SchoolExamMark;
-use App\Models\SchoolExamSchedule;
 use App\Models\SchoolExamTerm;
 use App\Models\SchoolFeeStructure;
-use App\Models\SchoolPeriodTimetable;
 use App\Models\SchoolReportCard;
 use App\Models\SchoolSection;
 use App\Models\StudentLeaveRequest;
@@ -26,9 +23,13 @@ class DeepInconsistencyRemediationTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $class8;
+
     protected AcademicClass $class9;
 
     protected function setUp(): void

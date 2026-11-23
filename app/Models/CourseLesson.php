@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 
 class CourseLesson extends Model
 {
@@ -74,7 +75,7 @@ class CourseLesson extends Model
 
     public function getClassNotesAttribute(): array
     {
-        if (!empty($this->attributes['class_notes'])) {
+        if (! empty($this->attributes['class_notes'])) {
             $val = json_decode($this->attributes['class_notes'], true);
             if (is_array($val)) {
                 return $val;
@@ -122,7 +123,7 @@ class CourseLesson extends Model
     /**
      * Retrieve all videos for this lesson (relational videos or legacy video_url fallback).
      */
-    public function allVideos(): \Illuminate\Support\Collection
+    public function allVideos(): Collection
     {
         if ($this->relationLoaded('videos') && $this->videos->isNotEmpty()) {
             return $this->videos;
@@ -133,7 +134,7 @@ class CourseLesson extends Model
             return $relVideos;
         }
 
-        if (!empty($this->video_url)) {
+        if (! empty($this->video_url)) {
             $synthesized = new CourseLessonVideo([
                 'id' => 0,
                 'lesson_id' => $this->id,
@@ -144,6 +145,7 @@ class CourseLesson extends Model
                 'order_index' => 1,
             ]);
             $synthesized->id = 0;
+
             return collect([$synthesized]);
         }
 

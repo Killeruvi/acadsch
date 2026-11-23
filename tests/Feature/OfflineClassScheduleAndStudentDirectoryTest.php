@@ -16,12 +16,19 @@ class OfflineClassScheduleAndStudentDirectoryTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student1;
+
     protected User $student2;
+
     protected AcademicClass $class8;
+
     protected AcademicClass $class9;
+
     protected Batch $batch8;
+
     protected Course $course;
 
     protected function setUp(): void
@@ -248,7 +255,7 @@ class OfflineClassScheduleAndStudentDirectoryTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('students.export-csv'));
         $response->assertStatus(200);
         $response->assertHeader('Content-Type', 'text/csv; charset=utf-8');
-        
+
         $content = $response->streamedContent();
         $this->assertStringContainsString('Student ID', $content);
         $this->assertStringContainsString('Full Name', $content);

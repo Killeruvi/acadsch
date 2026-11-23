@@ -40,11 +40,13 @@ return new class extends Migration
     public function up(): void
     {
         foreach ($this->indexes as $tableName => $indexes) {
-            if (!Schema::hasTable($tableName)) continue;
+            if (! Schema::hasTable($tableName)) {
+                continue;
+            }
             foreach ($indexes as $indexName => $columns) {
                 $available = true;
                 foreach ($columns as $column) {
-                    if (!Schema::hasColumn($tableName, $column)) {
+                    if (! Schema::hasColumn($tableName, $column)) {
                         $available = false;
                         break;
                     }
@@ -61,7 +63,9 @@ return new class extends Migration
     public function down(): void
     {
         foreach ($this->indexes as $tableName => $indexes) {
-            if (!Schema::hasTable($tableName)) continue;
+            if (! Schema::hasTable($tableName)) {
+                continue;
+            }
             foreach (array_keys($indexes) as $indexName) {
                 Schema::table($tableName, function (Blueprint $table) use ($indexName) {
                     $table->dropIndex($indexName);

@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
 use App\Models\Assignment;
 use App\Models\Course;
@@ -28,13 +27,13 @@ class CourseCurriculumGeneratorService
      */
     public static function generateForCourse(Course $course, array $options = []): void
     {
-        $weeksCount = (int)($options['weeks_count'] ?? 4);
+        $weeksCount = (int) ($options['weeks_count'] ?? 4);
         if ($weeksCount < 1) {
             $weeksCount = 4;
         }
 
         $scheduleDays = $options['schedule_days'] ?? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-        if (!is_array($scheduleDays) || empty($scheduleDays)) {
+        if (! is_array($scheduleDays) || empty($scheduleDays)) {
             $scheduleDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         }
 
@@ -54,7 +53,7 @@ class CourseCurriculumGeneratorService
 
         for ($week = 1; $week <= $weeksCount; $week++) {
             $themeData = $domainThemes[($week - 1) % count($domainThemes)];
-            $moduleTitle = "Week {$week}: " . $themeData['title'];
+            $moduleTitle = "Week {$week}: ".$themeData['title'];
 
             // Find or create module
             $module = CourseModule::firstOrCreate(
@@ -103,10 +102,10 @@ class CourseCurriculumGeneratorService
                         'topic_summary' => "Comprehensive lecture covering {$themeData['theme']}. Focuses on core theory, practical methodologies, and systematic analysis.",
                         'learning_objectives' => [
                             "Master foundational principles of {$themeData['theme']}",
-                            "Analyze real-world problem sets and avoid common misconceptions",
-                            "Apply theoretical derivations and framework patterns effectively",
+                            'Analyze real-world problem sets and avoid common misconceptions',
+                            'Apply theoretical derivations and framework patterns effectively',
                         ],
-                        'expected_outcomes' => "Scholars will be able to construct well-reasoned solutions, interpret relevant data, and articulate key concepts with precision.",
+                        'expected_outcomes' => 'Scholars will be able to construct well-reasoned solutions, interpret relevant data, and articulate key concepts with precision.',
                         'vocabulary' => [
                             $themeData['vocab'][0] ?? 'Principle',
                             $themeData['vocab'][1] ?? 'Methodology',
@@ -114,8 +113,8 @@ class CourseCurriculumGeneratorService
                         ],
                         'concepts' => [
                             $themeData['theme'],
-                            "Structured Analytical Frameworks",
-                            "Execution & Verification Strategies",
+                            'Structured Analytical Frameworks',
+                            'Execution & Verification Strategies',
                         ],
                         'teaching_materials' => [
                             'Interactive Lecture Presentation',
@@ -124,8 +123,8 @@ class CourseCurriculumGeneratorService
                         ],
                         'video_url' => $options['video_url'] ?? null,
                         'pdf_url' => $options['pdf_url'] ?? "/courses/{$course->id}/handouts/week-{$week}-lesson-{$lessonInWeek}.pdf",
-                        'homework_task' => "Complete the weekly analytical problem set, prepare code or written explanations for all exercises, and submit by Sunday 23:59.",
-                        'evaluation_criteria' => "Accuracy of logic (40%), clarity of methodology (30%), edge-case consideration (30%).",
+                        'homework_task' => 'Complete the weekly analytical problem set, prepare code or written explanations for all exercises, and submit by Sunday 23:59.',
+                        'evaluation_criteria' => 'Accuracy of logic (40%), clarity of methodology (30%), edge-case consideration (30%).',
                         'class_notes' => $formattedNotes,
                         'order_index' => $lessonInWeek,
                     ]
@@ -178,75 +177,75 @@ class CourseCurriculumGeneratorService
                 [
                     'title' => "1. Theoretical Foundation of {$themeData['theme']}",
                     'description' => "Understanding the primary postulates and axioms that govern {$themeData['theme']}. Critical focus on state transitions, validation boundaries, and underlying principles.",
-                    'takeaway' => "Always verify boundary constraints before applying general formulas.",
+                    'takeaway' => 'Always verify boundary constraints before applying general formulas.',
                 ],
                 [
-                    'title' => "2. Analytical Framework & Methodologies",
-                    'description' => "Deconstructing complex problems into modular, verifiable steps. Using structured workflows rather than ad-hoc heuristics.",
-                    'takeaway' => "Break down multi-variable challenges into sequential independent stages.",
+                    'title' => '2. Analytical Framework & Methodologies',
+                    'description' => 'Deconstructing complex problems into modular, verifiable steps. Using structured workflows rather than ad-hoc heuristics.',
+                    'takeaway' => 'Break down multi-variable challenges into sequential independent stages.',
                 ],
                 [
-                    'title' => "3. Practical Real-World Execution",
+                    'title' => '3. Practical Real-World Execution',
                     'description' => "Translating conceptual models into robust implementations, case studies, or architectural patterns in {$course->category}.",
-                    'takeaway' => "Benchmark solutions under edge-case stress conditions.",
+                    'takeaway' => 'Benchmark solutions under edge-case stress conditions.',
                 ],
             ],
             'definitions' => [
                 [
                     'term' => $themeData['vocab'][0] ?? 'Foundational State',
-                    'definition' => "The initial baseline condition from which all evolutionary computations or transformations commence.",
-                    'context' => "Used as the reference benchmark in performance profiling.",
+                    'definition' => 'The initial baseline condition from which all evolutionary computations or transformations commence.',
+                    'context' => 'Used as the reference benchmark in performance profiling.',
                 ],
                 [
                     'term' => $themeData['vocab'][1] ?? 'Invariant Property',
-                    'definition' => "A condition or relationship that remains strictly true across all valid states and iterations.",
-                    'context' => "Guarantees correctness in iterative and concurrent systems.",
+                    'definition' => 'A condition or relationship that remains strictly true across all valid states and iterations.',
+                    'context' => 'Guarantees correctness in iterative and concurrent systems.',
                 ],
                 [
                     'term' => $themeData['vocab'][2] ?? 'Convergence Limit',
-                    'definition' => "The asymptotic threshold toward which successive approximations tend as iterations approach infinity.",
-                    'context' => "Dictates termination criteria in optimization routines.",
+                    'definition' => 'The asymptotic threshold toward which successive approximations tend as iterations approach infinity.',
+                    'context' => 'Dictates termination criteria in optimization routines.',
                 ],
             ],
             'formulas_or_examples' => [
                 [
-                    'title' => "Core Working Formula / Execution Pattern",
-                    'code_or_formula' => $themeData['formula'] ?? "f(x) = ∑ [ w_i * φ_i(x) ] + Bias_term",
-                    'explanation' => "Calculates the weighted linear response where w_i represents dimensional parameters and φ_i is the basis transformation function.",
+                    'title' => 'Core Working Formula / Execution Pattern',
+                    'code_or_formula' => $themeData['formula'] ?? 'f(x) = ∑ [ w_i * φ_i(x) ] + Bias_term',
+                    'explanation' => 'Calculates the weighted linear response where w_i represents dimensional parameters and φ_i is the basis transformation function.',
                 ],
                 [
-                    'title' => "Standard Implementation Pattern",
+                    'title' => 'Standard Implementation Pattern',
                     'code_or_formula' => "// Verification Workflow\nfunction validateAndExecute(input) {\n    if (!isValid(input)) throw new Error('Constraint Violation');\n    return computeTransform(input);\n}",
-                    'explanation' => "Defensive execution pattern preventing runtime exceptions and ensuring state determinism.",
+                    'explanation' => 'Defensive execution pattern preventing runtime exceptions and ensuring state determinism.',
                 ],
             ],
             'common_mistakes' => [
                 [
-                    'mistake' => "Overlooking edge-case boundary conditions during initialization.",
-                    'correction' => "Explicitly validate null, zero, and boundary limits before entering main processing loops.",
-                    'rule' => "Guard clauses must precede computational pipelines.",
+                    'mistake' => 'Overlooking edge-case boundary conditions during initialization.',
+                    'correction' => 'Explicitly validate null, zero, and boundary limits before entering main processing loops.',
+                    'rule' => 'Guard clauses must precede computational pipelines.',
                 ],
                 [
-                    'mistake' => "Assuming linear scaling behavior across non-linear domains.",
-                    'correction' => "Profile with representative multi-scale datasets to accurately observe polynomial or logarithmic traits.",
-                    'rule' => "Empirical benchmarking is required for complexity verification.",
+                    'mistake' => 'Assuming linear scaling behavior across non-linear domains.',
+                    'correction' => 'Profile with representative multi-scale datasets to accurately observe polynomial or logarithmic traits.',
+                    'rule' => 'Empirical benchmarking is required for complexity verification.',
                 ],
             ],
             'faq' => [
                 [
                     'question' => "What is the most effective approach to mastering {$themeData['theme']}?",
-                    'answer' => "Review the theoretical concept cards, solve the daily DPP set without referencing solutions first, and review the common mistakes section.",
+                    'answer' => 'Review the theoretical concept cards, solve the daily DPP set without referencing solutions first, and review the common mistakes section.',
                 ],
                 [
-                    'question' => "How does this topic relate to the subsequent module?",
-                    'answer' => "The principles established here form the mathematical and architectural prerequisites for upcoming advanced optimization topics.",
+                    'question' => 'How does this topic relate to the subsequent module?',
+                    'answer' => 'The principles established here form the mathematical and architectural prerequisites for upcoming advanced optimization topics.',
                 ],
             ],
             'revision_takeaways' => [
-                "Review foundational definitions and ensure mastery of the core invariant property.",
-                "Solve DPP problem set within the allotted 30-minute test window.",
-                "Complete weekly homework assignment prior to Sunday midnight deadline.",
-                "Review the downloadable lecture PDF handout for supplemental reference material.",
+                'Review foundational definitions and ensure mastery of the core invariant property.',
+                'Solve DPP problem set within the allotted 30-minute test window.',
+                'Complete weekly homework assignment prior to Sunday midnight deadline.',
+                'Review the downloadable lecture PDF handout for supplemental reference material.',
             ],
         ];
     }
@@ -262,13 +261,13 @@ class CourseCurriculumGeneratorService
                     ->orWhereRaw('UPPER(code) = ?', [mb_strtoupper((string) $course->code)]);
             })->first();
         $academicClass = $academicSubject?->academicClass;
-        if (!$academicSubject || !$academicClass) {
+        if (! $academicSubject || ! $academicClass) {
             // Course DPP generation is skipped until an administrator maps this course to a real class subject.
             return;
         }
 
         $teacherId = $course->teacher_id ?? $academicSubject->teacher_id;
-        if (!$teacherId || !User::whereKey($teacherId)->whereIn('role', ['teacher', 'admin'])->exists()) {
+        if (! $teacherId || ! User::whereKey($teacherId)->whereIn('role', ['teacher', 'admin'])->exists()) {
             return;
         }
 
@@ -299,39 +298,39 @@ class CourseCurriculumGeneratorService
             $questionsData = [
                 [
                     'q' => "In {$course->title}, what is the primary role of {$themeData['vocab'][0]} in establishing state consistency?",
-                    'a' => "It guarantees invariant conditions are preserved across transitions.",
-                    'b' => "It maximizes runtime latency and increases complexity.",
-                    'c' => "It bypasses validation constraints during execution.",
-                    'd' => "It randomly reorganizes parameter weights.",
+                    'a' => 'It guarantees invariant conditions are preserved across transitions.',
+                    'b' => 'It maximizes runtime latency and increases complexity.',
+                    'c' => 'It bypasses validation constraints during execution.',
+                    'd' => 'It randomly reorganizes parameter weights.',
                     'correct' => 'a',
-                    'explanation' => "The primary purpose is to ensure that invariant properties remain strictly unviolated throughout the system lifecycle.",
+                    'explanation' => 'The primary purpose is to ensure that invariant properties remain strictly unviolated throughout the system lifecycle.',
                 ],
                 [
                     'q' => "Which of the following best describes the asymptotic behavior of {$themeData['theme']} under standard conditions?",
-                    'a' => "Exponential explosion with unbounded divergence.",
-                    'b' => "Monotonic convergence toward optimal equilibrium.",
-                    'c' => "Random oscillatory divergence without termination.",
-                    'd' => "Immediate saturation to zero.",
+                    'a' => 'Exponential explosion with unbounded divergence.',
+                    'b' => 'Monotonic convergence toward optimal equilibrium.',
+                    'c' => 'Random oscillatory divergence without termination.',
+                    'd' => 'Immediate saturation to zero.',
                     'correct' => 'b',
-                    'explanation' => "Under regular boundary constraints, the governing equations exhibit monotonic convergence toward an optimal stationary point.",
+                    'explanation' => 'Under regular boundary constraints, the governing equations exhibit monotonic convergence toward an optimal stationary point.',
                 ],
                 [
-                    'q' => "When evaluating edge cases, which condition requires immediate defensive handling?",
-                    'a' => "Inputs falling strictly within normal operating bounds.",
-                    'b' => "Null references, zero division, or out-of-range parameters.",
-                    'c' => "High-speed network throughput.",
-                    'd' => "Sufficient memory allocation.",
+                    'q' => 'When evaluating edge cases, which condition requires immediate defensive handling?',
+                    'a' => 'Inputs falling strictly within normal operating bounds.',
+                    'b' => 'Null references, zero division, or out-of-range parameters.',
+                    'c' => 'High-speed network throughput.',
+                    'd' => 'Sufficient memory allocation.',
                     'correct' => 'b',
-                    'explanation' => "Boundary violations such as zero division, uninitialized pointers, or null values must be trapped immediately via guard clauses.",
+                    'explanation' => 'Boundary violations such as zero division, uninitialized pointers, or null values must be trapped immediately via guard clauses.',
                 ],
                 [
-                    'q' => "What is the recommended verification step after executing the transformation algorithm?",
-                    'a' => "Ignore all output values and proceed immediately.",
-                    'b' => "Assert output against analytical expectations and residual tolerance.",
-                    'c' => "Restart the system without logging.",
-                    'd' => "Invert all arithmetic signs.",
+                    'q' => 'What is the recommended verification step after executing the transformation algorithm?',
+                    'a' => 'Ignore all output values and proceed immediately.',
+                    'b' => 'Assert output against analytical expectations and residual tolerance.',
+                    'c' => 'Restart the system without logging.',
+                    'd' => 'Invert all arithmetic signs.',
                     'correct' => 'b',
-                    'explanation' => "Residual validation and assertion checking verify that computed solutions fall within acceptable numerical tolerances.",
+                    'explanation' => 'Residual validation and assertion checking verify that computed solutions fall within acceptable numerical tolerances.',
                 ],
             ];
 
@@ -410,7 +409,7 @@ class CourseCurriculumGeneratorService
                     ],
                     [
                         'id' => 3,
-                        'question' => "Identify two common anti-patterns or mistakes observed in this domain and detail the recommended corrective strategies.",
+                        'question' => 'Identify two common anti-patterns or mistakes observed in this domain and detail the recommended corrective strategies.',
                         'points' => 20,
                     ],
                     [
@@ -420,7 +419,7 @@ class CourseCurriculumGeneratorService
                     ],
                     [
                         'id' => 5,
-                        'question' => "Synthesize a comprehensive solution combining the theoretical model with empirical validation.",
+                        'question' => 'Synthesize a comprehensive solution combining the theoretical model with empirical validation.',
                         'points' => 20,
                     ],
                 ],
@@ -433,7 +432,7 @@ class CourseCurriculumGeneratorService
      */
     protected static function resolveDomainThemes(string $title, string $category): array
     {
-        $text = strtolower($title . ' ' . $category);
+        $text = strtolower($title.' '.$category);
 
         if (str_contains($text, 'cs') || str_contains($text, 'comput') || str_contains($text, 'data') || str_contains($text, 'code') || str_contains($text, 'program')) {
             return [

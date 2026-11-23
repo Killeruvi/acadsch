@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
@@ -24,9 +23,13 @@ class ProductionReadinessAuditCommand extends Command
     protected $description = 'Execute the Master Production Readiness & Security Audit across 24 critical domains';
 
     protected array $findings = [];
+
     protected array $evidence = [];
+
     protected int $testsPassed = 0;
+
     protected int $testsFailed = 0;
+
     protected int $testsTotal = 0;
 
     /**
@@ -55,10 +58,10 @@ class ProductionReadinessAuditCommand extends Command
         $this->auditOperationsAndHealth();
 
         // Compile Summary Metrics
-        $criticalCount = count(array_filter($this->findings, fn($f) => $f['severity'] === 'CRITICAL'));
-        $highCount = count(array_filter($this->findings, fn($f) => $f['severity'] === 'HIGH'));
-        $mediumCount = count(array_filter($this->findings, fn($f) => $f['severity'] === 'MEDIUM'));
-        $lowCount = count(array_filter($this->findings, fn($f) => $f['severity'] === 'LOW'));
+        $criticalCount = count(array_filter($this->findings, fn ($f) => $f['severity'] === 'CRITICAL'));
+        $highCount = count(array_filter($this->findings, fn ($f) => $f['severity'] === 'HIGH'));
+        $mediumCount = count(array_filter($this->findings, fn ($f) => $f['severity'] === 'MEDIUM'));
+        $lowCount = count(array_filter($this->findings, fn ($f) => $f['severity'] === 'LOW'));
 
         $isApproved = ($criticalCount === 0 && $highCount === 0);
         $decision = $isApproved ? 'RELEASE APPROVAL' : 'BLOCK RELEASE';
@@ -78,8 +81,8 @@ class ProductionReadinessAuditCommand extends Command
     protected function outputBanner(): void
     {
         $this->line("\n<fg=cyan;options=bold>====================================================================</>");
-        $this->line("<fg=cyan;options=bold>   PRIMEOS ERP — PRODUCTION READINESS & SECURITY AUDIT       </>");
-        $this->line("<fg=cyan;options=bold>   Standardized Verification Engine across 24 Critical Domains    </>");
+        $this->line('<fg=cyan;options=bold>   PRIMEOS ERP — PRODUCTION READINESS & SECURITY AUDIT       </>');
+        $this->line('<fg=cyan;options=bold>   Standardized Verification Engine across 24 Critical Domains    </>');
         $this->line("<fg=cyan;options=bold>====================================================================</>\n");
         $this->line("<fg=yellow>Rule: Untested means unverified, not passed.</>\n");
     }
@@ -100,13 +103,13 @@ class ProductionReadinessAuditCommand extends Command
         }
 
         // 2. Bcrypt Rounds
-        $rounds = (int)config('hashing.bcrypt.rounds', 12);
+        $rounds = (int) config('hashing.bcrypt.rounds', 12);
         if (app()->environment('testing') && $rounds < 10) {
             $hashingConfigFile = config_path('hashing.php');
             if (File::exists($hashingConfigFile)) {
                 $hashingConfig = File::get($hashingConfigFile);
                 if (preg_match("/'rounds'\s*=>\s*env\('BCRYPT_ROUNDS',\s*([0-9]+)\)/", $hashingConfig, $matches)) {
-                    $rounds = (int)$matches[1];
+                    $rounds = (int) $matches[1];
                 }
             } else {
                 // Laravel 11 framework default is 12
@@ -120,7 +123,7 @@ class ProductionReadinessAuditCommand extends Command
         }
 
         // 3. Password Reset Expiration
-        $expireMinutes = (int)config('auth.passwords.users.expire', 60);
+        $expireMinutes = (int) config('auth.passwords.users.expire', 60);
         if ($expireMinutes <= 60) {
             $this->recordPass($domain, "Password reset token lifetime is strictly bounded ({$expireMinutes} minutes)");
         } else {
@@ -195,7 +198,7 @@ class ProductionReadinessAuditCommand extends Command
             $code = File::get($m);
             if (preg_match('/protected\s+\$guarded\s*=\s*\[\s*\];/', $code)) {
                 $guardedCount++;
-                $this->recordFailure($domain, 'HIGH', "Model uses unconstrained \$guarded = [] (Mass-Assignment Vulnerability): " . basename($m), $m);
+                $this->recordFailure($domain, 'HIGH', 'Model uses unconstrained $guarded = [] (Mass-Assignment Vulnerability): '.basename($m), $m);
             }
         }
         if ($guardedCount === 0) {
@@ -226,7 +229,7 @@ class ProductionReadinessAuditCommand extends Command
                         $hasRoleCheck = true;
                     }
                 }
-                if (!$hasRoleCheck) {
+                if (! $hasRoleCheck) {
                     $unprotectedAdminRoutes[] = $uri;
                 }
             }
@@ -234,7 +237,7 @@ class ProductionReadinessAuditCommand extends Command
         if (empty($unprotectedAdminRoutes)) {
             $this->recordPass($domain, 'All administrative and faculty-code routes strictly gated by role:admin middleware');
         } else {
-            $this->recordFailure($domain, 'CRITICAL', 'Administrative routes exposed without role verification: ' . implode(', ', $unprotectedAdminRoutes), 'routes/web.php');
+            $this->recordFailure($domain, 'CRITICAL', 'Administrative routes exposed without role verification: '.implode(', ', $unprotectedAdminRoutes), 'routes/web.php');
         }
     }
 
@@ -273,7 +276,7 @@ class ProductionReadinessAuditCommand extends Command
             '/\bpassthru\s*\(/i',
             '/\bsystem\s*\(/i',
             '/\bpopen\s*\(/i',
-            '/\bunserialize\s*\(/i'
+            '/\bunserialize\s*\(/i',
         ];
 
         foreach ($phpFiles as $file) {
@@ -289,7 +292,7 @@ class ProductionReadinessAuditCommand extends Command
         if (empty($dangerousCalls)) {
             $this->recordPass($domain, 'Zero dangerous system execution functions detected (eval, shell_exec, system, unserialize clean)');
         } else {
-            $this->recordFailure($domain, 'CRITICAL', 'Dangerous execution functions found in: ' . implode(', ', $dangerousCalls), 'app/');
+            $this->recordFailure($domain, 'CRITICAL', 'Dangerous execution functions found in: '.implode(', ', $dangerousCalls), 'app/');
         }
 
         // 2. Global Request Sanitization Middleware
@@ -312,7 +315,7 @@ class ProductionReadinessAuditCommand extends Command
         if (empty($rawSqlIssues)) {
             $this->recordPass($domain, 'Zero raw SQL string concatenations detected (Prepared statements & parameter bindings enforced)');
         } else {
-            $this->recordFailure($domain, 'CRITICAL', 'Potential SQL Injection vector (raw concatenation): ' . implode(', ', $rawSqlIssues), 'app/');
+            $this->recordFailure($domain, 'CRITICAL', 'Potential SQL Injection vector (raw concatenation): '.implode(', ', $rawSqlIssues), 'app/');
         }
     }
 
@@ -397,7 +400,7 @@ class ProductionReadinessAuditCommand extends Command
         $swPath = public_path('sw.js');
         if (File::exists($swPath)) {
             $swContent = File::get($swPath);
-            if (Str::contains($swContent, "request.mode === 'navigate'") && Str::contains($swContent, "return;")) {
+            if (Str::contains($swContent, "request.mode === 'navigate'") && Str::contains($swContent, 'return;')) {
                 $this->recordPass($domain, 'Service worker transparently passes navigation to live network (No offline hijacking loops)');
             } else {
                 $this->recordFailure($domain, 'HIGH', 'Service worker may intercept and hijack navigation requests into offline traps', 'public/sw.js');
@@ -411,11 +414,11 @@ class ProductionReadinessAuditCommand extends Command
             $content = File::get($js);
             if (preg_match('/(sk_live_[0-9a-zA-Z]{24}|AKIA[0-9A-Z]{16}|BEGIN PRIVATE KEY)/', $content)) {
                 $exposedKey = true;
-                $this->recordFailure($domain, 'CRITICAL', 'Live secret or private key exposed in public JS asset: ' . basename($js), $js);
+                $this->recordFailure($domain, 'CRITICAL', 'Live secret or private key exposed in public JS asset: '.basename($js), $js);
                 break;
             }
         }
-        if (!$exposedKey) {
+        if (! $exposedKey) {
             $this->recordPass($domain, 'Public JavaScript bundles clean of live API keys, private keys, and cloud credentials');
         }
     }
@@ -434,12 +437,12 @@ class ProductionReadinessAuditCommand extends Command
                 'X-Content-Type-Options' => 'nosniff',
                 'X-Frame-Options' => 'SAMEORIGIN',
                 'Referrer-Policy' => 'strict-origin-when-cross-origin',
-                'Content-Security-Policy' => "default-src",
+                'Content-Security-Policy' => 'default-src',
             ];
 
             $missing = [];
             foreach ($requiredHeaders as $h => $val) {
-                if (!Str::contains($content, $h)) {
+                if (! Str::contains($content, $h)) {
                     $missing[] = $h;
                 }
             }
@@ -447,7 +450,7 @@ class ProductionReadinessAuditCommand extends Command
             if (empty($missing)) {
                 $this->recordPass($domain, 'Enterprise security headers active (X-Content-Type-Options, X-Frame-Options, CSP, Referrer-Policy)');
             } else {
-                $this->recordFailure($domain, 'HIGH', 'SecurityHeaders middleware missing critical headers: ' . implode(', ', $missing), 'app/Http/Middleware/SecurityHeaders.php');
+                $this->recordFailure($domain, 'HIGH', 'SecurityHeaders middleware missing critical headers: '.implode(', ', $missing), 'app/Http/Middleware/SecurityHeaders.php');
             }
         } else {
             $this->recordFailure($domain, 'CRITICAL', 'SecurityHeaders middleware does not exist', 'app/Http/Middleware');
@@ -463,7 +466,7 @@ class ProductionReadinessAuditCommand extends Command
 
         // 1. APP_KEY High-Entropy Verification
         $appKey = config('app.key');
-        if (!empty($appKey) && (Str::startsWith($appKey, 'base64:') || strlen($appKey) >= 32)) {
+        if (! empty($appKey) && (Str::startsWith($appKey, 'base64:') || strlen($appKey) >= 32)) {
             $this->recordPass($domain, 'Application encryption key (APP_KEY) present with sufficient cryptographic entropy');
         } else {
             $this->recordFailure($domain, 'CRITICAL', 'APP_KEY is empty or insecurely short! Session and encrypted data at risk.', '.env');
@@ -529,8 +532,8 @@ class ProductionReadinessAuditCommand extends Command
         foreach ($phpFiles as $f) {
             $code = File::get($f->getRealPath());
             foreach ($highVolumeModels as $hvm) {
-                if (preg_match('/' . $hvm . '::all\(\)/', $code)) {
-                    $unconstrainedAll[] = $f->getRelativePathname() . " ({$hvm}::all())";
+                if (preg_match('/'.$hvm.'::all\(\)/', $code)) {
+                    $unconstrainedAll[] = $f->getRelativePathname()." ({$hvm}::all())";
                 }
             }
         }
@@ -538,7 +541,7 @@ class ProductionReadinessAuditCommand extends Command
         if (empty($unconstrainedAll)) {
             $this->recordPass($domain, 'Zero unconstrained Model::all() calls on high-volume tables (Pagination enforced)');
         } else {
-            $this->recordFailure($domain, 'MEDIUM', 'Unconstrained Model::all() on high-volume model: ' . implode(', ', $unconstrainedAll), 'app/Http/Controllers/');
+            $this->recordFailure($domain, 'MEDIUM', 'Unconstrained Model::all() on high-volume model: '.implode(', ', $unconstrainedAll), 'app/Http/Controllers/');
         }
     }
 
@@ -626,9 +629,9 @@ class ProductionReadinessAuditCommand extends Command
     {
         $tableRows = [];
         foreach ($this->evidence as $e) {
-            $statusColor = $e['status'] === 'PASS' 
-                ? '<fg=green;options=bold>✓ PASS</>' 
-                : match($e['severity']) {
+            $statusColor = $e['status'] === 'PASS'
+                ? '<fg=green;options=bold>✓ PASS</>'
+                : match ($e['severity']) {
                     'CRITICAL' => '<fg=red;options=bold>✗ CRITICAL</>',
                     'HIGH' => '<fg=yellow;options=bold>✗ HIGH</>',
                     'MEDIUM' => '<fg=magenta>⚠ MEDIUM</>',
@@ -651,7 +654,7 @@ class ProductionReadinessAuditCommand extends Command
         $this->line("\n<fg=cyan;options=bold>====================================================================</>");
         $this->line("   TESTS EXECUTED: {$this->testsTotal}  |  PASSED: <fg=green>{$this->testsPassed}</>  |  FAILED: <fg=red>{$this->testsFailed}</>");
         $this->line("   SEVERITY BREAKDOWN: [Critical: <fg=red>{$critical}</>] [High: <fg=yellow>{$high}</>] [Medium: <fg=magenta>{$med}</>] [Low: <fg=blue>{$low}</>]");
-        $this->line("<fg=cyan;options=bold>====================================================================</>");
+        $this->line('<fg=cyan;options=bold>====================================================================</>');
 
         if ($decision === 'RELEASE APPROVAL') {
             $this->line("\n<fg=black;bg=green;options=bold>   >>> RELEASE APPROVAL: ALL REQUIRED SECURITY & READINESS GATES PASSED <<<   </>\n");
@@ -663,13 +666,13 @@ class ProductionReadinessAuditCommand extends Command
     protected function exportAuditArtifacts(string $decision, int $critical, int $high, int $med, int $low): void
     {
         $auditDir = storage_path('audit');
-        if (!File::exists($auditDir)) {
+        if (! File::exists($auditDir)) {
             File::makeDirectory($auditDir, 0755, true);
         }
 
         $timestamp = date('Y-m-d_His');
-        $jsonPath = $auditDir . "/audit-report-{$timestamp}.json";
-        $mdPath = $auditDir . "/audit-report-{$timestamp}.md";
+        $jsonPath = $auditDir."/audit-report-{$timestamp}.json";
+        $mdPath = $auditDir."/audit-report-{$timestamp}.md";
 
         $payload = [
             'timestamp' => now()->toIso8601String(),
@@ -691,8 +694,8 @@ class ProductionReadinessAuditCommand extends Command
 
         // Generate Markdown Artifact
         $md = "# Production Readiness & Security Audit Report\n\n";
-        $md .= "**Timestamp:** " . now()->format('Y-m-d H:i:s T') . "\n";
-        $md .= "**Final Release Decision:** `" . $decision . "`\n\n";
+        $md .= '**Timestamp:** '.now()->format('Y-m-d H:i:s T')."\n";
+        $md .= '**Final Release Decision:** `'.$decision."`\n\n";
         $md .= "### Summary Metrics\n";
         $md .= "- **Total Verification Probes:** `{$this->testsTotal}`\n";
         $md .= "- **Probes Passed:** `{$this->testsPassed}`\n";
@@ -706,7 +709,7 @@ class ProductionReadinessAuditCommand extends Command
         $md .= "| Domain | Status | Severity | Message | Location |\n";
         $md .= "| :--- | :--- | :--- | :--- | :--- |\n";
         foreach ($this->evidence as $e) {
-            $md .= "| {$e['domain']} | {$e['status']} | {$e['severity']} | " . str_replace('|', '/', $e['message']) . " | `{$e['location']}` |\n";
+            $md .= "| {$e['domain']} | {$e['status']} | {$e['severity']} | ".str_replace('|', '/', $e['message'])." | `{$e['location']}` |\n";
         }
 
         File::put($mdPath, $md);

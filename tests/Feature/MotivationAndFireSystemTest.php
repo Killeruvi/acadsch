@@ -97,15 +97,15 @@ class MotivationAndFireSystemTest extends TestCase
         $response = $this->actingAs($this->student)->getJson(route('motivation.spark'));
 
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'status',
-                     'data' => [
-                         'quote' => ['quote', 'author', 'slogan', 'tag'],
-                         'fact' => ['title', 'category', 'fact', 'takeaway', 'fire_multiplier'],
-                         'fire' => ['level', 'title', 'badge', 'label', 'description', 'intensity_pct'],
-                         'slogan',
-                     ],
-                 ]);
+            ->assertJsonStructure([
+                'status',
+                'data' => [
+                    'quote' => ['quote', 'author', 'slogan', 'tag'],
+                    'fact' => ['title', 'category', 'fact', 'takeaway', 'fire_multiplier'],
+                    'fire' => ['level', 'title', 'badge', 'label', 'description', 'intensity_pct'],
+                    'slogan',
+                ],
+            ]);
 
         $this->assertEquals('success', $response->json('status'));
         $this->assertEquals('Blazing Momentum', $response->json('data.fire.title'));

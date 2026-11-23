@@ -8,7 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('student_exit_certificates')) return;
+        if (Schema::hasTable('student_exit_certificates')) {
+            return;
+        }
         Schema::create('student_exit_certificates', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('withdrawal_record_id')->unique()->constrained('student_withdrawal_records')->restrictOnDelete();

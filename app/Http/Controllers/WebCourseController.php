@@ -2,18 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicSubject;
 use App\Models\Course;
 use App\Models\CourseLesson;
+use App\Models\CourseLessonVideo;
 use App\Models\CourseModule;
-use App\Models\AcademicSubject;
+use App\Models\DailyDpp;
 use App\Models\Enrollment;
 use App\Models\User;
+use App\Services\PdfHandoutGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class WebCourseController extends Controller
@@ -22,7 +28,7 @@ class WebCourseController extends Controller
     {
         $query = Course::with(['teacher:id,name,email'])->withCount('enrollments');
         $viewer = Auth::user();
-        if (!$viewer || (!$viewer->isAdmin() && !$viewer->isTeacher())) {
+        if (! $viewer || (! $viewer->isAdmin() && ! $viewer->isTeacher())) {
             $query->where('status', 'active');
         } elseif ($viewer->isTeacher()) {
             $query->where('teacher_id', $viewer->id);
@@ -36,8 +42,8 @@ class WebCourseController extends Controller
             $search = strtolower($request->query('search'));
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(title) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(code) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(description) LIKE ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(code) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(description) LIKE ?', ["%{$search}%"]);
             });
         }
 
@@ -81,8 +87,9 @@ class WebCourseController extends Controller
             },
             'enrollments' => function ($q) {
                 $viewer = Auth::user();
-                if ($viewer && $viewer->isStudent()) $q->where('student_id', $viewer->id);
-                elseif ($viewer && $viewer->isParent()) {
+                if ($viewer && $viewer->isStudent()) {
+                    $q->where('student_id', $viewer->id);
+                } elseif ($viewer && $viewer->isParent()) {
                     $childIds = User::where('parent_id', $viewer->id)->pluck('id');
                     $q->whereIn('student_id', $childIds);
                 }
@@ -98,10 +105,15 @@ class WebCourseController extends Controller
             'schedules',
         ])->findOrFail($id);
         $viewer = Auth::user();
-        if (!$viewer) abort_unless($course->status === 'active', 404);
-        elseif ($viewer->isTeacher()) abort_unless((int) $course->teacher_id === (int) $viewer->id, 403);
-        elseif ($viewer->isStudent()) abort_unless($course->status === 'active' || $viewer->enrolledCourses()->where('courses.id', $course->id)->exists(), 403);
-        elseif (!$viewer->isAdmin() && !$viewer->isParent()) abort(403);
+        if (! $viewer) {
+            abort_unless($course->status === 'active', 404);
+        } elseif ($viewer->isTeacher()) {
+            abort_unless((int) $course->teacher_id === (int) $viewer->id, 403);
+        } elseif ($viewer->isStudent()) {
+            abort_unless($course->status === 'active' || $viewer->enrolledCourses()->where('courses.id', $course->id)->exists(), 403);
+        } elseif (! $viewer->isAdmin() && ! $viewer->isParent()) {
+            abort(403);
+        }
 
         $isEnrolled = false;
         if (Auth::check() && Auth::user()->isStudent()) {
@@ -126,20 +138,20 @@ class WebCourseController extends Controller
     public function store(Request $request): RedirectResponse
     {
         // Auto-resolve course code: generate if empty, or auto-suffix if already taken
-        $rawCode = strtoupper(trim((string)$request->input('code', '')));
+        $rawCode = strtoupper(trim((string) $request->input('code', '')));
         if (empty($rawCode)) {
-            $title = (string)$request->input('title', 'CRS');
+            $title = (string) $request->input('title', 'CRS');
             $words = preg_split('/[\s\-_]+/', $title);
             $prefix = '';
             foreach ($words as $w) {
-                if (!empty($w)) {
+                if (! empty($w)) {
                     $prefix .= strtoupper(substr($w, 0, 1));
                 }
             }
             if (strlen($prefix) < 2) {
                 $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $title), 0, 3)) ?: 'CRS';
             }
-            $rawCode = substr($prefix, 0, 4) . '-' . strtoupper(Str::random(6));
+            $rawCode = substr($prefix, 0, 4).'-'.strtoupper(Str::random(6));
         }
 
         // If code already exists in courses table, auto-suffix to avoid collision
@@ -172,7 +184,7 @@ class WebCourseController extends Controller
         ]);
 
         if (Auth::user()->isTeacher()) {
-            if (!empty($validated['teacher_id']) && (int) $validated['teacher_id'] !== Auth::id()) {
+            if (! empty($validated['teacher_id']) && (int) $validated['teacher_id'] !== Auth::id()) {
                 abort(403, 'Teachers may create courses only under their own account.');
             }
             $validated['teacher_id'] = Auth::id();
@@ -195,6 +207,7 @@ class WebCourseController extends Controller
         // Optional Curriculum CSV Bulk Import during course creation
         if ($request->hasFile('curriculum_csv')) {
             $stats = $this->processCurriculumCsv($course, $request->file('curriculum_csv'));
+
             return redirect()->route('courses.show', $course->id)
                 ->with('success', "Course '{$course->title}' created with {$stats['modules']} modules and {$stats['lessons']} lessons imported from CSV.");
         }
@@ -206,7 +219,7 @@ class WebCourseController extends Controller
     public function update(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -215,7 +228,7 @@ class WebCourseController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:courses,code,' . $course->id,
+            'code' => 'required|string|max:50|unique:courses,code,'.$course->id,
             'description' => 'nullable|string',
             'category' => 'required|string|max:100',
             'credits' => 'required|integer|min:1|max:12',
@@ -256,7 +269,7 @@ class WebCourseController extends Controller
     public function destroy(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -293,70 +306,84 @@ class WebCourseController extends Controller
         abort_unless($course->status === 'active', 404);
 
         $requestedStudentId = $request->input('student_id');
-        if (!$requestedStudentId && !$user->isStudent()) {
+        if (! $requestedStudentId && ! $user->isStudent()) {
             abort(422, 'Select a student account to enroll.');
         }
-        if ($requestedStudentId && (int)$requestedStudentId !== $user->id) {
-            if (!$user->isAdmin() && !$user->isTeacher()) {
+        if ($requestedStudentId && (int) $requestedStudentId !== $user->id) {
+            if (! $user->isAdmin() && ! $user->isTeacher()) {
                 abort(403, 'Unauthorized. Students cannot enroll other users.');
             }
-            $studentId = (int)$requestedStudentId;
+            $studentId = (int) $requestedStudentId;
         } else {
             $studentId = $user->id;
         }
         abort_unless(User::whereKey($studentId)->where('role', 'student')->exists(), 422, 'Only student accounts can be enrolled.');
 
-        $enrolled = \Illuminate\Support\Facades\DB::transaction(function () use ($course, $studentId) {
+        $enrolled = DB::transaction(function () use ($course, $studentId) {
             $lockedCourse = Course::whereKey($course->id)->lockForUpdate()->firstOrFail();
             $existing = Enrollment::where('course_id', $lockedCourse->id)->where('student_id', $studentId)->lockForUpdate()->first();
-            if ($existing && in_array($existing->status, ['enrolled', 'completed'], true)) return 'existing';
+            if ($existing && in_array($existing->status, ['enrolled', 'completed'], true)) {
+                return 'existing';
+            }
             $activeCount = Enrollment::where('course_id', $lockedCourse->id)->where('status', 'enrolled')->count();
-            if ($activeCount >= $lockedCourse->capacity) return 'full';
+            if ($activeCount >= $lockedCourse->capacity) {
+                return 'full';
+            }
             if ($existing) {
                 $existing->update(['status' => 'enrolled', 'enrolled_at' => now()]);
             } else {
                 Enrollment::create(['course_id' => $lockedCourse->id, 'student_id' => $studentId, 'status' => 'enrolled', 'enrolled_at' => now()]);
             }
+
             return 'created';
         });
-        if ($enrolled === 'full') return back()->with('error', 'This course is at full capacity.');
-        if ($enrolled === 'existing') return back()->with('info', 'Already enrolled in this course.');
+        if ($enrolled === 'full') {
+            return back()->with('error', 'This course is at full capacity.');
+        }
+        if ($enrolled === 'existing') {
+            return back()->with('info', 'Already enrolled in this course.');
+        }
 
         return back()->with('success', "Successfully enrolled in {$course->title}!");
     }
 
-    public function downloadHandoutPdf(Request $request, int $id, string $filename): \Symfony\Component\HttpFoundation\Response
+    public function downloadHandoutPdf(Request $request, int $id, string $filename): Response
     {
         $course = Course::findOrFail($id);
         $viewer = Auth::user();
-        if (!$viewer || (!$viewer->isAdmin() && !$viewer->isTeacher())) abort_unless($course->status === 'active', 404);
-        if ($viewer && $viewer->isTeacher()) abort_unless((int) $course->teacher_id === (int) $viewer->id, 403);
+        if (! $viewer || (! $viewer->isAdmin() && ! $viewer->isTeacher())) {
+            abort_unless($course->status === 'active', 404);
+        }
+        if ($viewer && $viewer->isTeacher()) {
+            abort_unless((int) $course->teacher_id === (int) $viewer->id, 403);
+        }
         abort_unless(preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.pdf$/i', $filename) === 1, 404);
 
         // 1. Check if an actual uploaded file exists in public storage
         $storedRelPath = "courses/{$course->id}/handouts/{$filename}";
-        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($storedRelPath)) {
-            $absPath = \Illuminate\Support\Facades\Storage::disk('public')->path($storedRelPath);
+        if (Storage::disk('public')->exists($storedRelPath)) {
+            $absPath = Storage::disk('public')->path($storedRelPath);
+
             return response()->file($absPath, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => ($request->query('download') ? 'attachment' : 'inline') . '; filename="' . $filename . '"',
+                'Content-Disposition' => ($request->query('download') ? 'attachment' : 'inline').'; filename="'.$filename.'"',
             ]);
         }
 
         // 2. Parse lesson number from filename (e.g. week-1-lesson-2.pdf, lesson-2.pdf, L2.pdf)
         $lessonNumber = 1;
         if (preg_match('/(?:lesson[-_]?|l)(\d+)/i', $filename, $m)) {
-            $lessonNumber = (int)$m[1];
+            $lessonNumber = (int) $m[1];
         } elseif (preg_match('/(\d+)\.pdf$/i', $filename, $m)) {
-            $lessonNumber = (int)$m[1];
+            $lessonNumber = (int) $m[1];
         }
 
-        $lesson = \App\Models\CourseLesson::where('course_id', $course->id)
+        $lesson = CourseLesson::where('course_id', $course->id)
             ->where('lesson_number', $lessonNumber)
             ->first() ?? $course->lessons()->first();
 
-        if (!$lesson) {
-            $lesson = new \App\Models\CourseLesson([
+        if (! $lesson) {
+            $lesson = new CourseLesson([
                 'course_id' => $course->id,
                 'lesson_number' => $lessonNumber,
                 'title' => "Lesson {$lessonNumber}: Study Material & Practical Exercises",
@@ -366,29 +393,30 @@ class WebCourseController extends Controller
             ]);
         }
 
-        $pdfBytes = \App\Services\PdfHandoutGenerator::generate($course, $lesson);
+        $pdfBytes = PdfHandoutGenerator::generate($course, $lesson);
 
         // Cache generated PDF to storage
-        \Illuminate\Support\Facades\Storage::disk('public')->put($storedRelPath, $pdfBytes);
+        Storage::disk('public')->put($storedRelPath, $pdfBytes);
 
         return response($pdfBytes, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => ($request->query('download') ? 'attachment' : 'inline') . '; filename="' . $filename . '"',
+            'Content-Disposition' => ($request->query('download') ? 'attachment' : 'inline').'; filename="'.$filename.'"',
             'Cache-Control' => 'public, max-age=86400',
         ]);
     }
 
-    public function lessonPdf(Request $request, int $id, int $lessonNumber): \Symfony\Component\HttpFoundation\Response
+    public function lessonPdf(Request $request, int $id, int $lessonNumber): Response
     {
         $course = Course::findOrFail($id);
         $filename = "course-{$course->id}-lesson-{$lessonNumber}.pdf";
+
         return $this->downloadHandoutPdf($request, $id, $filename);
     }
 
     public function uploadLessonPdf(Request $request, int $courseId, int $lessonId = 0): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -396,21 +424,21 @@ class WebCourseController extends Controller
         $this->authorizeCourseManager($course);
 
         // Fallback lesson resolution: route parameter or form input
-        $targetLessonId = $lessonId > 0 ? $lessonId : (int)$request->input('lesson_id', 0);
+        $targetLessonId = $lessonId > 0 ? $lessonId : (int) $request->input('lesson_id', 0);
         $lesson = null;
 
         if ($targetLessonId > 0) {
-            $lesson = \App\Models\CourseLesson::where('course_id', $courseId)->find($targetLessonId);
+            $lesson = CourseLesson::where('course_id', $courseId)->find($targetLessonId);
         }
 
-        if (!$lesson) {
-            $lesson = \App\Models\CourseLesson::where('course_id', $courseId)->orderBy('lesson_number')->first();
+        if (! $lesson) {
+            $lesson = CourseLesson::where('course_id', $courseId)->orderBy('lesson_number')->first();
         }
 
         // Strictly disallow upload if no lectures/lessons exist yet
-        if (!$lesson) {
+        if (! $lesson) {
             return back()->withErrors([
-                'pdf_file' => 'Cannot upload lecture notes: no lectures exist for this course yet. Please create at least one lecture in the Curriculum tab first.'
+                'pdf_file' => 'Cannot upload lecture notes: no lectures exist for this course yet. Please create at least one lecture in the Curriculum tab first.',
             ])->with('error', 'Cannot upload lecture notes until lectures are created for this course.');
         }
 
@@ -419,15 +447,15 @@ class WebCourseController extends Controller
         ]);
 
         $file = $request->file('pdf_file');
-        $fileName = 'course_' . $courseId . '_lesson_' . $lesson->lesson_number . '_' . time() . '.pdf';
+        $fileName = 'course_'.$courseId.'_lesson_'.$lesson->lesson_number.'_'.time().'.pdf';
         $dest = public_path('uploads/course_notes');
-        if (!file_exists($dest)) {
+        if (! file_exists($dest)) {
             mkdir($dest, 0755, true);
         }
         $file->move($dest, $fileName);
 
         $lesson->update([
-            'pdf_url' => '/uploads/course_notes/' . $fileName,
+            'pdf_url' => '/uploads/course_notes/'.$fileName,
         ]);
 
         return back()->with('success', "PDF lecture note uploaded successfully for Lecture {$lesson->lesson_number}: {$lesson->title}!");
@@ -436,7 +464,7 @@ class WebCourseController extends Controller
     public function storeVideo(Request $request, int $courseId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isAdmin() && !$user->isTeacher()) {
+        if (! $user->isAdmin() && ! $user->isTeacher()) {
             abort(403);
         }
 
@@ -453,12 +481,12 @@ class WebCourseController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        if (!empty($validated['lesson_id'])) {
-            $lesson = \App\Models\CourseLesson::where('course_id', $course->id)->findOrFail($validated['lesson_id']);
+        if (! empty($validated['lesson_id'])) {
+            $lesson = CourseLesson::where('course_id', $course->id)->findOrFail($validated['lesson_id']);
             $isFirstVideo = $lesson->videos()->count() === 0;
 
             $maxOrder = $lesson->videos()->max('order_index') ?? 0;
-            $video = \App\Models\CourseLessonVideo::create([
+            $video = CourseLessonVideo::create([
                 'lesson_id' => $lesson->id,
                 'course_id' => $course->id,
                 'title' => $validated['title'],
@@ -471,11 +499,11 @@ class WebCourseController extends Controller
             if ($isFirstVideo || empty($lesson->video_url) || $lesson->title === 'Initial Lesson') {
                 $lesson->title = $validated['title'];
                 $lesson->video_url = $validated['video_url'];
-                if (!empty($validated['duration_minutes'])) {
+                if (! empty($validated['duration_minutes'])) {
                     $lesson->duration_minutes = $validated['duration_minutes'];
                 }
             }
-            if (!empty($validated['description']) && empty($lesson->topic_summary)) {
+            if (! empty($validated['description']) && empty($lesson->topic_summary)) {
                 $lesson->topic_summary = $validated['description'];
             }
             $lesson->save();
@@ -484,10 +512,10 @@ class WebCourseController extends Controller
         }
 
         $moduleId = $validated['module_id'] ?? null;
-        if (!$moduleId) {
+        if (! $moduleId) {
             $module = $course->modules()->first();
-            if (!$module) {
-                $module = \App\Models\CourseModule::create([
+            if (! $module) {
+                $module = CourseModule::create([
                     'course_id' => $course->id,
                     'title' => 'Module 1: Foundation Lectures',
                     'description' => 'Core lecture presentations and video masterclasses',
@@ -498,9 +526,9 @@ class WebCourseController extends Controller
             $moduleId = $module->id;
         }
 
-        $maxLessonNum = \App\Models\CourseLesson::where('course_id', $course->id)->max('lesson_number') ?? 0;
+        $maxLessonNum = CourseLesson::where('course_id', $course->id)->max('lesson_number') ?? 0;
 
-        $lesson = \App\Models\CourseLesson::create([
+        $lesson = CourseLesson::create([
             'course_id' => $course->id,
             'module_id' => $moduleId,
             'lesson_number' => $maxLessonNum + 1,
@@ -513,7 +541,7 @@ class WebCourseController extends Controller
             'order_index' => $maxLessonNum + 1,
         ]);
 
-        \App\Models\CourseLessonVideo::create([
+        CourseLessonVideo::create([
             'lesson_id' => $lesson->id,
             'course_id' => $course->id,
             'title' => $validated['title'],
@@ -529,7 +557,7 @@ class WebCourseController extends Controller
     public function updateLessonVideo(Request $request, int $courseId, int $videoId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -544,14 +572,15 @@ class WebCourseController extends Controller
                 'duration_minutes' => 'nullable|integer|min:1|max:360',
             ]);
             $lesson->video_url = $validated['video_url'];
-            if (!empty($validated['duration_minutes'])) {
+            if (! empty($validated['duration_minutes'])) {
                 $lesson->duration_minutes = $validated['duration_minutes'];
             }
             $lesson->save();
-            return back()->with('success', "Lesson video updated successfully!");
+
+            return back()->with('success', 'Lesson video updated successfully!');
         }
 
-        $video = \App\Models\CourseLessonVideo::where('course_id', $course->id)->findOrFail($videoId);
+        $video = CourseLessonVideo::where('course_id', $course->id)->findOrFail($videoId);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -579,7 +608,7 @@ class WebCourseController extends Controller
     public function destroyLessonVideo(Request $request, int $courseId, int $videoId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -590,10 +619,11 @@ class WebCourseController extends Controller
             $lesson = CourseLesson::where('course_id', $course->id)->findOrFail($request->input('lesson_id'));
             $lesson->video_url = null;
             $lesson->save();
+
             return back()->with('success', "Video removed from Lesson {$lesson->lesson_number}.");
         }
 
-        $video = \App\Models\CourseLessonVideo::where('course_id', $courseId)->findOrFail($videoId);
+        $video = CourseLessonVideo::where('course_id', $courseId)->findOrFail($videoId);
         $lesson = $video->lesson;
         $title = $video->title;
         $video->delete();
@@ -610,7 +640,7 @@ class WebCourseController extends Controller
     public function destroyLessonPdf(Request $request, int $courseId, int $lessonId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -633,7 +663,7 @@ class WebCourseController extends Controller
     public function storeDpp(Request $request, int $courseId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isAdmin() && !$user->isTeacher()) {
+        if (! $user->isAdmin() && ! $user->isTeacher()) {
             abort(403);
         }
 
@@ -654,17 +684,17 @@ class WebCourseController extends Controller
 
         $subject = AcademicSubject::with('academicClass')->findOrFail($validated['subject_id']);
         $academicClass = $subject->academicClass;
-        if (!$academicClass) {
+        if (! $academicClass) {
             return back()->withErrors(['subject_id' => 'The selected subject is not linked to an active academic class.']);
         }
         if ($user->isTeacher() && $subject->teacher_id !== $user->id && $academicClass->class_teacher_id !== $user->id) {
             abort(403, 'You are not assigned to the selected class subject.');
         }
 
-        $dppCount = \App\Models\DailyDpp::where('course_id', $course->id)->count();
-        $dppNumber = 'DPP-' . str_pad($dppCount + 1, 2, '0', STR_PAD_LEFT);
+        $dppCount = DailyDpp::where('course_id', $course->id)->count();
+        $dppNumber = 'DPP-'.str_pad($dppCount + 1, 2, '0', STR_PAD_LEFT);
 
-        $dpp = \App\Models\DailyDpp::create([
+        $dpp = DailyDpp::create([
             'course_id' => $course->id,
             'lesson_id' => $validated['lesson_id'] ?? null,
             'class_id' => $academicClass->id,
@@ -678,7 +708,7 @@ class WebCourseController extends Controller
             'total_marks' => $validated['total_marks'] ?? 20,
             'difficulty' => $validated['difficulty'],
             'duration_minutes' => $validated['duration_minutes'] ?? 30,
-            'is_timed' => !empty($validated['duration_minutes']) && $validated['duration_minutes'] > 0,
+            'is_timed' => ! empty($validated['duration_minutes']) && $validated['duration_minutes'] > 0,
             'pass_percentage' => $validated['pass_percentage'] ?? 60,
             'negative_marks' => $validated['negative_marks'] ?? 0.0,
         ]);
@@ -694,7 +724,7 @@ class WebCourseController extends Controller
     {
         $course = Course::findOrFail($courseId);
         $this->authorizeCourseManager($course);
-        $filename = "curriculum_template_" . Str::slug($course->code ?? $course->title) . ".csv";
+        $filename = 'curriculum_template_'.Str::slug($course->code ?? $course->title).'.csv';
 
         return response()->streamDownload(function () {
             $handle = fopen('php://output', 'w');
@@ -757,7 +787,7 @@ class WebCourseController extends Controller
     public function importCurriculumCsv(Request $request, int $courseId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -779,7 +809,7 @@ class WebCourseController extends Controller
     private function processCurriculumCsv(Course $course, UploadedFile $file): array
     {
         $handle = fopen($file->getRealPath(), 'r');
-        if (!$handle) {
+        if (! $handle) {
             return ['modules' => 0, 'lessons' => 0];
         }
 
@@ -790,8 +820,9 @@ class WebCourseController extends Controller
         }
 
         $header = fgetcsv($handle);
-        if (!$header) {
+        if (! $header) {
             fclose($handle);
+
             return ['modules' => 0, 'lessons' => 0];
         }
 
@@ -807,6 +838,7 @@ class WebCourseController extends Controller
                     return $idx;
                 }
             }
+
             return null;
         };
 
@@ -837,13 +869,13 @@ class WebCourseController extends Controller
                 $modTitle = 'General Module';
             }
 
-            $modOrder = $modOrderIdx !== null && isset($row[$modOrderIdx]) && is_numeric(trim($row[$modOrderIdx])) 
-                ? (int)trim($row[$modOrderIdx]) 
+            $modOrder = $modOrderIdx !== null && isset($row[$modOrderIdx]) && is_numeric(trim($row[$modOrderIdx]))
+                ? (int) trim($row[$modOrderIdx])
                 : count($moduleMap) + 1;
 
             $modDesc = $modDescIdx !== null && isset($row[$modDescIdx]) ? trim($row[$modDescIdx]) : null;
 
-            if (!isset($moduleMap[$modTitle])) {
+            if (! isset($moduleMap[$modTitle])) {
                 $module = CourseModule::firstOrCreate(
                     [
                         'course_id' => $course->id,
@@ -868,10 +900,10 @@ class WebCourseController extends Controller
             }
 
             $lesNum = $lesNumIdx !== null && isset($row[$lesNumIdx]) && is_numeric(trim($row[$lesNumIdx]))
-                ? (int)trim($row[$lesNumIdx])
+                ? (int) trim($row[$lesNumIdx])
                 : (CourseLesson::where('course_id', $course->id)->max('lesson_number') ?? 0) + 1;
 
-            $dur = $durIdx !== null && isset($row[$durIdx]) && is_numeric(trim($row[$durIdx])) ? (int)trim($row[$durIdx]) : 45;
+            $dur = $durIdx !== null && isset($row[$durIdx]) && is_numeric(trim($row[$durIdx])) ? (int) trim($row[$durIdx]) : 45;
             $vidUrl = $vidIdx !== null && isset($row[$vidIdx]) ? trim($row[$vidIdx]) : null;
             $pdfUrl = $pdfIdx !== null && isset($row[$pdfIdx]) ? trim($row[$pdfIdx]) : null;
             $summary = $sumIdx !== null && isset($row[$sumIdx]) ? trim($row[$sumIdx]) : null;
@@ -911,7 +943,7 @@ class WebCourseController extends Controller
     public function storeModule(Request $request, int $courseId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -945,7 +977,7 @@ class WebCourseController extends Controller
     public function updateModule(Request $request, int $courseId, int $moduleId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -971,7 +1003,7 @@ class WebCourseController extends Controller
     public function destroyModule(Request $request, int $courseId, int $moduleId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -992,7 +1024,7 @@ class WebCourseController extends Controller
     public function storeLesson(Request $request, int $courseId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -1016,13 +1048,13 @@ class WebCourseController extends Controller
         $pdfUrl = $validated['pdf_url'] ?? null;
         if ($request->hasFile('pdf_file')) {
             $file = $request->file('pdf_file');
-            $fileName = 'course_' . $course->id . '_lesson_' . $lessonNumber . '_' . time() . '.pdf';
+            $fileName = 'course_'.$course->id.'_lesson_'.$lessonNumber.'_'.time().'.pdf';
             $dest = public_path('uploads/course_notes');
-            if (!file_exists($dest)) {
+            if (! file_exists($dest)) {
                 mkdir($dest, 0755, true);
             }
             $file->move($dest, $fileName);
-            $pdfUrl = '/uploads/course_notes/' . $fileName;
+            $pdfUrl = '/uploads/course_notes/'.$fileName;
         }
 
         CourseLesson::create([
@@ -1048,7 +1080,7 @@ class WebCourseController extends Controller
     public function updateLesson(Request $request, int $courseId, int $lessonId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -1069,14 +1101,14 @@ class WebCourseController extends Controller
 
         if ($request->hasFile('pdf_file')) {
             $file = $request->file('pdf_file');
-            $fileName = 'course_' . $course->id . '_lesson_' . $validated['lesson_number'] . '_' . time() . '.pdf';
+            $fileName = 'course_'.$course->id.'_lesson_'.$validated['lesson_number'].'_'.time().'.pdf';
             $dest = public_path('uploads/course_notes');
-            if (!file_exists($dest)) {
+            if (! file_exists($dest)) {
                 mkdir($dest, 0755, true);
             }
             $file->move($dest, $fileName);
-            $lesson->pdf_url = '/uploads/course_notes/' . $fileName;
-        } elseif (!empty($validated['pdf_url'])) {
+            $lesson->pdf_url = '/uploads/course_notes/'.$fileName;
+        } elseif (! empty($validated['pdf_url'])) {
             $lesson->pdf_url = $validated['pdf_url'];
         }
 
@@ -1097,7 +1129,7 @@ class WebCourseController extends Controller
     public function destroyLesson(Request $request, int $courseId, int $lessonId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -1117,5 +1149,4 @@ class WebCourseController extends Controller
         abort_unless($user && ($user->isAdmin() || ($user->isTeacher() && (int) $course->teacher_id === (int) $user->id)), 403,
             'You may manage only courses assigned to you.');
     }
-
 }

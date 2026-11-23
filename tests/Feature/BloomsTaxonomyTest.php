@@ -5,10 +5,8 @@ namespace Tests\Feature;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
 use App\Models\BloomAssignment;
-use App\Models\ClassEnrollment;
 use App\Models\CurriculumTopic;
 use App\Models\DailyLesson;
-use App\Models\TopicBloomActivity;
 use App\Models\User;
 use App\Services\BloomsAssignmentService;
 use Database\Seeders\BloomsTaxonomySeeder;
@@ -64,7 +62,7 @@ class BloomsTaxonomyTest extends TestCase
             'distribution_mode' => 'balanced_random',
         ]);
 
-        $service = new BloomsAssignmentService();
+        $service = new BloomsAssignmentService;
         $assignments = $service->distributeAssignments($lesson, 'balanced_random');
 
         $studentCount = $class8->enrollments()->count();
@@ -98,7 +96,7 @@ class BloomsTaxonomyTest extends TestCase
             'target_level' => 3,
         ]);
 
-        $service = new BloomsAssignmentService();
+        $service = new BloomsAssignmentService;
         $assignments = $service->distributeAssignments($lesson, 'uniform_level', 3);
 
         $distinctLevels = $assignments->pluck('bloom_level')->unique()->toArray();
@@ -116,8 +114,8 @@ class BloomsTaxonomyTest extends TestCase
         // Student visits student Bloom's page
         $response = $this->actingAs($student)->get('/blooms');
         $response->assertStatus(200)
-                 ->assertSee('Cognitive Progress Tracker')
-                 ->assertSee('Active & Past Daily Prompts');
+            ->assertSee('Cognitive Progress Tracker')
+            ->assertSee('Active & Past Daily Prompts');
 
         // Student submits solution
         $submitResponse = $this->actingAs($student)->post("/blooms/assignments/{$assignment->id}/submit", [
@@ -157,8 +155,8 @@ class BloomsTaxonomyTest extends TestCase
 
         $response = $this->actingAs($teacher)->get("/blooms/lessons/{$lesson->id}");
         $response->assertStatus(200)
-                 ->assertSee('Roll-Number Assignment Roster')
-                 ->assertSee($lesson->topic->title);
+            ->assertSee('Roll-Number Assignment Roster')
+            ->assertSee($lesson->topic->title);
     }
 
     public function test_ajax_curriculum_endpoint_returns_json(): void
@@ -168,10 +166,10 @@ class BloomsTaxonomyTest extends TestCase
 
         $response = $this->actingAs($admin)->getJson("/blooms/curriculum-data/{$class8->id}");
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'subjects' => [
-                         '*' => ['id', 'name', 'code', 'topics'],
-                     ],
-                 ]);
+            ->assertJsonStructure([
+                'subjects' => [
+                    '*' => ['id', 'name', 'code', 'topics'],
+                ],
+            ]);
     }
 }

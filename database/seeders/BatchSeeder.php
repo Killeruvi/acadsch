@@ -3,15 +3,11 @@
 namespace Database\Seeders;
 
 use App\Models\AcademicClass;
-use App\Models\AcademicSubject;
 use App\Models\Batch;
 use App\Models\ClassEnrollment;
 use App\Models\CurriculumTopic;
-use App\Models\DailyDpp;
-use App\Models\DppQuestion;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class BatchSeeder extends Seeder
 {
@@ -43,7 +39,7 @@ class BatchSeeder extends Seeder
             $grade = $class->grade_level;
 
             // 1. Batch A
-            $codeM = 'BATCH-' . str_pad((string)$grade, 2, '0', STR_PAD_LEFT) . '-A';
+            $codeM = 'BATCH-'.str_pad((string) $grade, 2, '0', STR_PAD_LEFT).'-A';
             $batchM = Batch::updateOrCreate(
                 ['code' => $codeM],
                 [
@@ -60,7 +56,7 @@ class BatchSeeder extends Seeder
             );
 
             // 2. Batch B
-            $codeE = 'BATCH-' . str_pad((string)$grade, 2, '0', STR_PAD_LEFT) . '-B';
+            $codeE = 'BATCH-'.str_pad((string) $grade, 2, '0', STR_PAD_LEFT).'-B';
             $batchE = Batch::updateOrCreate(
                 ['code' => $codeE],
                 [
@@ -77,7 +73,7 @@ class BatchSeeder extends Seeder
             );
 
             // 3. Batch C
-            $codeC = 'BATCH-' . str_pad((string)$grade, 2, '0', STR_PAD_LEFT) . '-C';
+            $codeC = 'BATCH-'.str_pad((string) $grade, 2, '0', STR_PAD_LEFT).'-C';
             $batchC = Batch::updateOrCreate(
                 ['code' => $codeC],
                 [
@@ -94,7 +90,7 @@ class BatchSeeder extends Seeder
             );
 
             // Backwards compatibility for previous code
-            $codeOld = 'BATCH-' . str_pad((string)$grade, 2, '0', STR_PAD_LEFT) . 'A';
+            $codeOld = 'BATCH-'.str_pad((string) $grade, 2, '0', STR_PAD_LEFT).'A';
             Batch::where('code', $codeOld)->update([
                 'shift' => 'morning',
                 'timing_slot' => null,
@@ -113,7 +109,7 @@ class BatchSeeder extends Seeder
 
             if (isset($createdBatches[$classId])) {
                 $student->update(['batch_id' => $createdBatches[$classId]->id]);
-            } elseif (!empty($createdBatches)) {
+            } elseif (! empty($createdBatches)) {
                 $student->update(['batch_id' => reset($createdBatches)->id]);
             }
         }

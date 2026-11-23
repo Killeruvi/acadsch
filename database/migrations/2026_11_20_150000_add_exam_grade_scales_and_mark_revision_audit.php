@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('school_exam_grade_scales')) {
+        if (! Schema::hasTable('school_exam_grade_scales')) {
             Schema::create('school_exam_grade_scales', function (Blueprint $table) {
                 $table->id();
                 $table->string('grade_code', 10)->unique();
@@ -33,7 +33,7 @@ return new class extends Migration
             ]);
         }
 
-        if (!Schema::hasTable('school_exam_mark_revisions')) {
+        if (! Schema::hasTable('school_exam_mark_revisions')) {
             Schema::create('school_exam_mark_revisions', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('exam_mark_id')->constrained('school_exam_marks')->restrictOnDelete();
@@ -46,13 +46,12 @@ return new class extends Migration
             });
         }
 
-
         if (Schema::hasTable('school_report_cards')) {
             Schema::table('school_report_cards', function (Blueprint $table) {
-                if (!Schema::hasColumn('school_report_cards', 'attendance_data_available')) {
+                if (! Schema::hasColumn('school_report_cards', 'attendance_data_available')) {
                     $table->boolean('attendance_data_available')->default(false);
                 }
-                if (!Schema::hasColumn('school_report_cards', 'gpa_configured')) {
+                if (! Schema::hasColumn('school_report_cards', 'gpa_configured')) {
                     $table->boolean('gpa_configured')->default(false);
                 }
             });
@@ -89,10 +88,10 @@ return new class extends Migration
 
         if (Schema::hasTable('school_report_cards')) {
             Schema::table('school_report_cards', function (Blueprint $table) {
-                if (!Schema::hasColumn('school_report_cards', 'attendance_data_available')) {
+                if (! Schema::hasColumn('school_report_cards', 'attendance_data_available')) {
                     $table->boolean('attendance_data_available')->default(false);
                 }
-                if (!Schema::hasColumn('school_report_cards', 'gpa_configured')) {
+                if (! Schema::hasColumn('school_report_cards', 'gpa_configured')) {
                     $table->boolean('gpa_configured')->default(false);
                 }
             });

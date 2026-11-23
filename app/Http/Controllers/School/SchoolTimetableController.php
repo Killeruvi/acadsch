@@ -5,14 +5,20 @@ namespace App\Http\Controllers\School;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
+use App\Models\AcademySetting;
 use App\Models\ClassEnrollment;
 use App\Models\SchoolPeriod;
+use App\Models\SchoolPeriodSubstitute;
 use App\Models\SchoolPeriodTimetable;
 use App\Models\User;
+use App\Services\NotificationService;
+use App\Services\SchoolAcademicAuditService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -50,7 +56,7 @@ class SchoolTimetableController extends Controller
             $requestedChildId = $request->input('child_id', session('parent_active_student_id'));
             if ($requestedChildId) {
                 $activeChild = $children->firstWhere('id', (int) $requestedChildId);
-                if (!$activeChild) {
+                if (! $activeChild) {
                     abort(404, 'The selected student is not linked to this parent account.');
                 }
             } else {
@@ -80,19 +86,19 @@ class SchoolTimetableController extends Controller
         if ($user->isParent() && $activeChild) {
             $classId = ClassEnrollment::where('student_id', $activeChild->id)->where('status', 'active')->latest('id')->value('class_id');
         }
-        if (!$classId && $classes->isNotEmpty()) {
+        if (! $classId && $classes->isNotEmpty()) {
             $classId = $classes->first()->id;
         }
-        if (!$teacherId && $viewType === 'teacher' && $teachers->isNotEmpty()) {
+        if (! $teacherId && $viewType === 'teacher' && $teachers->isNotEmpty()) {
             $teacherId = $teachers->first()->id;
         }
 
         $selectedClass = $classes->firstWhere('id', (int) $classId);
         $selectedTeacher = $teachers->firstWhere('id', (int) $teacherId);
-        if ($viewType === 'class' && $classId && !$selectedClass) {
+        if ($viewType === 'class' && $classId && ! $selectedClass) {
             abort(403, 'You are not authorized to view this class timetable.');
         }
-        if ($viewType === 'teacher' && $teacherId && !$selectedTeacher) {
+        if ($viewType === 'teacher' && $teacherId && ! $selectedTeacher) {
             abort(403, 'You are not authorized to view this teacher timetable.');
         }
 
@@ -129,7 +135,7 @@ class SchoolTimetableController extends Controller
 
         $allPeriods = SchoolPeriod::orderBy('sort_order')->get();
         $todayDate = now()->toDateString();
-        $substitutes = \App\Models\SchoolPeriodSubstitute::active()
+        $substitutes = SchoolPeriodSubstitute::active()
             ->with(['substituteTeacher', 'originalTeacher'])
             ->where('date', $todayDate)
             ->get()
@@ -151,7 +157,7 @@ class SchoolTimetableController extends Controller
             'subject_id' => 'required|integer|exists:academic_subjects,id',
             'teacher_id' => 'nullable|integer|exists:users,id',
             'teacher_override' => 'nullable|boolean',
-            'day_of_week' => ['required', 'string', \Illuminate\Validation\Rule::in(config('school_timetable.days', []))],
+            'day_of_week' => ['required', 'string', Rule::in(config('school_timetable.days', []))],
             'period_number' => 'required|integer|exists:school_periods,period_number',
             'room_number' => 'nullable|string|max:50',
         ]);
@@ -165,25 +171,25 @@ class SchoolTimetableController extends Controller
 
         $data['room_number'] = trim((string) ($data['room_number'] ?? $class->room_number ?? '')) ?: null;
         $override = $request->boolean('teacher_override');
-        $sessionDefaultTeacherId = $class->academic_year === \App\Models\AcademySetting::get('academic_session') ? $subject->subjectMaster?->default_teacher_id : null;
+        $sessionDefaultTeacherId = $class->academic_year === AcademySetting::get('academic_session') ? $subject->subjectMaster?->default_teacher_id : null;
         $defaultTeacherId = $subject->teacher_id ?? $sessionDefaultTeacherId;
         $teacherId = ($data['teacher_id'] ?? null) ?: $defaultTeacherId;
-        if (!$teacherId) {
+        if (! $teacherId) {
             throw ValidationException::withMessages(['teacher_id' => 'Assign a subject teacher before scheduling this lesson, or select an explicit override teacher.']);
         }
         $teacher = User::findOrFail($teacherId);
-        if (!$teacher->isTeacher()) {
+        if (! $teacher->isTeacher()) {
             throw ValidationException::withMessages(['teacher_id' => 'Only active teacher accounts can be scheduled.']);
         }
-        if (!$defaultTeacherId && !$override) {
+        if (! $defaultTeacherId && ! $override) {
             throw ValidationException::withMessages(['teacher_id' => 'Assign a subject teacher first, or explicitly enable teacher override.']);
         }
-        if ($defaultTeacherId && (int) $defaultTeacherId !== (int) $teacher->id && !$override) {
+        if ($defaultTeacherId && (int) $defaultTeacherId !== (int) $teacher->id && ! $override) {
             throw ValidationException::withMessages(['teacher_id' => 'This subject has a globally assigned teacher. Enable teacher override to schedule another teacher for this class.']);
         }
-        if (!$subject->teacher_id && $defaultTeacherId) {
+        if (! $subject->teacher_id && $defaultTeacherId) {
             $subject->update(['teacher_id' => $defaultTeacherId]);
-            app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'inherited_subject_master_teacher', 'Inherited the subject master default teacher for '.$subject->name.' in '.$class->display_name.'.', ['teacher_id' => null], ['teacher_id' => $defaultTeacherId], $request, $class->id, $subject->id);
+            app(SchoolAcademicAuditService::class)->log(Auth::user(), 'inherited_subject_master_teacher', 'Inherited the subject master default teacher for '.$subject->name.' in '.$class->display_name.'.', ['teacher_id' => null], ['teacher_id' => $defaultTeacherId], $request, $class->id, $subject->id);
         }
 
         $slot = DB::transaction(function () use ($class, $subject, $period, $teacher, $data) {
@@ -199,6 +205,7 @@ class SchoolTimetableController extends Controller
                 throw ValidationException::withMessages(['subject_id' => 'This subject has already reached its configured weekly period load. Update the subject load before adding another slot.']);
             }
             $this->assertSlotAvailable($class->id, $teacher->id, $data['day_of_week'], $period->period_number, $data['room_number'], $existing?->id);
+
             return SchoolPeriodTimetable::updateOrCreate(
                 ['class_id' => $class->id, 'day_of_week' => $data['day_of_week'], 'period_number' => $period->period_number],
                 [
@@ -213,7 +220,7 @@ class SchoolTimetableController extends Controller
             );
         }, 3);
 
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'saved_timetable_slot', 'Saved '.$subject->name.' for '.$class->display_name.' on '.$data['day_of_week'].' period '.$period->period_number.'.', null, ['slot_id' => $slot->id, 'subject_id' => $subject->id, 'teacher_id' => $teacher->id, 'period_number' => $period->period_number, 'start_time' => $period->start_time, 'end_time' => $period->end_time, 'room_number' => $slot->room_number], $request, $class->id, $subject->id);
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'saved_timetable_slot', 'Saved '.$subject->name.' for '.$class->display_name.' on '.$data['day_of_week'].' period '.$period->period_number.'.', null, ['slot_id' => $slot->id, 'subject_id' => $subject->id, 'teacher_id' => $teacher->id, 'period_number' => $period->period_number, 'start_time' => $period->start_time, 'end_time' => $period->end_time, 'room_number' => $slot->room_number], $request, $class->id, $subject->id);
 
         return back()->with('success', 'Timetable slot saved using the configured period master.');
     }
@@ -243,8 +250,9 @@ class SchoolTimetableController extends Controller
     {
         abort_unless(Auth::user()?->isAdmin(), 403);
         $slot = SchoolPeriodTimetable::with(['academicClass', 'subject', 'teacher'])->findOrFail($id);
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'removed_timetable_slot', 'Removed '.$slot->subject?->name.' from '.$slot->academicClass?->display_name.' on '.$slot->day_of_week.' period '.$slot->period_number.'.', ['slot_id' => $slot->id, 'teacher_id' => $slot->teacher_id, 'room_number' => $slot->room_number], null, request(), $slot->class_id, $slot->subject_id);
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'removed_timetable_slot', 'Removed '.$slot->subject?->name.' from '.$slot->academicClass?->display_name.' on '.$slot->day_of_week.' period '.$slot->period_number.'.', ['slot_id' => $slot->id, 'teacher_id' => $slot->teacher_id, 'room_number' => $slot->room_number], null, request(), $slot->class_id, $slot->subject_id);
         $slot->delete();
+
         return back()->with('success', 'Timetable slot removed.');
     }
 
@@ -254,14 +262,15 @@ class SchoolTimetableController extends Controller
         abort_unless(Auth::user()?->isAdmin(), 403);
         $class = AcademicClass::with(['subjects.teacher', 'subjects.subjectMaster.defaultTeacher'])->findOrFail($classId);
         $unassigned = $class->subjects->filter(function ($subject) use ($class) {
-            $sessionDefaultTeacher = $class->academic_year === \App\Models\AcademySetting::get('academic_session') ? $subject->subjectMaster?->defaultTeacher : null;
+            $sessionDefaultTeacher = $class->academic_year === AcademySetting::get('academic_session') ? $subject->subjectMaster?->defaultTeacher : null;
             $teacher = $subject->teacher ?? $sessionDefaultTeacher;
-            return !$teacher || !$teacher->isTeacher();
+
+            return ! $teacher || ! $teacher->isTeacher();
         });
         if ($unassigned->isNotEmpty()) {
             return back()->withErrors(['subjects' => 'Assign a valid teacher to every class subject before generating the timetable: '.$unassigned->pluck('name')->implode(', ')]);
         }
-        $invalidLoads = $class->subjects->filter(fn ($subject) => !$subject->weekly_periods || (int) $subject->weekly_periods < 1);
+        $invalidLoads = $class->subjects->filter(fn ($subject) => ! $subject->weekly_periods || (int) $subject->weekly_periods < 1);
         if ($invalidLoads->isNotEmpty()) {
             return back()->withErrors(['subjects' => 'Configure a valid weekly period load for every class subject before generating the timetable: '.$invalidLoads->pluck('name')->implode(', ')]);
         }
@@ -271,6 +280,7 @@ class SchoolTimetableController extends Controller
         }
         $overAllocated = $subjects->filter(function ($subject) use ($class) {
             $alreadyScheduled = SchoolPeriodTimetable::where('class_id', $class->id)->where('subject_id', $subject->id)->count();
+
             return $alreadyScheduled > (int) $subject->weekly_periods;
         });
         if ($overAllocated->isNotEmpty()) {
@@ -300,12 +310,12 @@ class SchoolTimetableController extends Controller
                     $subjectDayLoads[$existingSlot->subject_id][$existingSlot->day_of_week] = ($subjectDayLoads[$existingSlot->subject_id][$existingSlot->day_of_week] ?? 0) + 1;
                 }
                 foreach ($subjects->sortByDesc('weekly_periods') as $subject) {
-                    $sessionDefaultTeacher = $class->academic_year === \App\Models\AcademySetting::get('academic_session') ? $subject->subjectMaster?->defaultTeacher : null;
+                    $sessionDefaultTeacher = $class->academic_year === AcademySetting::get('academic_session') ? $subject->subjectMaster?->defaultTeacher : null;
                     $teacher = $subject->teacher ?? $sessionDefaultTeacher;
-                    if (!$subject->teacher_id && $teacher) {
+                    if (! $subject->teacher_id && $teacher) {
                         $subject->teacher_id = $teacher->id;
                         $subject->save();
-                        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'inherited_subject_master_teacher', 'Inherited the subject master default teacher for '.$subject->name.' in '.$class->display_name.'.', ['teacher_id' => null], ['teacher_id' => $teacher->id], request(), $class->id, $subject->id);
+                        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'inherited_subject_master_teacher', 'Inherited the subject master default teacher for '.$subject->name.' in '.$class->display_name.'.', ['teacher_id' => null], ['teacher_id' => $teacher->id], request(), $class->id, $subject->id);
                     }
                     $alreadyAssigned = SchoolPeriodTimetable::where('class_id', $class->id)->where('subject_id', $subject->id)->count();
                     $remaining = max(0, (int) $subject->weekly_periods - $alreadyAssigned);
@@ -314,10 +324,14 @@ class SchoolTimetableController extends Controller
                         foreach ($days as $dayIndex => $day) {
                             foreach ($periods as $periodIndex => $period) {
                                 $key = $day.':'.$period->period_number;
-                                if (isset($occupied[$key])) continue;
+                                if (isset($occupied[$key])) {
+                                    continue;
+                                }
                                 $teacherBusy = SchoolPeriodTimetable::where('teacher_id', $teacher->id)->where('day_of_week', $day)->where('period_number', $period->period_number)->exists();
                                 $roomBusy = $class->room_number && SchoolPeriodTimetable::whereRaw('UPPER(TRIM(room_number)) = ?', [mb_strtoupper(trim($class->room_number))])->where('day_of_week', $day)->where('period_number', $period->period_number)->exists();
-                                if ($teacherBusy || $roomBusy) continue;
+                                if ($teacherBusy || $roomBusy) {
+                                    continue;
+                                }
                                 $sameSubjectToday = $subjectDayLoads[$subject->id][$day] ?? 0;
                                 $candidates[] = [
                                     'day' => $day,
@@ -330,7 +344,7 @@ class SchoolTimetableController extends Controller
                         }
                         usort($candidates, fn ($a, $b) => $a['score'] <=> $b['score']);
                         $candidate = $candidates[0] ?? null;
-                        if (!$candidate) {
+                        if (! $candidate) {
                             throw ValidationException::withMessages(['timetable' => "Not enough conflict-free slots remain to satisfy {$subject->name}'s weekly load. No generated slots were saved."]);
                         }
                         $day = $candidate['day'];
@@ -357,13 +371,15 @@ class SchoolTimetableController extends Controller
                 if ($requests) {
                     SchoolPeriodTimetable::insert($requests);
                 }
+
                 return count($requests);
             }, 3);
         } catch (ValidationException $exception) {
             return back()->withErrors($exception->errors());
         }
 
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'auto_generated_timetable', 'Generated '.$generatedCount.' timetable slots for '.$class->display_name.'.', null, ['generated_slots' => $generatedCount, 'class_id' => $class->id], $request, $class->id);
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'auto_generated_timetable', 'Generated '.$generatedCount.' timetable slots for '.$class->display_name.'.', null, ['generated_slots' => $generatedCount, 'class_id' => $class->id], $request, $class->id);
+
         return back()->with('success', 'Missing weekly subject periods were added to empty slots. Existing timetable entries were preserved.');
     }
 
@@ -395,7 +411,8 @@ class SchoolTimetableController extends Controller
         $data['is_active'] = true;
         $data['sort_order'] = (int) $data['period_number'];
         $period = SchoolPeriod::create($data);
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'created_period_master', 'Created period master '.$period->name.'.', null, $period->only(['id', 'period_number', 'name', 'start_time', 'end_time', 'is_break']), $request);
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'created_period_master', 'Created period master '.$period->name.'.', null, $period->only(['id', 'period_number', 'name', 'start_time', 'end_time', 'is_break']), $request);
+
         return back()->with('success', 'Period master created.');
     }
 
@@ -421,7 +438,8 @@ class SchoolTimetableController extends Controller
                 'end_time' => $period->end_time,
             ]);
         });
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'updated_period_master', 'Updated period master '.$period->name.'.', $oldPeriodValues, $period->only(['name', 'start_time', 'end_time', 'is_break', 'is_active']), $request);
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'updated_period_master', 'Updated period master '.$period->name.'.', $oldPeriodValues, $period->only(['name', 'start_time', 'end_time', 'is_break', 'is_active']), $request);
+
         return back()->with('success', 'Period master updated and existing timetable timings synchronized.');
     }
 
@@ -429,7 +447,7 @@ class SchoolTimetableController extends Controller
     {
         abort_unless(Auth::user()?->isAdmin(), 403);
         $period = SchoolPeriod::findOrFail($id);
-        if (!$period->is_active) {
+        if (! $period->is_active) {
             try {
                 $this->assertNoPeriodOverlap((string) $period->start_time, (string) $period->end_time, $period->id);
             } catch (ValidationException $exception) {
@@ -440,9 +458,10 @@ class SchoolTimetableController extends Controller
             return back()->withErrors(['period' => 'This period is referenced by timetable entries. Remove or migrate those entries before deactivating it.']);
         }
         $oldActive = $period->is_active;
-        $period->is_active = !$period->is_active;
+        $period->is_active = ! $period->is_active;
         $period->save();
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'toggled_period_master', 'Changed activation state for period '.$period->name.'.', ['is_active' => $oldActive], ['is_active' => $period->is_active], request());
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'toggled_period_master', 'Changed activation state for period '.$period->name.'.', ['is_active' => $oldActive], ['is_active' => $period->is_active], request());
+
         return back()->with('success', $period->is_active ? 'Period reactivated.' : 'Period deactivated.');
     }
 
@@ -459,7 +478,7 @@ class SchoolTimetableController extends Controller
         ]);
 
         $subTeacher = User::findOrFail($validated['substitute_teacher_id']);
-        if (!$subTeacher->isTeacher()) {
+        if (! $subTeacher->isTeacher()) {
             return back()->withErrors(['substitute_teacher_id' => 'Only verified faculty accounts can be assigned as substitute teachers.']);
         }
 
@@ -478,17 +497,17 @@ class SchoolTimetableController extends Controller
             ->where('is_break', false)
             ->where(function ($q) use ($subTeacher) {
                 $q->where('teacher_id', $subTeacher->id)
-                  ->orWhereHas('subject', fn ($sq) => $sq->where('teacher_id', $subTeacher->id));
+                    ->orWhereHas('subject', fn ($sq) => $sq->where('teacher_id', $subTeacher->id));
             })->exists();
 
         if ($timetableConflict) {
             return back()->withErrors(['substitute_teacher_id' => "Timetable Conflict: {$subTeacher->name} already has an instructional period allocated during Period {$slot->period_number} on {$slot->day_of_week}."]);
         }
 
-        $targetDate = \Carbon\Carbon::parse($validated['date'])->toDateString();
+        $targetDate = Carbon::parse($validated['date'])->toDateString();
 
         // Conflict Detection 2: Substitute teacher already assigned as proxy elsewhere on this date & period
-        $proxyConflict = \App\Models\SchoolPeriodSubstitute::active()
+        $proxyConflict = SchoolPeriodSubstitute::active()
             ->whereDate('date', $targetDate)
             ->where('substitute_teacher_id', $subTeacher->id)
             ->where('timetable_id', '!=', $slot->id)
@@ -499,7 +518,7 @@ class SchoolTimetableController extends Controller
             return back()->withErrors(['substitute_teacher_id' => "Proxy Conflict: {$subTeacher->name} is already assigned as a proxy substitute in another class for Period {$slot->period_number} on {$targetDate}."]);
         }
 
-        $substitute = \App\Models\SchoolPeriodSubstitute::updateOrCreate(
+        $substitute = SchoolPeriodSubstitute::updateOrCreate(
             [
                 'timetable_id' => $slot->id,
                 'date' => $targetDate,
@@ -513,7 +532,7 @@ class SchoolTimetableController extends Controller
             ]
         );
 
-        \App\Services\NotificationService::notifyUser(
+        NotificationService::notifyUser(
             $subTeacher->id,
             'timetable',
             "Proxy Assignment: Period {$slot->period_number}",
@@ -522,7 +541,7 @@ class SchoolTimetableController extends Controller
             '📋'
         );
 
-        app(\App\Services\SchoolAcademicAuditService::class)->log(
+        app(SchoolAcademicAuditService::class)->log(
             $user,
             'assigned_period_substitute',
             "Assigned {$subTeacher->name} as substitute for Period {$slot->period_number} ({$slot->academicClass->display_name}) on {$validated['date']}.",
@@ -539,10 +558,10 @@ class SchoolTimetableController extends Controller
         $user = Auth::user();
         abort_unless($user && $user->isAdmin(), 403, 'Administrator privileges required.');
 
-        $substitute = \App\Models\SchoolPeriodSubstitute::findOrFail($id);
+        $substitute = SchoolPeriodSubstitute::findOrFail($id);
         $substitute->update(['status' => 'cancelled']);
 
-        app(\App\Services\SchoolAcademicAuditService::class)->log(
+        app(SchoolAcademicAuditService::class)->log(
             $user,
             'cancelled_period_substitute',
             "Cancelled proxy substitute assignment #{$id} for date {$substitute->date}.",

@@ -32,11 +32,11 @@ class AcademyNotice extends Model
     protected function casts(): array
     {
         return [
-            'is_pinned'                => 'boolean',
+            'is_pinned' => 'boolean',
             'requires_acknowledgement' => 'boolean',
-            'published_at'             => 'datetime',
-            'approved_at'              => 'datetime',
-            'expires_at'               => 'datetime',
+            'published_at' => 'datetime',
+            'approved_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
     }
 

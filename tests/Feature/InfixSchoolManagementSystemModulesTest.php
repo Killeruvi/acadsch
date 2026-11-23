@@ -3,25 +3,18 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
-use App\Models\AcademicSubject;
-use App\Models\ClassEnrollment;
-use App\Models\AttendanceSession;
 use App\Models\AttendanceRecord;
+use App\Models\AttendanceSession;
 use App\Models\BookIssue;
+use App\Models\ClassEnrollment;
 use App\Models\Dormitory;
-use App\Models\DormitoryRoom;
-use App\Models\FrontOfficeCall;
-use App\Models\FrontOfficePostalDispatch;
-use App\Models\FrontOfficeVisitor;
 use App\Models\LibraryBook;
-use App\Models\SchoolExpense;
-use App\Models\SchoolIncome;
 use App\Models\StaffPayroll;
-use App\Models\StudyMaterial;
 use App\Models\TransportRoute;
-use App\Models\TransportVehicle;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class InfixSchoolManagementSystemModulesTest extends TestCase
@@ -29,9 +22,13 @@ class InfixSchoolManagementSystemModulesTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $class9;
+
     protected AcademicClass $class10;
 
     protected function setUp(): void
@@ -225,7 +222,7 @@ class InfixSchoolManagementSystemModulesTest extends TestCase
 
     public function test_staff_payroll_generation_and_disbursement(): void
     {
-        $structureId = \Illuminate\Support\Facades\DB::table('staff_salary_structures')->insertGetId([
+        $structureId = DB::table('staff_salary_structures')->insertGetId([
             'code' => 'TCH_STANDARD',
             'name' => 'Standard Teacher Grade 1',
             'basic_salary' => 40000.00,
@@ -239,7 +236,7 @@ class InfixSchoolManagementSystemModulesTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $assignmentId = \Illuminate\Support\Facades\DB::table('staff_salary_assignments')->insertGetId([
+        $assignmentId = DB::table('staff_salary_assignments')->insertGetId([
             'staff_id' => $this->teacher->id,
             'salary_structure_id' => $structureId,
             'effective_from' => '2026-01-01',
@@ -262,7 +259,7 @@ class InfixSchoolManagementSystemModulesTest extends TestCase
         ]);
 
         $this->assertNotNull($payroll);
-        $this->assertEquals(53000.00, (float)$payroll->net_salary);
+        $this->assertEquals(53000.00, (float) $payroll->net_salary);
         $this->assertEquals('generated', $payroll->payment_status);
 
         // Mark as paid
@@ -287,7 +284,7 @@ class InfixSchoolManagementSystemModulesTest extends TestCase
     {
         $this->class9->update(['class_teacher_id' => $this->teacher->id]);
 
-        $file = \Illuminate\Http\UploadedFile::fake()->create('thermo_formulas.pdf', 50, 'application/pdf');
+        $file = UploadedFile::fake()->create('thermo_formulas.pdf', 50, 'application/pdf');
 
         $uploadRes = $this->actingAs($this->teacher)->post(route('school.study-materials.store'), [
             'content_title' => 'Thermodynamics Chapter Formula Sheet',

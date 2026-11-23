@@ -6,8 +6,8 @@ use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
 use App\Models\DailyDpp;
 use App\Models\DppQuestion;
-use App\Models\QuestionBank;
 use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
@@ -17,15 +17,18 @@ class DppBulkCsvUploadTest extends TestCase
     use RefreshDatabase;
 
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $academicClass;
+
     protected AcademicSubject $subject;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->seed(\Database\Seeders\DatabaseSeeder::class);
+        $this->seed(DatabaseSeeder::class);
 
         $this->teacher = User::firstOrCreate(
             ['email' => 'teacher_bulk@primearc.academy'],
@@ -90,9 +93,9 @@ class DppBulkCsvUploadTest extends TestCase
      */
     public function test_dpp_can_be_created_using_uploaded_csv_file(): void
     {
-        $csvContent = "Question,Option A,Option B,Option C,Option D,Correct Option,Explanation,Marks\n" .
-            "\"What is the unit of force?\",\"Joule\",\"Newton\",\"Watt\",\"Pascal\",\"B\",\"Force is measured in Newtons (N) in SI units.\",4\n" .
-            "\"What is the acceleration due to gravity on Earth?\",\"9.8 m/s^2\",\"8.9 m/s^2\",\"11.2 m/s^2\",\"5.0 m/s^2\",\"A\",\"Standard Earth gravity g is approx 9.8 m/s^2.\",4\n" .
+        $csvContent = "Question,Option A,Option B,Option C,Option D,Correct Option,Explanation,Marks\n".
+            "\"What is the unit of force?\",\"Joule\",\"Newton\",\"Watt\",\"Pascal\",\"B\",\"Force is measured in Newtons (N) in SI units.\",4\n".
+            "\"What is the acceleration due to gravity on Earth?\",\"9.8 m/s^2\",\"8.9 m/s^2\",\"11.2 m/s^2\",\"5.0 m/s^2\",\"A\",\"Standard Earth gravity g is approx 9.8 m/s^2.\",4\n".
             "\"Which law states F = ma?\",\"First Law\",\"Second Law\",\"Third Law\",\"Zeroth Law\",\"B\",\"Newton's second law of motion states F = ma.\",4\n";
 
         $file = UploadedFile::fake()->createWithContent('physics_test.csv', $csvContent);
@@ -170,8 +173,8 @@ class DppBulkCsvUploadTest extends TestCase
      */
     public function test_bulk_import_questions_into_question_bank(): void
     {
-        $csvContent = "Question,Option A,Option B,Option C,Option D,Correct Option,Explanation,Marks\n" .
-            "\"What is Ohm's Law?\",\"V = IR\",\"P = VI\",\"F = ma\",\"E = mc^2\",\"A\",\"Ohm's Law states that V = IR.\",4\n" .
+        $csvContent = "Question,Option A,Option B,Option C,Option D,Correct Option,Explanation,Marks\n".
+            "\"What is Ohm's Law?\",\"V = IR\",\"P = VI\",\"F = ma\",\"E = mc^2\",\"A\",\"Ohm's Law states that V = IR.\",4\n".
             "\"What is the unit of resistance?\",\"Ohm\",\"Volt\",\"Ampere\",\"Tesla\",\"A\",\"Resistance is measured in Ohms.\",4\n";
 
         $file = UploadedFile::fake()->createWithContent('ohms_law.csv', $csvContent);

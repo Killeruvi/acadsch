@@ -36,7 +36,7 @@ class TopicBloomActivity extends Model
      */
     public static function getLevelMetadata(int $level): array
     {
-        return match($level) {
+        return match ($level) {
             1 => [
                 'name' => 'Remember',
                 'description' => 'Recall facts and basic concepts',
@@ -80,7 +80,7 @@ class TopicBloomActivity extends Model
                 'accent_color' => '#f43f5e',
             ],
             default => [
-                'name' => 'Bloom Level ' . $level,
+                'name' => 'Bloom Level '.$level,
                 'description' => 'Cognitive Task',
                 'verbs' => 'Perform task',
                 'badge_color' => 'bg-slate-100 text-slate-800 border-slate-300',

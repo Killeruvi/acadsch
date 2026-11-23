@@ -31,7 +31,7 @@ class AttendanceShortageAlertCommand extends Command
         $minSessions = $this->option('min-sessions') !== null ? (int) $this->option('min-sessions') : (int) config('attendance.minimum_sessions_for_alert');
         $isDryRun = (bool) $this->option('dry-run');
 
-        $this->info("Starting attendance shortage audit (Threshold: {$threshold}%, Min Sessions: {$minSessions})" . ($isDryRun ? " [DRY-RUN]" : ""));
+        $this->info("Starting attendance shortage audit (Threshold: {$threshold}%, Min Sessions: {$minSessions})".($isDryRun ? ' [DRY-RUN]' : ''));
 
         $students = User::where('role', 'student')
             ->with(['parent', 'currentClass'])
@@ -61,7 +61,7 @@ class AttendanceShortageAlertCommand extends Command
                     'pct' => $pct,
                 ];
 
-                if (!$isDryRun) {
+                if (! $isDryRun) {
                     $className = $student->currentClass?->display_name ?? 'Class';
 
                     // Alert student
@@ -103,14 +103,15 @@ class AttendanceShortageAlertCommand extends Command
             ];
         }, array_slice($defaulters, 0, 15));
 
-        if (!empty($tableRows)) {
+        if (! empty($tableRows)) {
             $this->table(
                 ['Student', 'Class', 'Total Sessions', 'Attended', 'Attendance %'],
                 $tableRows
             );
         }
 
-        $this->info("Audit finished. Found " . count($defaulters) . " students below {$threshold}% attendance threshold.");
+        $this->info('Audit finished. Found '.count($defaulters)." students below {$threshold}% attendance threshold.");
+
         return self::SUCCESS;
     }
 }

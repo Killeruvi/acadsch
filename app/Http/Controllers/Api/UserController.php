@@ -24,13 +24,13 @@ class UserController extends Controller
             $search = strtolower($request->query('search'));
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
             });
         }
 
         $users = $query->select(['id', 'name', 'email', 'role', 'phone', 'bio', 'created_at'])
-                       ->orderBy('name')
-                       ->paginate($request->integer('per_page', 20));
+            ->orderBy('name')
+            ->paginate($request->integer('per_page', 20));
 
         return response()->json($users);
     }

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Services\NotificationService;
 use App\Services\TelegramService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;

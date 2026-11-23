@@ -20,7 +20,7 @@ class CourseController extends Controller
             $query->where('teacher_id', $user->id);
         } elseif ($user->isStudent()) {
             $query->where('status', 'active');
-        } elseif (!$user->isAdmin()) {
+        } elseif (! $user->isAdmin()) {
             $query->whereRaw('1 = 0');
         }
 
@@ -40,8 +40,8 @@ class CourseController extends Controller
             $search = strtolower($request->query('search'));
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(title) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(code) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(description) LIKE ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(code) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(description) LIKE ?', ["%{$search}%"]);
             });
         }
 
@@ -70,7 +70,7 @@ class CourseController extends Controller
         ]);
 
         if ($request->user()->isTeacher()) {
-            if (!empty($validated['teacher_id']) && (int) $validated['teacher_id'] !== (int) $request->user()->id) {
+            if (! empty($validated['teacher_id']) && (int) $validated['teacher_id'] !== (int) $request->user()->id) {
                 abort(403, 'Teachers may create courses only under their own account.');
             }
             $validated['teacher_id'] = $request->user()->id;
@@ -135,11 +135,13 @@ class CourseController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $course = Course::findOrFail($id);
-        if ($request->user()->isTeacher()) abort_unless((int) $course->teacher_id === (int) $request->user()->id, 403);
+        if ($request->user()->isTeacher()) {
+            abort_unless((int) $course->teacher_id === (int) $request->user()->id, 403);
+        }
 
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
-            'code' => 'sometimes|required|string|max:50|unique:courses,code,' . $course->id,
+            'code' => 'sometimes|required|string|max:50|unique:courses,code,'.$course->id,
             'description' => 'nullable|string',
             'category' => 'sometimes|required|string|max:100',
             'credits' => 'sometimes|required|integer|min:1|max:12',
@@ -151,7 +153,9 @@ class CourseController extends Controller
         ]);
 
         if ($request->user()->isTeacher()) {
-            if (array_key_exists('teacher_id', $validated) && (int) $validated['teacher_id'] !== (int) $request->user()->id) abort(403);
+            if (array_key_exists('teacher_id', $validated) && (int) $validated['teacher_id'] !== (int) $request->user()->id) {
+                abort(403);
+            }
             unset($validated['teacher_id']);
         }
         if (isset($validated['capacity'])) {
@@ -179,6 +183,7 @@ class CourseController extends Controller
             return response()->json(['message' => 'Course has academic history; archive it instead of deleting it.'], 409);
         }
         $course->delete();
+
         return response()->json(['message' => 'Course deleted successfully']);
     }
 }

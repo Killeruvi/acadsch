@@ -7,8 +7,7 @@ use App\Models\AcademySetting;
 use App\Models\Assignment;
 use App\Models\AttendanceSession;
 use App\Models\Course;
-use App\Models\Dpp;
-use App\Models\Subject;
+use App\Models\FeeInvoice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -19,8 +18,11 @@ class StudentAndStaffDirectoryProtectionAndDesktopLayoutTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $academicClass;
 
     protected function setUp(): void
@@ -136,7 +138,7 @@ class StudentAndStaffDirectoryProtectionAndDesktopLayoutTest extends TestCase
         $futureMonth = now()->addMonths(2)->format('Y-m');
 
         // Past/current invoice with payment
-        $retainedInvoice = \App\Models\FeeInvoice::create([
+        $retainedInvoice = FeeInvoice::create([
             'invoice_number' => 'INV-RET-001',
             'student_id' => $this->student->id,
             'title' => 'Tuition Fee Current',
@@ -153,7 +155,7 @@ class StudentAndStaffDirectoryProtectionAndDesktopLayoutTest extends TestCase
         ]);
 
         // Future uncollected invoice
-        $futureInvoice = \App\Models\FeeInvoice::create([
+        $futureInvoice = FeeInvoice::create([
             'invoice_number' => 'INV-FUT-002',
             'student_id' => $this->student->id,
             'title' => 'Tuition Fee Future',

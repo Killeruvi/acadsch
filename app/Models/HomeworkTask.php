@@ -37,7 +37,7 @@ class HomeworkTask extends Model
 
     public function hasAttachment(): bool
     {
-        return !empty($this->attachment_path);
+        return ! empty($this->attachment_path);
     }
 
     public function getAttachmentUrlAttribute(): ?string
@@ -57,7 +57,8 @@ class HomeworkTask extends Model
 
     public static function getFileIconByExtension(?string $ext): string
     {
-        $ext = strtolower((string)$ext);
+        $ext = strtolower((string) $ext);
+
         return match ($ext) {
             'pdf' => '📄',
             'ppt', 'pptx', 'pps', 'ppsx' => '📊',
@@ -70,14 +71,15 @@ class HomeworkTask extends Model
 
     public static function formatBytes(?int $bytes, int $precision = 1): string
     {
-        if (!$bytes || $bytes <= 0) {
+        if (! $bytes || $bytes <= 0) {
             return '0 B';
         }
         $units = ['B', 'KB', 'MB', 'GB'];
         $power = floor(log($bytes, 1024));
         $power = min($power, count($units) - 1);
         $val = $bytes / pow(1024, $power);
-        return round($val, $precision) . ' ' . $units[$power];
+
+        return round($val, $precision).' '.$units[$power];
     }
 
     public function academicClass(): BelongsTo

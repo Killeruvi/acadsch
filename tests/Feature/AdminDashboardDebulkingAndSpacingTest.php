@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\AcademicClass;
-use App\Models\FeeInvoice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -67,15 +65,15 @@ class AdminDashboardDebulkingAndSpacingTest extends TestCase
         $response->assertOk();
         // Priority sections
         $response->assertSee("Today's Snapshot", false);
-        $response->assertSee("Admissions Pipeline");
-        $response->assertSee("Fees &amp; Finance", false);
-        $response->assertSee("Visual Analytics &amp; Institutional Trends", false);
-        $response->assertSee("Academic Operations");
-        $response->assertSee("Student &amp; Staff Overview", false);
-        $response->assertSee("Leave &amp; Attendance Trends", false);
-        $response->assertSee("Circulars &amp; Communication", false);
-        $response->assertSee("Alerts &amp; Anomalies", false);
-        $response->assertSee("Quick Actions");
-        $response->assertSee("Recent Activity Feed");
+        $response->assertSee('Admissions Pipeline');
+        $response->assertSee('Fees &amp; Finance', false);
+        $response->assertSee('Visual Analytics &amp; Institutional Trends', false);
+        $response->assertSee('Academic Operations');
+        $response->assertSee('Student &amp; Staff Overview', false);
+        $response->assertSee('Leave &amp; Attendance Trends', false);
+        $response->assertSee('Circulars &amp; Communication', false);
+        $response->assertSee('Alerts &amp; Anomalies', false);
+        $response->assertSee('Quick Actions');
+        $response->assertSee('Recent Activity Feed');
     }
 }

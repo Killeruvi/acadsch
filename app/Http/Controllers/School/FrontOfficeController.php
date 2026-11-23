@@ -30,7 +30,7 @@ class FrontOfficeController extends Controller
 
     public function storeVisitor(Request $request): RedirectResponse
     {
-        if (!Auth::user()->isAdmin() && !Auth::user()->isTeacher()) {
+        if (! Auth::user()->isAdmin() && ! Auth::user()->isTeacher()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -45,7 +45,7 @@ class FrontOfficeController extends Controller
         ]);
 
         $validated['date'] = now()->toDateString();
-        $validated['in_time'] = !empty($validated['in_time']) ? $validated['in_time'] : now()->format('h:i A');
+        $validated['in_time'] = ! empty($validated['in_time']) ? $validated['in_time'] : now()->format('h:i A');
 
         FrontOfficeVisitor::create($validated);
 
@@ -54,7 +54,7 @@ class FrontOfficeController extends Controller
 
     public function storeCall(Request $request): RedirectResponse
     {
-        if (!Auth::user()->isAdmin() && !Auth::user()->isTeacher()) {
+        if (! Auth::user()->isAdmin() && ! Auth::user()->isTeacher()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -76,7 +76,7 @@ class FrontOfficeController extends Controller
 
     public function storePostal(Request $request): RedirectResponse
     {
-        if (!Auth::user()->isAdmin() && !Auth::user()->isTeacher()) {
+        if (! Auth::user()->isAdmin() && ! Auth::user()->isTeacher()) {
             abort(403, 'Unauthorized.');
         }
 

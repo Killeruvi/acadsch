@@ -9,7 +9,6 @@ use App\Models\DormitoryRoom;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -56,6 +55,7 @@ class DormitoryController extends Controller
         ]);
         $validated['is_active'] = true;
         Dormitory::create($validated);
+
         return back()->with('success', 'Dormitory created successfully.');
     }
 
@@ -79,6 +79,7 @@ class DormitoryController extends Controller
         $validated['room_number'] = trim($validated['room_number']);
         $validated['is_active'] = true;
         DormitoryRoom::create($validated);
+
         return back()->with('success', 'Room added successfully.');
     }
 
@@ -99,11 +100,11 @@ class DormitoryController extends Controller
             $room = DormitoryRoom::with('dormitory')->lockForUpdate()->findOrFail($validated['dormitory_room_id']);
             $dormitory = Dormitory::lockForUpdate()->findOrFail($room->dormitory_id);
             $student = User::where('role', 'student')->lockForUpdate()->findOrFail($validated['student_id']);
-            if (!$room->is_active || !$dormitory->is_active) {
+            if (! $room->is_active || ! $dormitory->is_active) {
                 throw ValidationException::withMessages(['dormitory_room_id' => 'The selected room or dormitory is inactive.']);
             }
             $bedNumber = trim($validated['bed_number']);
-            if (!preg_match('/^[1-9][0-9]*$/', $bedNumber) || (int) $bedNumber > $room->number_of_beds) {
+            if (! preg_match('/^[1-9][0-9]*$/', $bedNumber) || (int) $bedNumber > $room->number_of_beds) {
                 throw ValidationException::withMessages(['bed_number' => 'Choose a bed number within this room’s configured capacity.']);
             }
 
@@ -133,6 +134,7 @@ class DormitoryController extends Controller
                 'created_by' => Auth::id(),
             ]);
         }, 3);
+
         return back()->with('success', 'Bed reserved successfully. Check the student in on their arrival date.');
     }
 
@@ -167,12 +169,13 @@ class DormitoryController extends Controller
                 }
                 $assignment->update(['status' => 'completed', 'checked_out_at' => now(), 'end_date' => today()]);
             } else {
-                if (!in_array($assignment->status, ['reserved', 'active'], true)) {
+                if (! in_array($assignment->status, ['reserved', 'active'], true)) {
                     throw ValidationException::withMessages(['assignment' => 'Only reserved or active assignments can be cancelled.']);
                 }
                 $assignment->update(['status' => 'cancelled', 'checked_out_at' => $assignment->status === 'active' ? now() : null, 'end_date' => today()]);
             }
         }, 3);
+
         return back()->with('success', 'Residential assignment updated.');
     }
 }

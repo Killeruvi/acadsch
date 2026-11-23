@@ -24,13 +24,13 @@ return new class extends Migration
                 });
 
             Schema::table('class_enrollments', function (Blueprint $table): void {
-                if (!Schema::hasColumn('class_enrollments', 'ended_at')) {
+                if (! Schema::hasColumn('class_enrollments', 'ended_at')) {
                     $table->timestamp('ended_at')->nullable();
                 }
-                if (!Schema::hasColumn('class_enrollments', 'ended_by')) {
+                if (! Schema::hasColumn('class_enrollments', 'ended_by')) {
                     $table->foreignId('ended_by')->nullable()->constrained('users')->nullOnDelete();
                 }
-                if (!Schema::hasColumn('class_enrollments', 'transition_reason')) {
+                if (! Schema::hasColumn('class_enrollments', 'transition_reason')) {
                     $table->text('transition_reason')->nullable();
                 }
                 // Old uniqueness prevented a student returning to the same class in a later year.
@@ -45,10 +45,10 @@ return new class extends Migration
         if (Schema::hasTable('student_withdrawal_records')) {
             Schema::table('student_withdrawal_records', function (Blueprint $table): void {
                 $table->dropUnique('student_withdrawal_records_student_id_unique');
-                if (!Schema::hasColumn('student_withdrawal_records', 're_admitted_at')) {
+                if (! Schema::hasColumn('student_withdrawal_records', 're_admitted_at')) {
                     $table->timestamp('re_admitted_at')->nullable()->after('effective_date');
                 }
-                if (!Schema::hasColumn('student_withdrawal_records', 're_admitted_by')) {
+                if (! Schema::hasColumn('student_withdrawal_records', 're_admitted_by')) {
                     $table->foreignId('re_admitted_by')->nullable()->after('re_admitted_at')->constrained('users')->nullOnDelete();
                 }
                 $table->index(['student_id', 're_admitted_at'], 'student_withdrawal_student_open_idx');

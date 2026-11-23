@@ -17,10 +17,11 @@ class ProjectCaseStudyController extends Controller
     protected function authorizeFaculty(): void
     {
         $user = Auth::user();
-        if (!$user || (!$user->isTeacher() && !$user->isAdmin())) {
+        if (! $user || (! $user->isTeacher() && ! $user->isAdmin())) {
             abort(403, 'Unauthorized. Faculty credentials required.');
         }
     }
+
     public function index(Request $request): View
     {
         $user = Auth::user();
@@ -79,11 +80,11 @@ class ProjectCaseStudyController extends Controller
     public function submit(Request $request, AcademicProject $project): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isStudent()) {
+        if (! $user || ! $user->isStudent()) {
             abort(403, 'Only students can submit project deliverables.');
         }
 
-        if ($user->current_class_id && (int)$project->class_id !== (int)$user->current_class_id) {
+        if ($user->current_class_id && (int) $project->class_id !== (int) $user->current_class_id) {
             abort(403, 'Unauthorized. You are not enrolled in the class assigned to this capstone project.');
         }
 
@@ -95,7 +96,7 @@ class ProjectCaseStudyController extends Controller
         ]);
 
         $teamMembersList = [];
-        if (!empty($validated['team_members'])) {
+        if (! empty($validated['team_members'])) {
             $teamMembersList = array_map('trim', explode(',', $validated['team_members']));
         }
 
@@ -120,7 +121,7 @@ class ProjectCaseStudyController extends Controller
     {
         $this->authorizeFaculty();
         $validated = $request->validate([
-            'score' => 'required|integer|min:0|max:' . $submission->project->max_marks,
+            'score' => 'required|integer|min:0|max:'.$submission->project->max_marks,
             'teacher_feedback' => 'nullable|string',
             'status' => 'required|in:evaluated,resubmission_required',
         ]);
@@ -140,7 +141,7 @@ class ProjectCaseStudyController extends Controller
                 'title' => 'Project Architect',
                 'icon' => '🚀',
                 'category' => 'academics',
-                'description' => "Demonstrated exemplary real-world research & capstone problem solving!",
+                'description' => 'Demonstrated exemplary real-world research & capstone problem solving!',
                 'awarded_at' => now(),
             ]);
         }

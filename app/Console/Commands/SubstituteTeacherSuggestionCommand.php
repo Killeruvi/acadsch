@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\AcademicClass;
 use App\Models\AttendanceRecord;
 use App\Models\SchoolPeriodTimetable;
 use App\Models\StudentLeaveRequest;
@@ -38,12 +37,12 @@ class SubstituteTeacherSuggestionCommand extends Command
         $shouldNotify = (bool) $this->option('notify');
         $isDryRun = (bool) $this->option('dry-run');
 
-        $this->info("Scanning faculty attendance & timetable allocations for {$dateStr} (Day {$dayOfWeek})" . ($isDryRun ? " [DRY-RUN]" : ""));
+        $this->info("Scanning faculty attendance & timetable allocations for {$dateStr} (Day {$dayOfWeek})".($isDryRun ? ' [DRY-RUN]' : ''));
 
         // 1. Identify Absent Faculty Today
         $absentFacultyIds = AttendanceRecord::whereHas('session', function ($q) use ($dateStr) {
-                $q->whereDate('session_date', $dateStr);
-            })
+            $q->whereDate('session_date', $dateStr);
+        })
             ->whereHas('student', function ($q) {
                 $q->where('role', 'teacher');
             })
@@ -52,7 +51,7 @@ class SubstituteTeacherSuggestionCommand extends Command
             ->toArray();
 
         // Also check teachers on approved leave
-        $leaveTeacherIds = StudentLeaveRequest::whereHas('student', fn($q) => $q->where('role', 'teacher'))
+        $leaveTeacherIds = StudentLeaveRequest::whereHas('student', fn ($q) => $q->where('role', 'teacher'))
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $dateStr)
             ->whereDate('end_date', '>=', $dateStr)
@@ -63,6 +62,7 @@ class SubstituteTeacherSuggestionCommand extends Command
 
         if (empty($absentTeacherIds)) {
             $this->info("No absent faculty detected for {$dateStr}. Master timetable operating normally.");
+
             return self::SUCCESS;
         }
 
@@ -76,6 +76,7 @@ class SubstituteTeacherSuggestionCommand extends Command
 
         if ($slotsNeedingCoverage->isEmpty()) {
             $this->info("Absent faculty have no assigned teaching slots on day {$dayOfWeek}.");
+
             return self::SUCCESS;
         }
 
@@ -92,7 +93,7 @@ class SubstituteTeacherSuggestionCommand extends Command
                 ->filter()
                 ->toArray();
 
-            $freeTeachers = $allTeachers->reject(fn($t) => in_array($t->id, $busyTeacherIds));
+            $freeTeachers = $allTeachers->reject(fn ($t) => in_array($t->id, $busyTeacherIds));
             $suggested = $freeTeachers->first();
 
             $proxyProposals[] = [
@@ -104,7 +105,7 @@ class SubstituteTeacherSuggestionCommand extends Command
                 'proxy_id' => $suggested?->id,
             ];
 
-            if ($suggested && $shouldNotify && !$isDryRun) {
+            if ($suggested && $shouldNotify && ! $isDryRun) {
                 NotificationService::notifyUser(
                     $suggested->id,
                     'timetable',
@@ -118,10 +119,11 @@ class SubstituteTeacherSuggestionCommand extends Command
 
         $this->table(
             ['Period Slot', 'Class', 'Subject', 'Original Teacher', 'Suggested Free Proxy'],
-            array_map(fn($p) => [$p['period'], $p['class'], $p['subject'], $p['absent_teacher'], $p['suggested_proxy']], $proxyProposals)
+            array_map(fn ($p) => [$p['period'], $p['class'], $p['subject'], $p['absent_teacher'], $p['suggested_proxy']], $proxyProposals)
         );
 
-        $this->info("Proxy analysis complete. Generated " . count($proxyProposals) . " coverage recommendations.");
+        $this->info('Proxy analysis complete. Generated '.count($proxyProposals).' coverage recommendations.');
+
         return self::SUCCESS;
     }
 }

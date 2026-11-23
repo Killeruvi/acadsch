@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
+use App\Models\ClassEnrollment;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
 use App\Models\SchoolFeeStructure;
@@ -15,9 +16,13 @@ class FeesAndQrPaymentsIntegrityTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $cashier;
+
     private User $parent;
+
     private User $student;
+
     private AcademicClass $class;
 
     protected function setUp(): void
@@ -43,7 +48,7 @@ class FeesAndQrPaymentsIntegrityTest extends TestCase
 
         $this->student->update(['current_class_id' => $this->class->id]);
 
-        \App\Models\ClassEnrollment::create([
+        ClassEnrollment::create([
             'student_id' => $this->student->id,
             'class_id' => $this->class->id,
             'academic_year' => '2026-2027',
@@ -76,10 +81,10 @@ class FeesAndQrPaymentsIntegrityTest extends TestCase
             ->where('billing_month', '2026-11')
             ->firstOrFail();
 
-        $this->assertEquals(3500.00, (float)$invoice->amount);
-        $this->assertEquals(0.00, (float)$invoice->tax);
-        $this->assertEquals(0.00, (float)$invoice->discount);
-        $this->assertEquals(3500.00, (float)$invoice->total_due);
+        $this->assertEquals(3500.00, (float) $invoice->amount);
+        $this->assertEquals(0.00, (float) $invoice->tax);
+        $this->assertEquals(0.00, (float) $invoice->discount);
+        $this->assertEquals(3500.00, (float) $invoice->total_due);
         $this->assertEquals('unpaid', $invoice->status);
     }
 
@@ -112,10 +117,10 @@ class FeesAndQrPaymentsIntegrityTest extends TestCase
 
         $invoice->refresh();
         $this->assertEquals('partial', $invoice->status);
-        $this->assertEquals(2000.00, (float)$invoice->paid_amount);
+        $this->assertEquals(2000.00, (float) $invoice->paid_amount);
 
         $payment = FeePayment::where('invoice_id', $invoice->id)->firstOrFail();
-        $this->assertEquals(2000.00, (float)$payment->amount);
+        $this->assertEquals(2000.00, (float) $payment->amount);
         $this->assertEquals('UTR-UNIQUE-101', $payment->transaction_reference);
         $this->assertEquals('completed', $payment->status);
         $this->assertNotNull($payment->receipt_number);
@@ -232,7 +237,7 @@ class FeesAndQrPaymentsIntegrityTest extends TestCase
         $response->assertRedirect();
 
         $invoice->refresh();
-        $this->assertEquals(1000.00, (float)$invoice->discount);
-        $this->assertEquals(3000.00, (float)$invoice->total_due);
+        $this->assertEquals(1000.00, (float) $invoice->discount);
+        $this->assertEquals(3000.00, (float) $invoice->total_due);
     }
 }

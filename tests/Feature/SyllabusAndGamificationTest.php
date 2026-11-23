@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
-use App\Models\CurriculumTopic;
 use App\Models\User;
+use Database\Seeders\BloomsTaxonomySeeder;
+use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\SyllabusSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
@@ -15,16 +17,18 @@ class SyllabusAndGamificationTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->seed(\Database\Seeders\DatabaseSeeder::class);
-        $this->seed(\Database\Seeders\BloomsTaxonomySeeder::class);
-        $this->seed(\Database\Seeders\SyllabusSeeder::class);
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(BloomsTaxonomySeeder::class);
+        $this->seed(SyllabusSeeder::class);
 
         $this->admin = User::firstOrCreate(
             ['email' => 'admin@primearc.academy'],
@@ -102,8 +106,8 @@ class SyllabusAndGamificationTest extends TestCase
         );
 
         $csvContent = "chapter_number,title,subtopics,description\n"
-                    . "1,Foundations of Autonomous Agents,Perception; Planning; Actuation,Mathematical principles of agentic loops\n"
-                    . "2,Deep Reinforcement Learning,Q-learning; Policy Gradients,Reward optimization in continuous control environments";
+                    ."1,Foundations of Autonomous Agents,Perception; Planning; Actuation,Mathematical principles of agentic loops\n"
+                    .'2,Deep Reinforcement Learning,Q-learning; Policy Gradients,Reward optimization in continuous control environments';
 
         $file = UploadedFile::fake()->createWithContent('robotics_syllabus.csv', $csvContent);
 
@@ -143,8 +147,8 @@ class SyllabusAndGamificationTest extends TestCase
 
         // Test bulk upload
         $csvContent = "roll_number,name,email\n"
-                    . "101,Devavrata Bhishma,bhishma.dev@primearc.academy\n"
-                    . "102,Savitri Devi,savitri.devi@primearc.academy";
+                    ."101,Devavrata Bhishma,bhishma.dev@primearc.academy\n"
+                    .'102,Savitri Devi,savitri.devi@primearc.academy';
 
         $file = UploadedFile::fake()->createWithContent('students_roster.csv', $csvContent);
 

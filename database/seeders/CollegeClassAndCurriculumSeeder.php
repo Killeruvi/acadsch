@@ -81,7 +81,7 @@ class CollegeClassAndCurriculumSeeder extends Seeder
                         'description' => 'Molecular architecture of bacterial adaptive immunity, guide RNA design, Cas9 nuclease domains, and off-target mitigation strategies.',
                         'subtopics' => ['Bacterial CRISPR Arrays', 'sgRNA Synthesis', 'Non-Homologous End Joining', 'Homology Directed Repair'],
                     ],
-                ]
+                ],
             ],
             [
                 'name' => 'Microbiology & Immunology',
@@ -99,7 +99,7 @@ class CollegeClassAndCurriculumSeeder extends Seeder
                         'description' => 'Major Histocompatibility Complex (MHC I & II), T-cell receptor signaling, monoclonal antibody hybridomas, and vaccine platforms.',
                         'subtopics' => ['MHC Antigen Presentation', 'Hybridoma Technology', 'Cytokines & Signal Transduction', 'mRNA Vaccines'],
                     ],
-                ]
+                ],
             ],
             [
                 'name' => 'Biochemistry & Molecular Biology',
@@ -111,7 +111,7 @@ class CollegeClassAndCurriculumSeeder extends Seeder
                         'description' => 'Michaelis-Menten derivations, Lineweaver-Burk plots, reversible inhibition, and catalytic catalytic triads in serine proteases.',
                         'subtopics' => ['Michaelis-Menten Equation', 'Lineweaver-Burk Analysis', 'Competitive vs Non-competitive Inhibition', 'Allosteric Cooperativity'],
                     ],
-                ]
+                ],
             ],
             [
                 'name' => 'Bioinformatics & Computational Genomics',
@@ -123,7 +123,7 @@ class CollegeClassAndCurriculumSeeder extends Seeder
                         'description' => 'Needleman-Wunsch global alignment, Smith-Waterman local alignment, BLAST heuristics, and Illumina sequencing by synthesis.',
                         'subtopics' => ['Dynamic Programming', 'BLAST Algorithm', 'Phylogenetic Trees', 'Variant Calling Pipelines'],
                     ],
-                ]
+                ],
             ],
             [
                 'name' => 'Technical English & Research Communication',
@@ -153,7 +153,7 @@ class CollegeClassAndCurriculumSeeder extends Seeder
                         'description' => 'Simulated blind peer reviews, replying to reviewers comments, dissertation defense, and thesis viva.',
                         'subtopics' => ['Reviewer Rebuttal Letters', 'Data Visualization Ethics', 'Thesis Viva Voce Preparation', 'Academic Discourse'],
                     ],
-                ]
+                ],
             ],
         ];
 

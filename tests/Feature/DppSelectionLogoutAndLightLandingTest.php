@@ -14,12 +14,19 @@ class DppSelectionLogoutAndLightLandingTest extends TestCase
     use RefreshDatabase;
 
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $class8;
+
     protected AcademicClass $class9;
+
     protected AcademicSubject $subject8;
+
     protected AcademicSubject $subject9;
+
     protected DailyDpp $dpp8;
+
     protected DailyDpp $dpp9;
 
     protected function setUp(): void

@@ -15,8 +15,11 @@ class CircularsAndNoticesIntegrityTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $teacher;
+
     private User $student;
+
     private User $parent;
 
     protected function setUp(): void
@@ -176,7 +179,7 @@ class CircularsAndNoticesIntegrityTest extends TestCase
             ->where('user_id', $this->student->id)
             ->first();
         $this->assertNotNull($receipt);
-        $this->assertTrue((bool)$receipt->acknowledged);
+        $this->assertTrue((bool) $receipt->acknowledged);
         $this->assertNotNull($receipt->acknowledged_at);
 
         // Check read stats endpoint

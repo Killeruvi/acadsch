@@ -24,7 +24,7 @@ class SettingsController extends Controller
             ->orderBy('title')
             ->get();
         $complianceSummary = [
-            'expired'  => $complianceDocuments->filter(fn ($d) => $d->expiry_status === 'expired')->count(),
+            'expired' => $complianceDocuments->filter(fn ($d) => $d->expiry_status === 'expired')->count(),
             'expiring' => $complianceDocuments->filter(fn ($d) => $d->expiry_status === 'expiring')->count(),
         ];
         $qrImageUrl = null;
@@ -42,38 +42,38 @@ class SettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Only administrators can update school settings.');
         }
 
         $validated = $request->validate([
-            'institute_name'                  => 'required|string|max:255',
-            'school_short_name'               => 'nullable|string|max:20',
-            'campus_name'                     => 'required|string|max:255',
-            'motto'                           => 'nullable|string|max:255',
-            'school_logo_url'                 => 'nullable|string|max:1000',
-            'school_favicon_url'              => 'nullable|string|max:1000',
-            'board_name'                      => 'nullable|string|max:50',
-            'affiliation_number'              => 'nullable|string|max:255',
-            'academic_session'                => 'required|string|max:50',
-            'principal_name'                  => 'nullable|string|max:255',
-            'institution_phone'               => 'nullable|string|max:50',
-            'institution_email'               => 'nullable|email|max:255',
-            'institution_address'             => 'nullable|string|max:500',
-            'school_legal_entity_name'        => 'nullable|string|max:255',
-            'school_pan'                      => ['nullable', 'regex:/^[A-Z]{5}[0-9]{4}[A-Z]$/'],
-            'brand_primary_color'             => 'nullable|string|max:30',
+            'institute_name' => 'required|string|max:255',
+            'school_short_name' => 'nullable|string|max:20',
+            'campus_name' => 'required|string|max:255',
+            'motto' => 'nullable|string|max:255',
+            'school_logo_url' => 'nullable|string|max:1000',
+            'school_favicon_url' => 'nullable|string|max:1000',
+            'board_name' => 'nullable|string|max:50',
+            'affiliation_number' => 'nullable|string|max:255',
+            'academic_session' => 'required|string|max:50',
+            'principal_name' => 'nullable|string|max:255',
+            'institution_phone' => 'nullable|string|max:50',
+            'institution_email' => 'nullable|email|max:255',
+            'institution_address' => 'nullable|string|max:500',
+            'school_legal_entity_name' => 'nullable|string|max:255',
+            'school_pan' => ['nullable', 'regex:/^[A-Z]{5}[0-9]{4}[A-Z]$/'],
+            'brand_primary_color' => 'nullable|string|max:30',
             // Bank details for display on receipts (no payment processing)
-            'bank_name'                       => 'nullable|string|max:100',
-            'bank_account_number'             => 'nullable|string|max:50',
-            'bank_ifsc'                       => 'nullable|string|max:20',
-            'bank_account_holder'             => 'nullable|string|max:150',
-            'bank_branch'                     => 'nullable|string|max:100',
-            'upi_vpa'                         => 'nullable|string|max:100',
+            'bank_name' => 'nullable|string|max:100',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_ifsc' => 'nullable|string|max:20',
+            'bank_account_holder' => 'nullable|string|max:150',
+            'bank_branch' => 'nullable|string|max:100',
+            'upi_vpa' => 'nullable|string|max:100',
             // Currency
-            'currency_code'                   => 'nullable|string|max:10',
-            'currency_symbol'                 => 'required|string|max:10',
-            'auto_receipt_generate'           => 'nullable|boolean',
+            'currency_code' => 'nullable|string|max:10',
+            'currency_symbol' => 'required|string|max:10',
+            'auto_receipt_generate' => 'nullable|boolean',
             // Attendance Timetable Rules
             'attendance_period_grace_minutes' => 'nullable|integer|min:0|max:120',
         ]);
@@ -106,14 +106,15 @@ class SettingsController extends Controller
 
         try {
             SchoolAdminAudit::create([
-                'user_id'     => $user->id,
-                'action'      => 'school_settings_updated',
+                'user_id' => $user->id,
+                'action' => 'school_settings_updated',
                 'description' => 'Updated school profile and institutional configuration.',
-                'old_values'  => $oldValues,
-                'new_values'  => $newValues,
-                'ip_address'  => $request->ip(),
+                'old_values' => $oldValues,
+                'new_values' => $newValues,
+                'ip_address' => $request->ip(),
             ]);
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
 
         SchoolBrandingService::flush();
 
@@ -128,7 +129,7 @@ class SettingsController extends Controller
     public function uploadQrImage(Request $request): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Only administrators can upload the payment QR code.');
         }
 

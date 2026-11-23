@@ -43,7 +43,7 @@ return new class extends Migration
         });
 
         // 3. Link Homework Tasks directly to Curriculum Topics (Chapters)
-        if (Schema::hasTable('homework_tasks') && !Schema::hasColumn('homework_tasks', 'topic_id')) {
+        if (Schema::hasTable('homework_tasks') && ! Schema::hasColumn('homework_tasks', 'topic_id')) {
             Schema::table('homework_tasks', function (Blueprint $table) {
                 $table->foreignId('topic_id')->nullable()->after('subject_id')->constrained('curriculum_topics')->nullOnDelete();
             });

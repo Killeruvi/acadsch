@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\AcademicClass;
-use App\Models\AcademicSubject;
 use App\Models\User;
 use App\Services\AcademicCalendarService;
 use Carbon\Carbon;

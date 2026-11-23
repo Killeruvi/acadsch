@@ -5,8 +5,9 @@ namespace App\Http\Controllers\School;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
-use App\Models\SchoolPeriodTimetable;
+use App\Models\AcademySetting;
 use App\Models\SchoolPeriod;
+use App\Models\SchoolPeriodTimetable;
 use App\Models\SubjectMaster;
 use App\Models\TeacherAssignmentAudit;
 use App\Models\User;
@@ -15,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -49,12 +51,12 @@ class TeacherAssignmentController extends Controller
 
         // 1. Subject Assignments Query
         $subjectsQuery = AcademicSubject::with(['academicClass.classTeacher', 'teacher', 'subjectMaster.defaultTeacher', 'timetables'])
-            ->when($selectedClassId, fn($q) => $q->where('academic_subjects.class_id', $selectedClassId))
-            ->when($selectedTeacherId, fn($q) => $q->where(function ($query) use ($selectedTeacherId) {
+            ->when($selectedClassId, fn ($q) => $q->where('academic_subjects.class_id', $selectedClassId))
+            ->when($selectedTeacherId, fn ($q) => $q->where(function ($query) use ($selectedTeacherId) {
                 $query->where('academic_subjects.teacher_id', $selectedTeacherId)
                     ->orWhere(function ($defaultTeacher) use ($selectedTeacherId) {
                         $defaultTeacher->whereHas('subjectMaster', fn ($masterQuery) => $masterQuery->where('default_teacher_id', $selectedTeacherId))
-                            ->whereHas('academicClass', fn ($classQuery) => $classQuery->where('academic_year', \App\Models\AcademySetting::get('academic_session')));
+                            ->whereHas('academicClass', fn ($classQuery) => $classQuery->where('academic_year', AcademySetting::get('academic_session')));
                     });
             }))
             ->when($search, function ($q) use ($search) {
@@ -63,7 +65,7 @@ class TeacherAssignmentController extends Controller
                         ->orWhere('academic_subjects.code', 'like', "%{$search}%")
                         ->orWhere('academic_classes.name', 'like', "%{$search}%")
                         ->orWhere('academic_classes.section', 'like', "%{$search}%")
-                        ->orWhereHas('teacher', fn($tq) => $tq->where('users.name', 'like', "%{$search}%"));
+                        ->orWhereHas('teacher', fn ($tq) => $tq->where('users.name', 'like', "%{$search}%"));
                 });
             })
             ->join('academic_classes', 'academic_subjects.class_id', '=', 'academic_classes.id')
@@ -77,13 +79,13 @@ class TeacherAssignmentController extends Controller
         // 2. Class Teacher Mappings Query
         $classTeachersQuery = AcademicClass::with(['classTeacher', 'subjects.teacher', 'subjects.subjectMaster.defaultTeacher'])
             ->withCount('students')
-            ->when($selectedClassId, fn($q) => $q->where('academic_classes.id', $selectedClassId))
-            ->when($selectedTeacherId, fn($q) => $q->where('academic_classes.class_teacher_id', $selectedTeacherId))
+            ->when($selectedClassId, fn ($q) => $q->where('academic_classes.id', $selectedClassId))
+            ->when($selectedTeacherId, fn ($q) => $q->where('academic_classes.class_teacher_id', $selectedTeacherId))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($subQ) use ($search) {
                     $subQ->where('academic_classes.name', 'like', "%{$search}%")
                         ->orWhere('academic_classes.section', 'like', "%{$search}%")
-                        ->orWhereHas('classTeacher', fn($tq) => $tq->where('users.name', 'like', "%{$search}%"));
+                        ->orWhereHas('classTeacher', fn ($tq) => $tq->where('users.name', 'like', "%{$search}%"));
                 });
             })
             ->orderBy('grade_level')
@@ -93,24 +95,24 @@ class TeacherAssignmentController extends Controller
 
         // 3. Timetable Period Slots Query
         $timetableSlotsQuery = SchoolPeriodTimetable::with(['academicClass', 'subject', 'teacher'])
-            ->when($selectedClassId, fn($q) => $q->where('school_period_timetables.class_id', $selectedClassId))
-            ->when($selectedTeacherId, fn($q) => $q->where('school_period_timetables.teacher_id', $selectedTeacherId))
+            ->when($selectedClassId, fn ($q) => $q->where('school_period_timetables.class_id', $selectedClassId))
+            ->when($selectedTeacherId, fn ($q) => $q->where('school_period_timetables.teacher_id', $selectedTeacherId))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($subQ) use ($search) {
-                    $subQ->whereHas('teacher', fn($tq) => $tq->where('users.name', 'like', "%{$search}%"))
-                        ->orWhereHas('subject', fn($sq) => $sq->where('academic_subjects.name', 'like', "%{$search}%"))
-                        ->orWhereHas('academicClass', fn($cq) => $cq->where('academic_classes.name', 'like', "%{$search}%"));
+                    $subQ->whereHas('teacher', fn ($tq) => $tq->where('users.name', 'like', "%{$search}%"))
+                        ->orWhereHas('subject', fn ($sq) => $sq->where('academic_subjects.name', 'like', "%{$search}%"))
+                        ->orWhereHas('academicClass', fn ($cq) => $cq->where('academic_classes.name', 'like', "%{$search}%"));
                 });
             })
-            ->orderByRaw('CASE day_of_week '.collect(config('school_timetable.days', []))->values()->map(fn ($day, $index) => "WHEN ".DB::getPdo()->quote($day).' THEN '.($index + 1))->implode(' ').' ELSE 999 END')
+            ->orderByRaw('CASE day_of_week '.collect(config('school_timetable.days', []))->values()->map(fn ($day, $index) => 'WHEN '.DB::getPdo()->quote($day).' THEN '.($index + 1))->implode(' ').' ELSE 999 END')
             ->orderBy('period_number');
 
         $timetableSlots = $timetableSlotsQuery->paginate(25)->withQueryString();
 
         // 4. Audit Log Query
         $audits = TeacherAssignmentAudit::with(['admin', 'teacher', 'academicClass', 'subject'])
-            ->when($selectedClassId, fn($q) => $q->where('teacher_assignment_audits.class_id', $selectedClassId))
-            ->when($selectedTeacherId, fn($q) => $q->where('teacher_assignment_audits.teacher_id', $selectedTeacherId))
+            ->when($selectedClassId, fn ($q) => $q->where('teacher_assignment_audits.class_id', $selectedClassId))
+            ->when($selectedTeacherId, fn ($q) => $q->where('teacher_assignment_audits.teacher_id', $selectedTeacherId))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($subQ) use ($search) {
                     $subQ->where('description', 'like', "%{$search}%")
@@ -139,7 +141,7 @@ class TeacherAssignmentController extends Controller
             'total_classes' => $allClasses->count(),
             'unassigned_class_teachers' => AcademicClass::whereNull('class_teacher_id')->count(),
             'total_timetable_slots' => SchoolPeriodTimetable::count(),
-            'period_timings' => SchoolPeriod::active()->where('is_break', false)->get()->mapWithKeys(fn ($period) => [$period->period_number => ['label' => $period->name.' ('.substr((string)$period->start_time, 0, 5).' - '.substr((string)$period->end_time, 0, 5).')']]),
+            'period_timings' => SchoolPeriod::active()->where('is_break', false)->get()->mapWithKeys(fn ($period) => [$period->period_number => ['label' => $period->name.' ('.substr((string) $period->start_time, 0, 5).' - '.substr((string) $period->end_time, 0, 5).')']]),
         ];
 
         $allMasterSubjects = SubjectMaster::active()->orderBy('category')->orderBy('name')->get();
@@ -176,7 +178,7 @@ class TeacherAssignmentController extends Controller
             'weekly_periods' => 'nullable|integer|min:1|max:40',
             'apply_globally' => 'nullable|boolean',
             'link_timetable' => 'nullable|boolean',
-            'day_of_week' => ['required_if:link_timetable,1', 'nullable', 'string', \Illuminate\Validation\Rule::in(config('school_timetable.days', []))],
+            'day_of_week' => ['required_if:link_timetable,1', 'nullable', 'string', Rule::in(config('school_timetable.days', []))],
             'period_number' => 'required_if:link_timetable,1|nullable|integer|exists:school_periods,period_number',
             'room_number' => 'nullable|string|max:50',
         ]);
@@ -184,7 +186,7 @@ class TeacherAssignmentController extends Controller
         $validated['link_timetable'] = $request->boolean('link_timetable');
 
         // New subject mappings match an active master record, or register one in the master catalogue.
-        if (empty($validated['subject_id']) && !empty($validated['name'])) {
+        if (empty($validated['subject_id']) && ! empty($validated['name'])) {
             $class = AcademicClass::findOrFail($validated['class_id']);
             $cleanName = trim($validated['name']);
             $cleanCode = strtoupper(trim($validated['code'] ?? ''));
@@ -195,7 +197,7 @@ class TeacherAssignmentController extends Controller
                     ->orWhereRaw('UPPER(code) = ?', [$baseCode]);
             })->first();
 
-            if (!$master) {
+            if (! $master) {
                 $master = SubjectMaster::create([
                     'name' => $cleanName,
                     'code' => $baseCode ?: strtoupper(substr($cleanName, 0, 4)),
@@ -211,7 +213,7 @@ class TeacherAssignmentController extends Controller
             $validated['name'] = $cleanName;
             $validated['code'] = $cleanCode ?: $master->generateCodeForGrade($class->grade_level);
             $validated['weekly_periods'] = $validated['weekly_periods'] ?? $master->default_periods ?? 5;
-            if (!$validated['weekly_periods'] || (int) $validated['weekly_periods'] < 1 || (int) $validated['weekly_periods'] > 40) {
+            if (! $validated['weekly_periods'] || (int) $validated['weekly_periods'] < 1 || (int) $validated['weekly_periods'] > 40) {
                 return redirect()->back()->withInput()->withErrors(['weekly_periods' => 'Set a valid weekly period load in the Subject Master or this assignment form.']);
             }
         }
@@ -219,6 +221,7 @@ class TeacherAssignmentController extends Controller
         try {
             $subject = $this->service->assignSubject(Auth::user(), $validated, $request);
             $msg = "Assignment saved: Subject '{$subject->name}' for {$subject->academicClass->display_name} successfully mapped.";
+
             return redirect()->route('school.assignments.index', ['tab' => 'subjects', 'class_id' => $subject->class_id])
                 ->with('success', $msg);
         } catch (ValidationException $e) {
@@ -250,6 +253,7 @@ class TeacherAssignmentController extends Controller
 
         try {
             $this->service->updateSubjectAssignment(Auth::user(), $subject, $validated, $request);
+
             return redirect()->back()->with('success', "Updated assignment for '{$subject->name}' in {$subject->academicClass->display_name}.");
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->errors())->withInput();
@@ -291,6 +295,7 @@ class TeacherAssignmentController extends Controller
 
         try {
             $this->service->assignClassTeacher(Auth::user(), $class, (int) $validated['teacher_id'], $request);
+
             return redirect()->route('school.assignments.index', ['tab' => 'class_teachers'])
                 ->with('success', "Class Teacher for {$class->display_name} assigned successfully.");
         } catch (ValidationException $e) {
@@ -319,7 +324,7 @@ class TeacherAssignmentController extends Controller
             'teacher_id' => 'nullable|exists:users,id',
             'subject_id' => 'required|exists:academic_subjects,id',
             'teacher_override' => 'nullable|boolean',
-            'day_of_week' => ['required', 'string', \Illuminate\Validation\Rule::in(config('school_timetable.days', []))],
+            'day_of_week' => ['required', 'string', Rule::in(config('school_timetable.days', []))],
             'period_number' => 'required|integer|exists:school_periods,period_number',
             'room_number' => 'nullable|string|max:50',
             'slot_id' => 'nullable|exists:school_period_timetables,id',
@@ -327,6 +332,7 @@ class TeacherAssignmentController extends Controller
 
         try {
             $slot = $this->service->assignTimetableSlot(Auth::user(), $validated, $request);
+
             return redirect()->route('school.assignments.index', ['tab' => 'timetable', 'class_id' => $slot->class_id])
                 ->with('success', "Period {$slot->period_number} on {$slot->day_of_week} mapped successfully.");
         } catch (ValidationException $e) {
@@ -342,6 +348,6 @@ class TeacherAssignmentController extends Controller
         $slot = SchoolPeriodTimetable::findOrFail($id);
         $this->service->removeTimetableSlot(Auth::user(), $slot, $request);
 
-        return redirect()->back()->with('success', "Timetable period slot removed.");
+        return redirect()->back()->with('success', 'Timetable period slot removed.');
     }
 }

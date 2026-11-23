@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Session;
 class CaptchaService
 {
     public const SESSION_KEY = 'security_captcha_code';
+
     public const HISTORY_KEY = 'security_captcha_history';
+
     private const ALLOWED_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 
     /**
@@ -40,13 +42,13 @@ class CaptchaService
         // History buffer: store recent codes generated within the last 15 minutes
         $now = time();
         $history = Session::get(self::HISTORY_KEY, []);
-        if (!is_array($history)) {
+        if (! is_array($history)) {
             $history = [];
         }
 
         // Prune entries older than 15 minutes (900 seconds)
         $history = array_filter($history, function ($item) use ($now) {
-            return is_array($item) && isset($item['time']) && ($now - (int)$item['time']) < 900;
+            return is_array($item) && isset($item['time']) && ($now - (int) $item['time']) < 900;
         });
 
         // Add newest entry
@@ -170,7 +172,7 @@ class CaptchaService
     {
         $svg = self::generateSvg($phrase);
 
-        return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        return 'data:image/svg+xml;base64,'.base64_encode($svg);
     }
 
     /**
@@ -178,7 +180,7 @@ class CaptchaService
      */
     public static function generateToken(string $phrase): string
     {
-        return Crypt::encryptString(strtolower(trim($phrase)) . '|' . time());
+        return Crypt::encryptString(strtolower(trim($phrase)).'|'.time());
     }
 
     /**
@@ -187,7 +189,7 @@ class CaptchaService
     public static function getCurrentToken(): string
     {
         $code = Session::get(self::SESSION_KEY);
-        if (!$code) {
+        if (! $code) {
             $code = self::generatePhrase();
         }
 
@@ -203,25 +205,29 @@ class CaptchaService
         if (app()->environment('testing')) {
             if ($userInput === 'INVALID_CAPTCHA') {
                 self::flush();
+
                 return false;
             }
-            if (empty($userInput) && !Session::has(self::SESSION_KEY)) {
+            if (empty($userInput) && ! Session::has(self::SESSION_KEY)) {
                 return true;
             }
             if ($userInput === 'TEST_BYPASS') {
                 self::flush();
+
                 return true;
             }
         }
 
         if (empty($userInput)) {
             self::flush();
+
             return false;
         }
 
         $normInput = self::normalizeString($userInput);
         if ($normInput === '') {
             self::flush();
+
             return false;
         }
 
@@ -229,6 +235,7 @@ class CaptchaService
         $primary = Session::get(self::SESSION_KEY);
         if ($primary && self::normalizeString($primary) === $normInput) {
             self::flush();
+
             return true;
         }
 
@@ -238,21 +245,23 @@ class CaptchaService
             foreach ($history as $entry) {
                 if (isset($entry['code']) && self::normalizeString($entry['code']) === $normInput) {
                     self::flush();
+
                     return true;
                 }
             }
         }
 
         // 3. Fallback: Check encrypted token if provided (guards against dropped cookies / incognito mobile restrictions)
-        if (!empty($token)) {
+        if (! empty($token)) {
             try {
                 $decrypted = Crypt::decryptString($token);
                 if (str_contains($decrypted, '|')) {
                     [$tokenPhrase, $timestamp] = explode('|', $decrypted, 2);
                     // Valid for 15 minutes (900 seconds)
-                    if ((time() - (int)$timestamp) < 900) {
+                    if ((time() - (int) $timestamp) < 900) {
                         if (self::normalizeString($tokenPhrase) === $normInput) {
                             self::flush();
+
                             return true;
                         }
                     }

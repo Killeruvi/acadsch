@@ -5,13 +5,13 @@ namespace Tests\Feature;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
 use App\Models\AcademySetting;
-use App\Models\ClassEnrollment;
-use App\Models\SchoolSection;
 use App\Models\SchoolFeeStructure;
+use App\Models\SchoolSection;
+use App\Models\SchoolStream;
+use App\Models\SubjectMaster;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class BulkImportExportAndOnboardingTest extends TestCase
@@ -19,7 +19,9 @@ class BulkImportExportAndOnboardingTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
 
     protected function setUp(): void
@@ -29,8 +31,8 @@ class BulkImportExportAndOnboardingTest extends TestCase
         // Mark system as onboarded by default for regular feature testing
         AcademySetting::set('onboarding_completed', 'true');
         AcademySetting::set('academic_session', '2026-27');
-        \App\Models\SchoolStream::firstOrCreate(['name' => 'General'], ['is_active' => true]);
-        \App\Models\SchoolStream::firstOrCreate(['name' => 'Science'], ['is_active' => true]);
+        SchoolStream::firstOrCreate(['name' => 'General'], ['is_active' => true]);
+        SchoolStream::firstOrCreate(['name' => 'Science'], ['is_active' => true]);
         $section = SchoolSection::firstOrCreate(['stream' => 'General', 'name' => 'A'], ['capacity' => 40]);
         AcademicClass::firstOrCreate(
             ['name' => 'Grade 10', 'section' => 'A', 'academic_year' => '2026-2027'],
@@ -134,10 +136,9 @@ class BulkImportExportAndOnboardingTest extends TestCase
         ]);
     }
 
-
     public function test_bulk_student_import_does_not_create_unknown_class_or_placeholder_data(): void
     {
-        $csvContent = "Admission No,Roll No,Class,Section,Student Name,Email,Guardian Name,Guardian Phone,Guardian Email\n" .
+        $csvContent = "Admission No,Roll No,Class,Section,Student Name,Email,Guardian Name,Guardian Phone,Guardian Email\n".
             "ADM-UNKNOWN-1,1,Unconfigured Grade, A,Test Student,test.student@example.com,Test Guardian,9876543210,guardian@example.com\n";
         $file = UploadedFile::fake()->createWithContent('students.csv', $csvContent);
 
@@ -150,7 +151,7 @@ class BulkImportExportAndOnboardingTest extends TestCase
 
     public function test_teacher_cannot_run_bulk_student_import(): void
     {
-        $csvContent = "Admission No,Roll No,Class,Section,Student Name,Email,Guardian Name,Guardian Phone,Guardian Email\n" .
+        $csvContent = "Admission No,Roll No,Class,Section,Student Name,Email,Guardian Name,Guardian Phone,Guardian Email\n".
             "ADM-TEACHER-1,1,Grade 10,A,Test Student,teacher.import@example.com,Test Guardian,9876543210,guardian@example.com\n";
         $file = UploadedFile::fake()->createWithContent('students.csv', $csvContent);
 
@@ -198,11 +199,11 @@ class BulkImportExportAndOnboardingTest extends TestCase
     public function test_bulk_import_classes_and_subjects_from_csv(): void
     {
         SchoolSection::firstOrCreate(['stream' => 'Science', 'name' => 'A'], ['capacity' => 40]);
-        \App\Models\SubjectMaster::firstOrCreate(
+        SubjectMaster::firstOrCreate(
             ['name' => 'Advanced Biology', 'stream' => 'Science'],
             ['code' => 'BIO', 'min_grade' => 11, 'max_grade' => 12, 'default_periods' => 6, 'is_active' => true]
         );
-        \App\Models\SubjectMaster::firstOrCreate(
+        SubjectMaster::firstOrCreate(
             ['name' => 'Organic Chemistry', 'stream' => 'Science'],
             ['code' => 'CHEM', 'min_grade' => 11, 'max_grade' => 12, 'default_periods' => 6, 'is_active' => true]
         );
@@ -309,16 +310,16 @@ class BulkImportExportAndOnboardingTest extends TestCase
     {
         AcademicSubject::query()->delete();
         AcademicClass::query()->delete();
-        \App\Models\SubjectMaster::query()->delete();
-        \App\Models\SubjectMaster::firstOrCreate(
+        SubjectMaster::query()->delete();
+        SubjectMaster::firstOrCreate(
             ['name' => 'English Language & Lit', 'stream' => 'General'],
             ['code' => 'ENG', 'min_grade' => 1, 'max_grade' => 12, 'default_periods' => 6, 'is_active' => true]
         );
-        \App\Models\SubjectMaster::firstOrCreate(
+        SubjectMaster::firstOrCreate(
             ['name' => 'Mathematics', 'stream' => 'General'],
             ['code' => 'MATH', 'min_grade' => 1, 'max_grade' => 12, 'default_periods' => 6, 'is_active' => true]
         );
-        \App\Models\SubjectMaster::firstOrCreate(
+        SubjectMaster::firstOrCreate(
             ['name' => 'Science (Physics, Chem, Bio)', 'stream' => 'General'],
             ['code' => 'SCI', 'min_grade' => 1, 'max_grade' => 12, 'default_periods' => 6, 'is_active' => true]
         );
@@ -367,8 +368,8 @@ class BulkImportExportAndOnboardingTest extends TestCase
         // Once completed, access is restored
         AcademySetting::set('onboarding_completed', 'true');
         AcademySetting::set('academic_session', '2026-27');
-        \App\Models\SchoolStream::firstOrCreate(['name' => 'General'], ['is_active' => true]);
-        \App\Models\SchoolStream::firstOrCreate(['name' => 'Science'], ['is_active' => true]);
+        SchoolStream::firstOrCreate(['name' => 'General'], ['is_active' => true]);
+        SchoolStream::firstOrCreate(['name' => 'Science'], ['is_active' => true]);
         $section = SchoolSection::firstOrCreate(['stream' => 'General', 'name' => 'A'], ['capacity' => 40]);
         AcademicClass::firstOrCreate(
             ['name' => 'Grade 10', 'section' => 'A', 'academic_year' => '2026-2027'],

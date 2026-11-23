@@ -54,11 +54,11 @@ class CourseLessonVideo extends Model
         }
 
         if (preg_match('/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $url, $matches)) {
-            return 'https://www.youtube-nocookie.com/embed/' . $matches[1] . '?rel=0&modestbranding=1';
+            return 'https://www.youtube-nocookie.com/embed/'.$matches[1].'?rel=0&modestbranding=1';
         }
 
         if (preg_match('/vimeo\.com\/(?:video\/)?([0-9]+)/', $url, $matches)) {
-            return 'https://player.vimeo.com/video/' . $matches[1];
+            return 'https://player.vimeo.com/video/'.$matches[1];
         }
 
         return $url;

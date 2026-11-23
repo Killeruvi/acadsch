@@ -136,6 +136,6 @@ class LessonPlan extends Model
 
     public function isHolidayShifted(): bool
     {
-        return $this->status === 'holiday_shift' || !empty($this->holiday_id);
+        return $this->status === 'holiday_shift' || ! empty($this->holiday_id);
     }
 }

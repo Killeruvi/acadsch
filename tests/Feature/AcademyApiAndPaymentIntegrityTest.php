@@ -4,13 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
-use App\Models\AttendanceRecord;
-use App\Models\AttendanceSession;
 use App\Models\Batch;
 use App\Models\DailyDpp;
 use App\Models\DppQuestion;
-use App\Models\FeeInvoice;
-use App\Models\FeePayment;
 use App\Models\HomeworkTask;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,9 +17,13 @@ class AcademyApiAndPaymentIntegrityTest extends TestCase
     use RefreshDatabase;
 
     private User $student;
+
     private User $teacher;
+
     private AcademicClass $class;
+
     private AcademicSubject $subject;
+
     private Batch $batch;
 
     protected function setUp(): void
@@ -65,7 +65,7 @@ class AcademyApiAndPaymentIntegrityTest extends TestCase
         ]);
 
         $this->class->students()->syncWithoutDetaching([
-            $this->student->id => ['roll_number' => 1, 'status' => 'active']
+            $this->student->id => ['roll_number' => 1, 'status' => 'active'],
         ]);
     }
 
@@ -102,12 +102,12 @@ class AcademyApiAndPaymentIntegrityTest extends TestCase
         $response->assertJsonFragment(['dpp_number' => 'DPP-10-01']);
 
         // 2. Show DPP (Student unsubmitted - correct_option masked)
-        $detail = $this->actingAs($this->student, 'sanctum')->getJson('/api/v1/dpps/' . $dpp->id);
+        $detail = $this->actingAs($this->student, 'sanctum')->getJson('/api/v1/dpps/'.$dpp->id);
         $detail->assertStatus(200);
         $detail->assertJsonMissing(['correct_option' => 'A']);
 
         // 3. Submit DPP
-        $submit = $this->actingAs($this->student, 'sanctum')->postJson('/api/v1/dpps/' . $dpp->id . '/submit', [
+        $submit = $this->actingAs($this->student, 'sanctum')->postJson('/api/v1/dpps/'.$dpp->id.'/submit', [
             'answers' => [
                 '1' => 'A',
             ],
@@ -125,7 +125,7 @@ class AcademyApiAndPaymentIntegrityTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonFragment(['name' => 'Class 10 - Morning Star Batch']);
 
-        $detail = $this->actingAs($this->student, 'sanctum')->getJson('/api/v1/batches/' . $this->batch->id);
+        $detail = $this->actingAs($this->student, 'sanctum')->getJson('/api/v1/batches/'.$this->batch->id);
         $detail->assertStatus(200)
             ->assertJsonPath('is_current_user_batch', true);
     }
@@ -146,7 +146,7 @@ class AcademyApiAndPaymentIntegrityTest extends TestCase
         $list->assertStatus(200);
         $list->assertJsonFragment(['title' => 'Solve Exercise 4.2']);
 
-        $submit = $this->actingAs($this->student, 'sanctum')->postJson('/api/v1/homework/' . $task->id . '/submit', [
+        $submit = $this->actingAs($this->student, 'sanctum')->postJson('/api/v1/homework/'.$task->id.'/submit', [
             'student_notes' => 'I have completed all 10 problems on notebook page 45-47.',
         ]);
 

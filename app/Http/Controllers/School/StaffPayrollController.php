@@ -3,17 +3,17 @@
 namespace App\Http\Controllers\School;
 
 use App\Http\Controllers\Controller;
+use App\Models\StaffAttendanceRecord;
 use App\Models\StaffPayroll;
 use App\Models\User;
-use Illuminate\Database\QueryException;
+use App\Services\Payroll\StaffPayrollCalculator;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use App\Services\Payroll\StaffPayrollCalculator;
-use Carbon\Carbon;
 
 class StaffPayrollController extends Controller
 {
@@ -63,8 +63,8 @@ class StaffPayrollController extends Controller
             $staffList = collect();
         }
 
-        $attendanceQuery = \App\Models\StaffAttendanceRecord::query()
-            ->whereBetween('attendance_date', [$attendanceMonth . '-01', \Carbon\Carbon::createFromFormat('Y-m-d', $attendanceMonth . '-01')->endOfMonth()->toDateString()])
+        $attendanceQuery = StaffAttendanceRecord::query()
+            ->whereBetween('attendance_date', [$attendanceMonth.'-01', Carbon::createFromFormat('Y-m-d', $attendanceMonth.'-01')->endOfMonth()->toDateString()])
             ->when($user->isTeacher(), fn ($q) => $q->where('staff_id', $user->id));
         $attendanceSummary = (clone $attendanceQuery)->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
 
@@ -74,6 +74,7 @@ class StaffPayrollController extends Controller
         $advances = DB::table('staff_salary_advances as a')->join('users as u', 'u.id', '=', 'a.staff_id')
             ->when($user->isTeacher(), fn ($q) => $q->where('a.staff_id', $user->id))
             ->select('a.*', 'u.name as staff_name')->orderByDesc('a.created_at')->limit(100)->get();
+
         return view('school.payroll.index', compact('payrolls', 'staffList', 'stats', 'attendanceSummary', 'attendanceMonth', 'adjustments', 'advances'));
     }
 
@@ -91,8 +92,10 @@ class StaffPayrollController extends Controller
             return back()->withInput()->withErrors(['payroll' => $e->getMessage()]);
         } catch (\Throwable $e) {
             report($e);
+
             return back()->withInput()->withErrors(['payroll' => 'Payroll calculation failed safely. No payroll was approved or paid. Review the configuration and server logs.']);
         }
+
         return back()->with('success', "Draft payroll calculated for {$staff->name} ({$validated['payroll_month']}). Review and approve it before payment.");
     }
 
@@ -103,11 +106,12 @@ class StaffPayrollController extends Controller
             $payroll = StaffPayroll::whereKey($id)->lockForUpdate()->firstOrFail();
             abort_unless($payroll->approval_status === 'draft' && $payroll->payment_status === 'generated', 409, 'Only an unapproved draft can be approved.');
             abort_if((int) $payroll->generated_by === (int) Auth::id(), 403, 'A different authorized administrator must approve this payroll (maker-checker control).');
-            abort_if(!$payroll->salary_assignment_id || !$payroll->calculation_snapshot, 409, 'This payroll has no verified calculation snapshot. Recalculate it from an effective salary structure.');
+            abort_if(! $payroll->salary_assignment_id || ! $payroll->calculation_snapshot, 409, 'This payroll has no verified calculation snapshot. Recalculate it from an effective salary structure.');
             $before = $payroll->only(['approval_status', 'approved_by', 'approved_at']);
             $payroll->update(['approval_status' => 'approved', 'approved_by' => Auth::id(), 'approved_at' => now()]);
-            DB::table('staff_payroll_audits')->insert(['staff_payroll_id'=>$payroll->id,'actor_id'=>Auth::id(),'event_type'=>'approved','before_data'=>json_encode($before, JSON_THROW_ON_ERROR),'after_data'=>json_encode($payroll->fresh()->only(['approval_status','approved_by','approved_at']), JSON_THROW_ON_ERROR),'created_at'=>now()]);
+            DB::table('staff_payroll_audits')->insert(['staff_payroll_id' => $payroll->id, 'actor_id' => Auth::id(), 'event_type' => 'approved', 'before_data' => json_encode($before, JSON_THROW_ON_ERROR), 'after_data' => json_encode($payroll->fresh()->only(['approval_status', 'approved_by', 'approved_at']), JSON_THROW_ON_ERROR), 'created_at' => now()]);
         }, 3);
+
         return back()->with('success', 'Payroll approved. Payment can now be recorded.');
     }
 
@@ -115,64 +119,69 @@ class StaffPayrollController extends Controller
     {
         $this->requireAdmin();
         $structures = DB::table('staff_salary_structures')->orderBy('name')->get();
-        $assignments = DB::table('staff_salary_assignments as a')->join('users as u','u.id','=','a.staff_id')->join('staff_salary_structures as s','s.id','=','a.salary_structure_id')->select('a.*','u.name as staff_name','s.name as structure_name')->orderByDesc('a.effective_from')->paginate(20);
-        $staffList = User::whereIn('role',['teacher','admin'])->where('is_approved',true)->orderBy('name')->get(['id','name']);
+        $assignments = DB::table('staff_salary_assignments as a')->join('users as u', 'u.id', '=', 'a.staff_id')->join('staff_salary_structures as s', 's.id', '=', 'a.salary_structure_id')->select('a.*', 'u.name as staff_name', 's.name as structure_name')->orderByDesc('a.effective_from')->paginate(20);
+        $staffList = User::whereIn('role', ['teacher', 'admin'])->where('is_approved', true)->orderBy('name')->get(['id', 'name']);
         $rules = DB::table('staff_statutory_rule_versions')->orderBy('rule_code')->orderByDesc('effective_from')->get();
-        return view('school.payroll.setup', compact('structures','assignments','staffList','rules'));
+
+        return view('school.payroll.setup', compact('structures', 'assignments', 'staffList', 'rules'));
     }
 
     public function storeStructure(Request $request): RedirectResponse
     {
         $this->requireAdmin();
         $data = $request->validate([
-            'code'=>['required','alpha_dash','max:40','unique:staff_salary_structures,code'], 'name'=>['required','string','max:160'],
-            'basic_salary'=>['required','numeric','min:0','max:999999999'], 'dearness_allowance'=>['nullable','numeric','min:0','max:999999999'],
-            'hra'=>['nullable','numeric','min:0','max:999999999'], 'conveyance_allowance'=>['nullable','numeric','min:0','max:999999999'],
-            'other_allowances'=>['nullable','numeric','min:0','max:999999999'], 'fixed_monthly_earnings'=>['nullable','numeric','min:0','max:999999999'],
-            'fixed_monthly_deductions'=>['nullable','numeric','min:0','max:999999999'], 'effective_from'=>['required','date_format:Y-m-d'],
-            'effective_to'=>['nullable','date_format:Y-m-d','after_or_equal:effective_from'],
+            'code' => ['required', 'alpha_dash', 'max:40', 'unique:staff_salary_structures,code'], 'name' => ['required', 'string', 'max:160'],
+            'basic_salary' => ['required', 'numeric', 'min:0', 'max:999999999'], 'dearness_allowance' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
+            'hra' => ['nullable', 'numeric', 'min:0', 'max:999999999'], 'conveyance_allowance' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
+            'other_allowances' => ['nullable', 'numeric', 'min:0', 'max:999999999'], 'fixed_monthly_earnings' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
+            'fixed_monthly_deductions' => ['nullable', 'numeric', 'min:0', 'max:999999999'], 'effective_from' => ['required', 'date_format:Y-m-d'],
+            'effective_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:effective_from'],
         ]);
-        DB::table('staff_salary_structures')->insert($data + ['is_active'=>true,'created_by'=>Auth::id(),'created_at'=>now(),'updated_at'=>now()]);
-        return back()->with('success','Salary structure created. Assign it to employees with an effective date.');
+        DB::table('staff_salary_structures')->insert($data + ['is_active' => true, 'created_by' => Auth::id(), 'created_at' => now(), 'updated_at' => now()]);
+
+        return back()->with('success', 'Salary structure created. Assign it to employees with an effective date.');
     }
 
     public function assignStructure(Request $request): RedirectResponse
     {
         $this->requireAdmin();
         $data = $request->validate([
-            'staff_id'=>['required','integer','exists:users,id'], 'salary_structure_id'=>['required','integer','exists:staff_salary_structures,id'],
-            'effective_from'=>['required','date_format:Y-m-d'], 'effective_to'=>['nullable','date_format:Y-m-d','after_or_equal:effective_from'],
-            'pf_applicable'=>['nullable','boolean'], 'pf_existing_member'=>['nullable','boolean'], 'eps_applicable'=>['nullable','boolean'], 'international_worker'=>['nullable','boolean'], 'pf_on_actual_wages'=>['nullable','boolean'], 'esi_applicable'=>['nullable','boolean'],
-            'esi_person_with_disability'=>['nullable','boolean'], 'esi_coverage_until'=>['nullable','date_format:Y-m-d'], 'professional_tax_exempt'=>['nullable','boolean'],
-            'professional_tax_state'=>['required','in:MP'], 'tds_nil_confirmed'=>['nullable','boolean'],
-            'annual_salary_projection'=>['nullable','numeric','min:0','max:999999999'], 'annual_tds_projection'=>['nullable','numeric','min:0','max:999999999'],
-            'tax_regime'=>['nullable','string','max:30'],
+            'staff_id' => ['required', 'integer', 'exists:users,id'], 'salary_structure_id' => ['required', 'integer', 'exists:staff_salary_structures,id'],
+            'effective_from' => ['required', 'date_format:Y-m-d'], 'effective_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:effective_from'],
+            'pf_applicable' => ['nullable', 'boolean'], 'pf_existing_member' => ['nullable', 'boolean'], 'eps_applicable' => ['nullable', 'boolean'], 'international_worker' => ['nullable', 'boolean'], 'pf_on_actual_wages' => ['nullable', 'boolean'], 'esi_applicable' => ['nullable', 'boolean'],
+            'esi_person_with_disability' => ['nullable', 'boolean'], 'esi_coverage_until' => ['nullable', 'date_format:Y-m-d'], 'professional_tax_exempt' => ['nullable', 'boolean'],
+            'professional_tax_state' => ['required', 'in:MP'], 'tds_nil_confirmed' => ['nullable', 'boolean'],
+            'annual_salary_projection' => ['nullable', 'numeric', 'min:0', 'max:999999999'], 'annual_tds_projection' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
+            'tax_regime' => ['nullable', 'string', 'max:30'],
         ]);
-        $staff = User::whereKey($data['staff_id'])->whereIn('role',['teacher','admin'])->where('is_approved',true)->firstOrFail();
-        DB::transaction(function () use ($data,$staff) {
-            $overlapping = DB::table('staff_salary_assignments')->where('staff_id',$staff->id)->whereDate('effective_from','<=',$data['effective_to'] ?? '9999-12-31')->where(fn($q)=>$q->whereNull('effective_to')->orWhereDate('effective_to','>=',$data['effective_from']))->lockForUpdate()->get();
+        $staff = User::whereKey($data['staff_id'])->whereIn('role', ['teacher', 'admin'])->where('is_approved', true)->firstOrFail();
+        DB::transaction(function () use ($data, $staff) {
+            $overlapping = DB::table('staff_salary_assignments')->where('staff_id', $staff->id)->whereDate('effective_from', '<=', $data['effective_to'] ?? '9999-12-31')->where(fn ($q) => $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', $data['effective_from']))->lockForUpdate()->get();
             foreach ($overlapping as $previous) {
                 if ($previous->effective_to === null && $previous->effective_from < $data['effective_from']) {
-                    DB::table('staff_salary_assignments')->where('id',$previous->id)->update(['effective_to'=>Carbon::parse($data['effective_from'])->subDay()->toDateString(),'updated_at'=>now()]);
+                    DB::table('staff_salary_assignments')->where('id', $previous->id)->update(['effective_to' => Carbon::parse($data['effective_from'])->subDay()->toDateString(), 'updated_at' => now()]);
+
                     continue;
                 }
-                abort(422,'An existing salary assignment overlaps this effective period. Review the previous assignment dates.');
+                abort(422, 'An existing salary assignment overlaps this effective period. Review the previous assignment dates.');
             }
-            DB::table('staff_salary_assignments')->insert(array_merge($data,['pf_applicable'=>(bool)($data['pf_applicable']??false),'pf_existing_member'=>(bool)($data['pf_existing_member']??false),'eps_applicable'=>(bool)($data['eps_applicable']??false),'international_worker'=>(bool)($data['international_worker']??false),'pf_on_actual_wages'=>(bool)($data['pf_on_actual_wages']??false),'esi_applicable'=>(bool)($data['esi_applicable']??false),'esi_person_with_disability'=>(bool)($data['esi_person_with_disability']??false),'professional_tax_exempt'=>(bool)($data['professional_tax_exempt']??false),'tds_nil_confirmed'=>(bool)($data['tds_nil_confirmed']??false),'created_by'=>Auth::id(),'created_at'=>now(),'updated_at'=>now()]));
-        },3);
-        return back()->with('success','Effective-dated salary assignment saved.');
+            DB::table('staff_salary_assignments')->insert(array_merge($data, ['pf_applicable' => (bool) ($data['pf_applicable'] ?? false), 'pf_existing_member' => (bool) ($data['pf_existing_member'] ?? false), 'eps_applicable' => (bool) ($data['eps_applicable'] ?? false), 'international_worker' => (bool) ($data['international_worker'] ?? false), 'pf_on_actual_wages' => (bool) ($data['pf_on_actual_wages'] ?? false), 'esi_applicable' => (bool) ($data['esi_applicable'] ?? false), 'esi_person_with_disability' => (bool) ($data['esi_person_with_disability'] ?? false), 'professional_tax_exempt' => (bool) ($data['professional_tax_exempt'] ?? false), 'tds_nil_confirmed' => (bool) ($data['tds_nil_confirmed'] ?? false), 'created_by' => Auth::id(), 'created_at' => now(), 'updated_at' => now()]));
+        }, 3);
+
+        return back()->with('success', 'Effective-dated salary assignment saved.');
     }
 
     public function updateRuleStatus(Request $request, int $id): RedirectResponse
     {
         $this->requireAdmin();
-        $data = $request->validate(['is_enabled'=>['required','boolean']]);
-        $rule = DB::table('staff_statutory_rule_versions')->where('id',$id)->first();
-        abort_unless($rule,404);
+        $data = $request->validate(['is_enabled' => ['required', 'boolean']]);
+        $rule = DB::table('staff_statutory_rule_versions')->where('id', $id)->first();
+        abort_unless($rule, 404);
         // Enabling a statutory rule is an explicit administrative attestation; retain who enabled it.
-        DB::table('staff_statutory_rule_versions')->where('id',$id)->update(['is_enabled'=>$data['is_enabled'],'approved_by'=>Auth::id(),'updated_at'=>now()]);
-        DB::table('staff_hr_audits')->insert(['entity_type'=>'statutory_rule','entity_id'=>$id,'actor_id'=>Auth::id(),'event_type'=>$data['is_enabled']?'enabled':'disabled','before_data'=>json_encode(['is_enabled'=>(bool)$rule->is_enabled]),'after_data'=>json_encode(['is_enabled'=>(bool)$data['is_enabled'],'rule_code'=>$rule->rule_code]),'created_at'=>now()]);
-        return back()->with('success','Statutory rule activation setting updated. Confirm source and applicability before enabling.');
+        DB::table('staff_statutory_rule_versions')->where('id', $id)->update(['is_enabled' => $data['is_enabled'], 'approved_by' => Auth::id(), 'updated_at' => now()]);
+        DB::table('staff_hr_audits')->insert(['entity_type' => 'statutory_rule', 'entity_id' => $id, 'actor_id' => Auth::id(), 'event_type' => $data['is_enabled'] ? 'enabled' : 'disabled', 'before_data' => json_encode(['is_enabled' => (bool) $rule->is_enabled]), 'after_data' => json_encode(['is_enabled' => (bool) $data['is_enabled'], 'rule_code' => $rule->rule_code]), 'created_at' => now()]);
+
+        return back()->with('success', 'Statutory rule activation setting updated. Confirm source and applicability before enabling.');
     }
 
     public function storeAdjustment(Request $request): RedirectResponse
@@ -188,15 +197,16 @@ class StaffPayrollController extends Controller
             'taxable' => ['nullable', 'boolean'],
         ]);
         $staffId = $user->isAdmin() ? (int) ($data['staff_id'] ?? 0) : (int) $user->id;
-        abort_if(!$staffId, 422, 'Select an employee.');
+        abort_if(! $staffId, 422, 'Select an employee.');
         $staff = User::whereKey($staffId)->whereIn('role', ['teacher', 'admin'])->where('is_approved', true)->firstOrFail();
         abort_if($data['payroll_month'] <= now()->format('Y-m'), 422, 'Adjustments must be submitted for a future payroll period that has not been generated.');
         DB::table('staff_payroll_adjustments')->insert([
             'staff_id' => $staff->id, 'adjustment_type' => $data['adjustment_type'], 'description' => trim($data['description']),
             'amount' => $data['amount'], 'payroll_month' => $data['payroll_month'], 'status' => 'pending',
-            'taxable' => in_array($data['adjustment_type'], ['overtime','bonus','incentive','arrears'], true),
+            'taxable' => in_array($data['adjustment_type'], ['overtime', 'bonus', 'incentive', 'arrears'], true),
             'submitted_by' => $user->id, 'created_at' => now(), 'updated_at' => now(),
         ]);
+
         return back()->with('success', 'Payroll adjustment submitted for independent review. It will not affect payroll until approved.');
     }
 
@@ -219,6 +229,7 @@ class StaffPayrollController extends Controller
                 'after_data' => json_encode(['status' => $data['decision'] === 'approve' ? 'approved' : 'rejected']), 'created_at' => now(),
             ]);
         }, 3);
+
         return back()->with('success', 'Adjustment review recorded.');
     }
 
@@ -232,7 +243,7 @@ class StaffPayrollController extends Controller
             'first_deduction_month' => ['required', 'date_format:Y-m'], 'reference' => ['nullable', 'string', 'max:120'], 'notes' => ['nullable', 'string', 'max:1000'],
         ]);
         $staffId = $user->isAdmin() ? (int) ($data['staff_id'] ?? 0) : (int) $user->id;
-        abort_if(!$staffId, 422, 'Select an employee.');
+        abort_if(! $staffId, 422, 'Select an employee.');
         User::whereKey($staffId)->whereIn('role', ['teacher', 'admin'])->where('is_approved', true)->firstOrFail();
         abort_if($data['first_deduction_month'] <= now()->format('Y-m'), 422, 'The first deduction must be in a future payroll period.');
         DB::table('staff_salary_advances')->insert([
@@ -241,6 +252,7 @@ class StaffPayrollController extends Controller
             'status' => 'pending', 'reference' => $data['reference'] ?? null, 'notes' => $data['notes'] ?? null,
             'created_by' => $user->id, 'created_at' => now(), 'updated_at' => now(),
         ]);
+
         return back()->with('success', 'Salary advance request recorded and awaiting independent approval.');
     }
 
@@ -262,6 +274,7 @@ class StaffPayrollController extends Controller
                 'before_data' => json_encode(['status' => 'pending']), 'after_data' => json_encode(['status' => $data['decision'] === 'approve' ? 'approved' : 'cancelled']), 'created_at' => now(),
             ]);
         }, 3);
+
         return back()->with('success', 'Salary advance review recorded.');
     }
 
@@ -286,13 +299,14 @@ class StaffPayrollController extends Controller
                 'before_data' => json_encode(['status' => 'approved']), 'after_data' => json_encode(['status' => 'active', 'disbursed_on' => $data['disbursed_on'], 'reference' => $data['disbursement_reference']]), 'created_at' => now(),
             ]);
         }, 3);
+
         return back()->with('success', 'Advance disbursement recorded. Installment recovery will begin in the configured first deduction month.');
     }
 
     public function markAsPaid(Request $request, int $id): RedirectResponse
     {
         abort_unless(Auth::user()?->isAdmin() || Auth::user()?->isCashier(), 403, 'Administrator or Cashier access is required to record teacher salary payments.');
-        $payment = $request->validate(['payment_reference'=>['required','string','min:4','max:120'], 'paid_on'=>['required','date_format:Y-m-d','before_or_equal:today'], 'payment_method'=>['required','in:bank_transfer,upi,cheque,cash']]);
+        $payment = $request->validate(['payment_reference' => ['required', 'string', 'min:4', 'max:120'], 'paid_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'], 'payment_method' => ['required', 'in:bank_transfer,upi,cheque,cash']]);
 
         $result = DB::transaction(function () use ($id, $payment) {
             $payroll = StaffPayroll::whereKey($id)->lockForUpdate()->firstOrFail();
@@ -319,7 +333,9 @@ class StaffPayrollController extends Controller
             $snapshot = is_array($payroll->calculation_snapshot) ? $payroll->calculation_snapshot : [];
             foreach (($snapshot['advance_ids'] ?? []) as $advanceId) {
                 $advance = DB::table('staff_salary_advances')->where('id', (int) $advanceId)->where('staff_id', $payroll->staff_id)->where('status', 'active')->lockForUpdate()->first();
-                if (!$advance) continue;
+                if (! $advance) {
+                    continue;
+                }
                 $balance = max(0, round((float) $advance->principal_amount - (float) $advance->repaid_amount, 2));
                 $recovery = min($balance, (float) $advance->monthly_installment);
                 $repaid = round((float) $advance->repaid_amount + $recovery, 2);
@@ -341,6 +357,7 @@ class StaffPayrollController extends Controller
                 'after_data' => json_encode($payroll->fresh()->only(['payment_status', 'paid_at', 'paid_by', 'paid_on', 'payment_reference', 'payment_method']), JSON_THROW_ON_ERROR),
                 'created_at' => now(),
             ]);
+
             return 'paid';
         }, 3);
 
@@ -353,9 +370,10 @@ class StaffPayrollController extends Controller
     {
         $user = Auth::user();
         abort_unless($user && ($user->isAdmin() || $user->isTeacher() || $user->isCashier()), 403);
-        $payroll = StaffPayroll::with(['staff:id,name,email','paidBy:id,name'])->findOrFail($id);
+        $payroll = StaffPayroll::with(['staff:id,name,email', 'paidBy:id,name'])->findOrFail($id);
         abort_unless($user->isAdmin() || $user->isCashier() || (int) $payroll->staff_id === (int) $user->id, 403);
         abort_unless($payroll->approval_status === 'approved' || $payroll->payment_status === 'paid', 404);
+
         return view('school.payroll.payslip', compact('payroll'));
     }
 
@@ -381,11 +399,12 @@ class StaffPayrollController extends Controller
                     $values = [$row->staff?->name, $row->staff?->email, $row->payroll_month, $row->working_days, $row->payable_days, $row->basic_salary, $row->earnings, $row->variable_earnings, $row->reimbursements, $row->gross_salary, $row->employee_pf, $row->employee_esi, $row->professional_tax, $row->tds, $row->other_deductions, $row->advance_recovery, $row->deductions, $row->net_salary, $row->employer_statutory_cost, $row->approval_status, $row->payment_method, $row->payment_reference, $row->payment_status, optional($row->paid_on)->toDateString()];
                     fputcsv($out, array_map(static function ($value) {
                         $value = (string) ($value ?? '');
-                        return preg_match('/^[=+@\-\t\r]/', $value) ? "'" . $value : $value;
+
+                        return preg_match('/^[=+@\-\t\r]/', $value) ? "'".$value : $value;
                     }, $values));
                 }
             });
             fclose($out);
-        }, 'staff-payroll-' . now()->format('Ymd-His') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, 'staff-payroll-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 }

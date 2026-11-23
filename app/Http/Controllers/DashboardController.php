@@ -41,6 +41,10 @@ use App\Models\TeacherAssignmentAudit;
 use App\Models\TransportRoute;
 use App\Models\TransportVehicle;
 use App\Models\User;
+use App\Services\BirthdayService;
+use App\Services\MotivationService;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -48,7 +52,7 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request): View|\Illuminate\Http\RedirectResponse
+    public function index(Request $request): View|RedirectResponse
     {
         $user = Auth::user();
 
@@ -61,13 +65,13 @@ class DashboardController extends Controller
         }
 
         $user->recordDailyActivity('dashboard');
-        $birthdayCelebration = \App\Services\BirthdayService::checkAndCelebrate($user);
+        $birthdayCelebration = BirthdayService::checkAndCelebrate($user);
 
         $data = [
             'user' => $user,
-            'dailyMotivation' => \App\Services\MotivationService::getRandomQuote(),
-            'dailyFact' => \App\Services\MotivationService::getRandomFact(),
-            'fireStatus' => \App\Services\MotivationService::getFireStatus($user->streak_count ?? 1),
+            'dailyMotivation' => MotivationService::getRandomQuote(),
+            'dailyFact' => MotivationService::getRandomFact(),
+            'fireStatus' => MotivationService::getFireStatus($user->streak_count ?? 1),
             'birthdayCelebration' => $birthdayCelebration,
         ];
 
@@ -108,7 +112,7 @@ class DashboardController extends Controller
                 if ($pct < config('attendance.minimum_percentage') && $totalInSession > 0) {
                     $abnormalClasses[] = [
                         'id' => $session->class_id,
-                        'name' => $session->academicClass?->display_name ?? ('Class #' . $session->class_id),
+                        'name' => $session->academicClass?->display_name ?? ('Class #'.$session->class_id),
                         'present' => $present,
                         'absent' => $absent,
                         'percentage' => $pct,
@@ -116,12 +120,12 @@ class DashboardController extends Controller
                 }
             }
 
-            $todayAttendanceRate = $todayTotalRecords > 0 
-                ? round(($todayPresentCount / $todayTotalRecords) * 100, 1) 
+            $todayAttendanceRate = $todayTotalRecords > 0
+                ? round(($todayPresentCount / $todayTotalRecords) * 100, 1)
                 : 0.0;
 
             // Teachers on leave today
-            $activeStaffLeaves = StudentLeaveRequest::whereHas('student', fn($q) => $q->where('role', 'teacher'))
+            $activeStaffLeaves = StudentLeaveRequest::whereHas('student', fn ($q) => $q->where('role', 'teacher'))
                 ->where('status', 'approved')
                 ->whereDate('start_date', '<=', $today)
                 ->whereDate('end_date', '>=', $today)
@@ -129,10 +133,10 @@ class DashboardController extends Controller
                 ->get();
 
             // Pending leaves (students + staff)
-            $pendingStudentLeaves = StudentLeaveRequest::whereHas('student', fn($q) => $q->where('role', 'student'))
+            $pendingStudentLeaves = StudentLeaveRequest::whereHas('student', fn ($q) => $q->where('role', 'student'))
                 ->where('status', 'pending')
                 ->count();
-            $pendingStaffLeaves = StudentLeaveRequest::whereHas('student', fn($q) => $q->where('role', 'teacher'))
+            $pendingStaffLeaves = StudentLeaveRequest::whereHas('student', fn ($q) => $q->where('role', 'teacher'))
                 ->where('status', 'pending')
                 ->count();
 
@@ -159,8 +163,8 @@ class DashboardController extends Controller
             $lastMonthStart = now()->subMonth()->startOfMonth();
             $lastMonthEnd = now()->subMonth()->endOfMonth();
             $feesCollectedLastMonth = (float) FeePayment::whereBetween('paid_at', [$lastMonthStart, $lastMonthEnd])->sum('amount');
-            $feeTrendPct = $feesCollectedLastMonth > 0 
-                ? round((($feesCollectedThisMonth - $feesCollectedLastMonth) / $feesCollectedLastMonth) * 100, 1) 
+            $feeTrendPct = $feesCollectedLastMonth > 0
+                ? round((($feesCollectedThisMonth - $feesCollectedLastMonth) / $feesCollectedLastMonth) * 100, 1)
                 : 0.0;
 
             $outstandingInvoices = FeeInvoice::whereIn('status', ['unpaid', 'partial', 'partially_paid']);
@@ -175,12 +179,12 @@ class DashboardController extends Controller
             $studentsWithoutInvoice = User::where('role', 'student')
                 ->where('is_approved', true)
                 ->whereNotNull('current_class_id')
-                ->whereDoesntHave('feeInvoices', fn($q) => $q->where('created_at', '>=', $startOfTerm))
+                ->whereDoesntHave('feeInvoices', fn ($q) => $q->where('created_at', '>=', $startOfTerm))
                 ->count();
 
             // 4. ACADEMIC OPERATIONS
             $classesWithoutAttendanceToday = $allActiveClasses->filter(function ($c) use ($todayClassIdsWithAttendance) {
-                return !in_array($c->id, $todayClassIdsWithAttendance);
+                return ! in_array($c->id, $todayClassIdsWithAttendance);
             });
 
             $unassignedClassTeachers = AcademicClass::whereNull('class_teacher_id')->count();
@@ -195,8 +199,8 @@ class DashboardController extends Controller
 
             $totalCurriculumTopics = CurriculumTopic::count();
             $completedCurriculumTopics = CurriculumTopic::where('status', 'completed')->count();
-            $syllabusProgressRate = $totalCurriculumTopics > 0 
-                ? round(($completedCurriculumTopics / $totalCurriculumTopics) * 100, 1) 
+            $syllabusProgressRate = $totalCurriculumTopics > 0
+                ? round(($completedCurriculumTopics / $totalCurriculumTopics) * 100, 1)
                 : 0.0;
 
             // 5. INFIX CORE ENTITY SUMMARY (Students, Teachers, Parents, Staff)
@@ -286,9 +290,9 @@ class DashboardController extends Controller
                 ->get();
 
             // 10. VISUAL ANALYTICS GRAPH DATASETS
-            $trendDays = collect(range(6, 0))->map(fn($offset) => now()->subDays($offset)->toDateString());
+            $trendDays = collect(range(6, 0))->map(fn ($offset) => now()->subDays($offset)->toDateString());
             $attendanceTrendChart = [
-                'labels' => $trendDays->map(fn($d) => \Carbon\Carbon::parse($d)->format('D, d M'))->toArray(),
+                'labels' => $trendDays->map(fn ($d) => Carbon::parse($d)->format('D, d M'))->toArray(),
                 'present' => [],
                 'absent' => [],
                 'excused' => [],
@@ -297,7 +301,9 @@ class DashboardController extends Controller
 
             foreach ($trendDays as $dayStr) {
                 $daySessions = AttendanceSession::whereDate('session_date', $dayStr)->with('records')->get();
-                $pres = 0; $abs = 0; $exc = 0;
+                $pres = 0;
+                $abs = 0;
+                $exc = 0;
                 foreach ($daySessions as $ds) {
                     $pres += $ds->records->whereIn('status', ['present', 'late'])->count();
                     $abs += $ds->records->where('status', 'absent')->count();
@@ -333,16 +339,16 @@ class DashboardController extends Controller
 
             $defaultersAmount = (float) FeeInvoice::where(function ($q) use ($today) {
                 $q->where('status', 'overdue')
-                  ->orWhere(function ($sub) use ($today) {
-                      $sub->whereIn('status', ['unpaid', 'partial', 'partially_paid'])
-                          ->where('due_date', '<', $today);
-                  });
+                    ->orWhere(function ($sub) use ($today) {
+                        $sub->whereIn('status', ['unpaid', 'partial', 'partially_paid'])
+                            ->where('due_date', '<', $today);
+                    });
             })->sum('total_due') - (float) FeeInvoice::where(function ($q) use ($today) {
                 $q->where('status', 'overdue')
-                  ->orWhere(function ($sub) use ($today) {
-                      $sub->whereIn('status', ['unpaid', 'partial', 'partially_paid'])
-                          ->where('due_date', '<', $today);
-                  });
+                    ->orWhere(function ($sub) use ($today) {
+                        $sub->whereIn('status', ['unpaid', 'partial', 'partially_paid'])
+                            ->where('due_date', '<', $today);
+                    });
             })->sum('paid_amount');
 
             $feeDistributionChart = [
@@ -427,8 +433,8 @@ class DashboardController extends Controller
                 ->get();
 
             $data['pendingSubmissions'] = Submission::whereHas('assignment', function ($q) use ($user) {
-                    $q->where('teacher_id', $user->id);
-                })
+                $q->where('teacher_id', $user->id);
+            })
                 ->where('status', 'submitted')
                 ->with(['student:id,name', 'assignment:id,title,max_points,course_id', 'assignment.course:id,code'])
                 ->latest('submitted_at')
@@ -456,11 +462,11 @@ class DashboardController extends Controller
 
             // Notes and Videos resource counts
             if ($classId) {
-                $data['totalNotesCount'] = CurriculumNote::whereHas('topic.subject', fn($q) => $q->where('class_id', $classId))->where('is_published', true)->count();
-                $data['totalVideosCount'] = \App\Models\CurriculumVideo::whereHas('topic.subject', fn($q) => $q->where('class_id', $classId))->count();
+                $data['totalNotesCount'] = CurriculumNote::whereHas('topic.subject', fn ($q) => $q->where('class_id', $classId))->where('is_published', true)->count();
+                $data['totalVideosCount'] = CurriculumVideo::whereHas('topic.subject', fn ($q) => $q->where('class_id', $classId))->count();
             } else {
                 $data['totalNotesCount'] = CurriculumNote::where('is_published', true)->count();
-                $data['totalVideosCount'] = \App\Models\CurriculumVideo::count();
+                $data['totalVideosCount'] = CurriculumVideo::count();
             }
 
             // Coaching Homework metrics
@@ -500,8 +506,8 @@ class DashboardController extends Controller
 
             // Syllabus Coverage
             if ($classId) {
-                $classTopicCount = CurriculumTopic::whereHas('subject', fn($q) => $q->where('class_id', $classId))->count();
-                $completedTopicCount = CurriculumTopic::whereHas('subject', fn($q) => $q->where('class_id', $classId))->where('status', 'completed')->count();
+                $classTopicCount = CurriculumTopic::whereHas('subject', fn ($q) => $q->where('class_id', $classId))->count();
+                $completedTopicCount = CurriculumTopic::whereHas('subject', fn ($q) => $q->where('class_id', $classId))->where('status', 'completed')->count();
                 $data['syllabusProgressRate'] = $classTopicCount > 0 ? round(($completedTopicCount / $classTopicCount) * 100, 1) : 0.0;
             } else {
                 $data['syllabusProgressRate'] = 0.0;
@@ -514,7 +520,7 @@ class DashboardController extends Controller
             $enrolledCourseIds = $enrollments->pluck('course_id');
 
             $data['enrollments'] = $enrollments;
-            
+
             // Student schedules
             $data['mySchedules'] = Schedule::whereIn('course_id', $enrolledCourseIds)
                 ->with('course:id,title,code')

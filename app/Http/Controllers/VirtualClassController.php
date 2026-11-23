@@ -6,6 +6,7 @@ use App\Models\AcademicClass;
 use App\Models\Batch;
 use App\Models\User;
 use App\Models\VirtualClass;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,11 +27,15 @@ class VirtualClassController extends Controller
             $classId = $user->current_class_id;
             $batchId = $user->batch_id;
             $query->where(function ($q) use ($classId, $batchId) {
-                if ($classId) $q->orWhere('class_id', $classId);
-                if ($batchId) $q->orWhere('batch_id', $batchId);
+                if ($classId) {
+                    $q->orWhere('class_id', $classId);
+                }
+                if ($batchId) {
+                    $q->orWhere('batch_id', $batchId);
+                }
                 $q->orWhereNull('class_id')->whereNull('batch_id'); // Open campus seminars
             });
-        } elseif ($user && $user->isTeacher() && !$user->isAdmin()) {
+        } elseif ($user && $user->isTeacher() && ! $user->isAdmin()) {
             $query->where('instructor_id', $user->id);
         }
 
@@ -38,16 +43,16 @@ class VirtualClassController extends Controller
         $status = $request->input('status', 'all');
         if ($status === 'live') {
             $query->where('status', 'live')
-                  ->orWhere(function ($q) {
-                      $q->where('start_time', '<=', now())
+                ->orWhere(function ($q) {
+                    $q->where('start_time', '<=', now())
                         ->where('end_time', '>=', now());
-                  });
+                });
         } elseif ($status === 'upcoming') {
             $query->where('status', 'upcoming')
-                  ->where('start_time', '>', now());
+                ->where('start_time', '>', now());
         } elseif ($status === 'completed') {
             $query->where('status', 'completed')
-                  ->orWhere('end_time', '<', now());
+                ->orWhere('end_time', '<', now());
         }
 
         // Host Filter
@@ -60,8 +65,8 @@ class VirtualClassController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('meeting_id', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('meeting_id', 'like', "%{$search}%");
             });
         }
 
@@ -96,7 +101,7 @@ class VirtualClassController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403, 'Unauthorized to schedule virtual classes.');
         }
 
@@ -118,15 +123,15 @@ class VirtualClassController extends Controller
 
         $validated['instructor_id'] = $validated['instructor_id'] ?? $user->id;
         $validated['capacity'] = $validated['capacity'] ?? 100;
-        
-        $start = \Carbon\Carbon::parse($validated['start_time']);
-        $validated['end_time'] = $start->copy()->addMinutes((int)$validated['duration']);
+
+        $start = Carbon::parse($validated['start_time']);
+        $validated['end_time'] = $start->copy()->addMinutes((int) $validated['duration']);
 
         // Fallback join URL if custom meeting
         if (empty($validated['join_url'])) {
             if ($validated['host'] === 'jitsi') {
-                $roomName = 'paa_' . md5($validated['title'] . $start->timestamp);
-                $validated['join_url'] = 'https://meet.jit.si/' . $roomName;
+                $roomName = 'paa_'.md5($validated['title'].$start->timestamp);
+                $validated['join_url'] = 'https://meet.jit.si/'.$roomName;
             } elseif ($validated['host'] === 'google_meet') {
                 $validated['join_url'] = 'https://meet.google.com/new';
             }
@@ -144,6 +149,7 @@ class VirtualClassController extends Controller
     public function show(VirtualClass $virtualClass): View
     {
         $virtualClass->load(['academicClass', 'batch', 'instructor']);
+
         return view('virtual_classes.show', compact('virtualClass'));
     }
 
@@ -166,7 +172,7 @@ class VirtualClassController extends Controller
     public function destroy(VirtualClass $virtualClass): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && $user->id !== $virtualClass->instructor_id)) {
+        if (! $user || (! $user->isAdmin() && $user->id !== $virtualClass->instructor_id)) {
             abort(403, 'Unauthorized to cancel this virtual class.');
         }
 

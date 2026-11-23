@@ -9,10 +9,8 @@ use App\Models\AttendanceSession;
 use App\Models\ClassEnrollment;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
-use App\Models\HomeworkSubmission;
 use App\Models\HomeworkTask;
 use App\Models\SchoolExamMark;
-use App\Models\SchoolExamTerm;
 use App\Models\SchoolPeriodTimetable;
 use App\Models\SchoolReportCard;
 use App\Models\StudentLeaveRequest;
@@ -204,7 +202,7 @@ class SchoolReportService
     public function getCategories(User $user): array
     {
         return array_filter(self::CATEGORIES, function ($cat) use ($user) {
-            return !$cat['admin_only'] || $user->isAdmin() || ($user->isCashier() && $cat['id'] === 'finance');
+            return ! $cat['admin_only'] || $user->isAdmin() || ($user->isCashier() && $cat['id'] === 'finance');
         });
     }
 
@@ -217,7 +215,8 @@ class SchoolReportService
             if ($rep['category'] !== $category) {
                 return false;
             }
-            return !$rep['admin_only'] || $user->isAdmin() || ($user->isCashier() && $rep['category'] === 'finance');
+
+            return ! $rep['admin_only'] || $user->isAdmin() || ($user->isCashier() && $rep['category'] === 'finance');
         });
     }
 
@@ -226,19 +225,19 @@ class SchoolReportService
      */
     public function generateReport(string $reportType, array $filters, User $user): array
     {
-        if (!isset(self::REPORTS[$reportType])) {
+        if (! isset(self::REPORTS[$reportType])) {
             $reportType = 'exam_merit_list';
         }
 
         $meta = self::REPORTS[$reportType];
 
         // Access check
-        $isAllowed = !$meta['admin_only'] || $user->isAdmin() || ($user->isCashier() && $meta['category'] === 'finance');
-        if (!$isAllowed) {
+        $isAllowed = ! $meta['admin_only'] || $user->isAdmin() || ($user->isCashier() && $meta['category'] === 'finance');
+        if (! $isAllowed) {
             abort(403, 'Unauthorized access to institutional financial reports.');
         }
 
-        $method = 'generate' . str_replace(' ', '', ucwords(str_replace('_', ' ', $reportType)));
+        $method = 'generate'.str_replace(' ', '', ucwords(str_replace('_', ' ', $reportType)));
 
         if (method_exists($this, $method)) {
             $data = $this->$method($filters);
@@ -269,8 +268,8 @@ class SchoolReportService
         $termId = $filters['term_id'] ?? null;
 
         $query = SchoolReportCard::with(['student', 'academicClass', 'examTerm'])
-            ->when($classId, fn($q) => $q->where('class_id', $classId))
-            ->when($termId, fn($q) => $q->where('exam_term_id', $termId))
+            ->when($classId, fn ($q) => $q->where('class_id', $classId))
+            ->when($termId, fn ($q) => $q->where('exam_term_id', $termId))
             ->orderBy('percentage', 'desc');
 
         $reportCards = $query->get();
@@ -279,8 +278,8 @@ class SchoolReportService
         if ($reportCards->isEmpty()) {
             // Aggregate from SchoolExamMark
             $marksQuery = SchoolExamMark::with(['student.currentClass', 'subject', 'examTerm'])
-                ->when($classId, fn($q) => $q->where('class_id', $classId))
-                ->when($termId, fn($q) => $q->where('exam_term_id', $termId));
+                ->when($classId, fn ($q) => $q->where('class_id', $classId))
+                ->when($termId, fn ($q) => $q->where('exam_term_id', $termId));
 
             $marks = $marksQuery->get();
             $grouped = $marks->groupBy('student_id');
@@ -292,17 +291,17 @@ class SchoolReportService
                 $totMax = $studentMarks->sum('max_marks');
                 $totObt = $studentMarks->sum('marks_obtained');
                 $pct = $totMax > 0 ? round(($totObt / $totMax) * 100, 2) : 0;
-                $isPass = $studentMarks->every(fn($m) => $m->marks_obtained >= $m->pass_marks);
+                $isPass = $studentMarks->every(fn ($m) => $m->marks_obtained >= $m->pass_marks);
 
                 $rows[] = [
                     'rank' => $rank++,
-                    'student_name' => $student->name ?? 'Student #' . $studentId,
+                    'student_name' => $student->name ?? 'Student #'.$studentId,
                     'roll_number' => $student->roll_number ?? '—',
                     'admission_number' => $student->admission_number ?? '—',
                     'class_name' => $student->currentClass->name ?? 'Grade',
                     'max_marks' => $totMax,
                     'marks_obtained' => $totObt,
-                    'percentage' => $pct . '%',
+                    'percentage' => $pct.'%',
                     'grade' => $pct >= 85 ? 'A+' : ($pct >= 70 ? 'A' : ($pct >= 55 ? 'B' : ($pct >= 40 ? 'C' : 'F'))),
                     'status' => $isPass ? 'Passed' : 'Needs Support',
                 ];
@@ -313,13 +312,13 @@ class SchoolReportService
             foreach ($reportCards as $rc) {
                 $rows[] = [
                     'rank' => $rc->class_rank ?: $rank++,
-                    'student_name' => $rc->student->name ?? 'Student #' . $rc->student_id,
+                    'student_name' => $rc->student->name ?? 'Student #'.$rc->student_id,
                     'roll_number' => $rc->student->roll_number ?? '—',
                     'admission_number' => $rc->student->admission_number ?? '—',
                     'class_name' => $rc->academicClass->name ?? '—',
-                    'max_marks' => (float)$rc->total_max_marks,
-                    'marks_obtained' => (float)$rc->total_marks_obtained,
-                    'percentage' => number_format((float)$rc->percentage, 1) . '%',
+                    'max_marks' => (float) $rc->total_max_marks,
+                    'marks_obtained' => (float) $rc->total_marks_obtained,
+                    'percentage' => number_format((float) $rc->percentage, 1).'%',
                     'grade' => $rc->overall_grade ?: '—',
                     'status' => ucfirst($rc->result_status ?: 'passed'),
                 ];
@@ -327,22 +326,22 @@ class SchoolReportService
         }
 
         $totalStudents = count($rows);
-        $passCount = count(array_filter($rows, fn($r) => str_contains(strtolower($r['status']), 'pass')));
+        $passCount = count(array_filter($rows, fn ($r) => str_contains(strtolower($r['status']), 'pass')));
         $passRate = $totalStudents > 0 ? round(($passCount / $totalStudents) * 100, 1) : 0;
-        $avgScore = $totalStudents > 0 ? round(array_sum(array_map(fn($r) => (float)rtrim($r['percentage'], '%'), $rows)) / $totalStudents, 1) : 0;
-        $topScore = $totalStudents > 0 ? max(array_map(fn($r) => (float)rtrim($r['percentage'], '%'), $rows)) : 0;
+        $avgScore = $totalStudents > 0 ? round(array_sum(array_map(fn ($r) => (float) rtrim($r['percentage'], '%'), $rows)) / $totalStudents, 1) : 0;
+        $topScore = $totalStudents > 0 ? max(array_map(fn ($r) => (float) rtrim($r['percentage'], '%'), $rows)) : 0;
 
         return [
             'kpis' => [
                 ['label' => 'Total Ranked Students', 'value' => $totalStudents, 'color' => 'indigo', 'subtext' => 'Enrolled & Examined'],
-                ['label' => 'Overall Pass Rate', 'value' => $passRate . '%', 'color' => 'emerald', 'subtext' => $passCount . ' cleared benchmarks'],
-                ['label' => 'Class Average Score', 'value' => $avgScore . '%', 'color' => 'blue', 'subtext' => 'Across evaluated papers'],
-                ['label' => 'Highest Achieved', 'value' => $topScore . '%', 'color' => 'amber', 'subtext' => 'Top Merit Standing'],
+                ['label' => 'Overall Pass Rate', 'value' => $passRate.'%', 'color' => 'emerald', 'subtext' => $passCount.' cleared benchmarks'],
+                ['label' => 'Class Average Score', 'value' => $avgScore.'%', 'color' => 'blue', 'subtext' => 'Across evaluated papers'],
+                ['label' => 'Highest Achieved', 'value' => $topScore.'%', 'color' => 'amber', 'subtext' => 'Top Merit Standing'],
             ],
             'headers' => ['Rank', 'Student Name', 'Roll No', 'Admission No', 'Class', 'Max Marks', 'Marks Obtained', 'Percentage', 'Grade', 'Result Standing'],
             'rows' => $rows,
             'export_headers' => ['Rank', 'Student Name', 'Roll Number', 'Admission Number', 'Class', 'Max Marks', 'Marks Obtained', 'Percentage', 'Grade', 'Status'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -354,7 +353,7 @@ class SchoolReportService
         $classId = $filters['class_id'] ?? null;
 
         $subjects = AcademicSubject::with(['academicClass', 'teacher'])
-            ->when($classId, fn($q) => $q->where('class_id', $classId))
+            ->when($classId, fn ($q) => $q->where('class_id', $classId))
             ->get();
 
         $rows = [];
@@ -367,14 +366,14 @@ class SchoolReportService
             $high = $marks->max('marks_obtained') ?? 0;
             $low = $candidates > 0 ? $marks->min('marks_obtained') : 0;
             $avg = $candidates > 0 ? round($marks->avg('marks_obtained'), 1) : 0;
-            $passed = $marks->filter(fn($m) => $m->marks_obtained >= $m->pass_marks)->count();
+            $passed = $marks->filter(fn ($m) => $m->marks_obtained >= $m->pass_marks)->count();
             $rate = $candidates > 0 ? round(($passed / $candidates) * 100, 1) : 100;
 
             $totalCandidates += $candidates;
             $totalPass += $passed;
 
             $rows[] = [
-                'subject_code' => $subject->code ?: 'SUB-' . $subject->id,
+                'subject_code' => $subject->code ?: 'SUB-'.$subject->id,
                 'subject_name' => $subject->name,
                 'class_name' => $subject->academicClass->name ?? 'All',
                 'teacher' => $subject->teacher->name ?? 'Unassigned',
@@ -382,7 +381,7 @@ class SchoolReportService
                 'highest' => $high,
                 'lowest' => $low,
                 'average' => $avg,
-                'pass_rate' => $rate . '%',
+                'pass_rate' => $rate.'%',
             ];
         }
 
@@ -392,12 +391,12 @@ class SchoolReportService
             'kpis' => [
                 ['label' => 'Total Subjects Analyzed', 'value' => count($rows), 'color' => 'indigo', 'subtext' => 'Active Curricula'],
                 ['label' => 'Examined Submissions', 'value' => $totalCandidates, 'color' => 'blue', 'subtext' => 'Marks Recorded'],
-                ['label' => 'Mean Subject Pass Rate', 'value' => $overallRate . '%', 'color' => 'emerald', 'subtext' => 'Institutional standard'],
+                ['label' => 'Mean Subject Pass Rate', 'value' => $overallRate.'%', 'color' => 'emerald', 'subtext' => 'Institutional standard'],
             ],
             'headers' => ['Code', 'Subject Name', 'Class', 'Faculty Instructor', 'Total Candidates', 'Highest Score', 'Lowest Score', 'Mean Score', 'Pass Percentage'],
             'rows' => $rows,
             'export_headers' => ['Code', 'Subject Name', 'Class', 'Faculty Instructor', 'Candidates', 'Highest Score', 'Lowest Score', 'Mean Score', 'Pass Percentage'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -410,14 +409,14 @@ class SchoolReportService
 
         // Find students with marks < 40% or overall percentage < 40
         $students = User::where('role', 'student')
-            ->when($classId, fn($q) => $q->where('current_class_id', $classId))
+            ->when($classId, fn ($q) => $q->where('current_class_id', $classId))
             ->with(['currentClass', 'reportCards'])
             ->get();
 
         $rows = [];
         foreach ($students as $student) {
             $latestRc = $student->reportCards->sortByDesc('created_at')->first();
-            $pct = $latestRc ? (float)$latestRc->percentage : null;
+            $pct = $latestRc ? (float) $latestRc->percentage : null;
 
             // Also check marks
             $failingMarks = SchoolExamMark::where('student_id', $student->id)
@@ -430,8 +429,8 @@ class SchoolReportService
                     'roll_number' => $student->roll_number ?? '—',
                     'admission_number' => $student->admission_number ?? '—',
                     'class_name' => $student->currentClass->name ?? '—',
-                    'percentage' => $pct !== null ? $pct . '%' : 'N/A',
-                    'failed_subjects' => $failingMarks > 0 ? $failingMarks . ' Subject(s)' : 'Low Aggregate',
+                    'percentage' => $pct !== null ? $pct.'%' : 'N/A',
+                    'failed_subjects' => $failingMarks > 0 ? $failingMarks.' Subject(s)' : 'Low Aggregate',
                     'guardian_name' => $student->guardian_name ?? 'Parent / Guardian',
                     'guardian_phone' => $student->guardian_phone ?? $student->phone ?? '—',
                     'status' => 'Intervention Required',
@@ -442,12 +441,12 @@ class SchoolReportService
         return [
             'kpis' => [
                 ['label' => 'Identified At-Risk Students', 'value' => count($rows), 'color' => 'rose', 'subtext' => 'Score < 45% or failed subjects'],
-                ['label' => 'Parent Contact Readiness', 'value' => count(array_filter($rows, fn($r) => $r['guardian_phone'] !== '—')), 'color' => 'amber', 'subtext' => 'Direct phone available'],
+                ['label' => 'Parent Contact Readiness', 'value' => count(array_filter($rows, fn ($r) => $r['guardian_phone'] !== '—')), 'color' => 'amber', 'subtext' => 'Direct phone available'],
             ],
             'headers' => ['Student Name', 'Roll No', 'Admission No', 'Class', 'Aggregate %', 'Failing Papers', 'Guardian Name', 'Guardian Phone', 'Action Status'],
             'rows' => $rows,
             'export_headers' => ['Student Name', 'Roll Number', 'Admission Number', 'Class', 'Aggregate Percentage', 'Failing Papers', 'Guardian Name', 'Guardian Phone', 'Status'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -459,7 +458,7 @@ class SchoolReportService
         $classId = $filters['class_id'] ?? null;
 
         $tasks = HomeworkTask::with(['academicClass', 'teacher', 'submissions'])
-            ->when($classId, fn($q) => $q->where('class_id', $classId))
+            ->when($classId, fn ($q) => $q->where('class_id', $classId))
             ->orderBy('due_date', 'desc')
             ->take(50)
             ->get();
@@ -485,7 +484,7 @@ class SchoolReportService
                 'expected' => $enrolledCount,
                 'submitted' => $subCount,
                 'checked' => $checkedCount,
-                'completion_rate' => $rate . '%',
+                'completion_rate' => $rate.'%',
             ];
         }
 
@@ -497,7 +496,7 @@ class SchoolReportService
             'headers' => ['Assignment Title', 'Class', 'Faculty', 'Due Date', 'Class Strength', 'Submissions', 'Graded Count', 'Completion Rate'],
             'rows' => $rows,
             'export_headers' => ['Assignment Title', 'Class', 'Faculty', 'Due Date', 'Class Strength', 'Submissions', 'Graded Count', 'Completion Rate'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -515,9 +514,9 @@ class SchoolReportService
         $toDate = $filters['to_date'] ?? null;
 
         $sessionsQuery = AttendanceSession::with(['academicClass', 'records', 'teacher'])
-            ->when($classId, fn($q) => $q->where('class_id', $classId))
-            ->when($fromDate, fn($q) => $q->whereDate('session_date', '>=', $fromDate))
-            ->when($toDate, fn($q) => $q->whereDate('session_date', '<=', $toDate))
+            ->when($classId, fn ($q) => $q->where('class_id', $classId))
+            ->when($fromDate, fn ($q) => $q->whereDate('session_date', '>=', $fromDate))
+            ->when($toDate, fn ($q) => $q->whereDate('session_date', '<=', $toDate))
             ->orderBy('session_date', 'desc');
 
         $sessions = $sessionsQuery->take(100)->get();
@@ -547,7 +546,7 @@ class SchoolReportService
                 'present' => $p,
                 'absent' => $a,
                 'late' => $l,
-                'attendance_rate' => $rate . '%',
+                'attendance_rate' => $rate.'%',
             ];
         }
 
@@ -556,13 +555,13 @@ class SchoolReportService
         return [
             'kpis' => [
                 ['label' => 'Total Roll Call Sessions', 'value' => count($rows), 'color' => 'indigo', 'subtext' => 'Sessions conducted'],
-                ['label' => 'Average Daily Attendance', 'value' => $overallRate . '%', 'color' => 'emerald', 'subtext' => 'Across all recorded periods'],
+                ['label' => 'Average Daily Attendance', 'value' => $overallRate.'%', 'color' => 'emerald', 'subtext' => 'Across all recorded periods'],
                 ['label' => 'Student-Days Recorded', 'value' => $totRecords, 'color' => 'blue', 'subtext' => 'Individual check-ins'],
             ],
             'headers' => ['Session Date', 'Class', 'Session Label', 'Faculty', 'Enrolled Strength', 'Present', 'Absent', 'Late', 'Attendance Rate'],
             'rows' => $rows,
             'export_headers' => ['Session Date', 'Class', 'Session Label', 'Faculty', 'Strength', 'Present', 'Absent', 'Late', 'Attendance Rate'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -572,10 +571,10 @@ class SchoolReportService
     protected function generateChronicAbsenteeism(array $filters): array
     {
         $classId = $filters['class_id'] ?? null;
-        $threshold = (float)($filters['threshold'] ?? 75.0);
+        $threshold = (float) ($filters['threshold'] ?? 75.0);
 
         $students = User::where('role', 'student')
-            ->when($classId, fn($q) => $q->where('current_class_id', $classId))
+            ->when($classId, fn ($q) => $q->where('current_class_id', $classId))
             ->with(['currentClass'])
             ->get();
 
@@ -599,7 +598,7 @@ class SchoolReportService
                     'total_sessions' => $total,
                     'days_present' => $present,
                     'days_absent' => ($total - $present),
-                    'attendance_rate' => $rate . '%',
+                    'attendance_rate' => $rate.'%',
                     'guardian_phone' => $student->guardian_phone ?? $student->phone ?? '—',
                     'warning_level' => $rate < 60 ? 'Critical' : 'Warning',
                 ];
@@ -608,13 +607,13 @@ class SchoolReportService
 
         return [
             'kpis' => [
-                ['label' => 'Threshold Criterion', 'value' => '< ' . $threshold . '%', 'color' => 'amber', 'subtext' => 'Mandatory academic cutoff'],
+                ['label' => 'Threshold Criterion', 'value' => '< '.$threshold.'%', 'color' => 'amber', 'subtext' => 'Mandatory academic cutoff'],
                 ['label' => 'Chronic Defaulters Count', 'value' => count($rows), 'color' => 'rose', 'subtext' => 'Students below threshold'],
             ],
             'headers' => ['Student Name', 'Roll No', 'Admission No', 'Class', 'Total Sessions', 'Days Present', 'Days Absent', 'Attendance Rate', 'Guardian Phone', 'Notice Severity'],
             'rows' => $rows,
             'export_headers' => ['Student Name', 'Roll Number', 'Admission Number', 'Class', 'Total Sessions', 'Days Present', 'Days Absent', 'Attendance Rate', 'Guardian Phone', 'Severity'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -627,9 +626,9 @@ class SchoolReportService
         $studentId = $filters['student_id'] ?? null;
 
         $query = AttendanceRecord::with(['session.academicClass', 'student'])
-            ->when($studentId, fn($q) => $q->where('student_id', $studentId))
+            ->when($studentId, fn ($q) => $q->where('student_id', $studentId))
             ->when($classId, function ($q) use ($classId) {
-                $q->whereHas('session', fn($sq) => $sq->where('class_id', $classId));
+                $q->whereHas('session', fn ($sq) => $sq->where('class_id', $classId));
             })
             ->orderBy('id', 'desc');
 
@@ -640,7 +639,7 @@ class SchoolReportService
             $session = $rec->session;
             $rows[] = [
                 'date' => $session && $session->session_date ? Carbon::parse($session->session_date)->format('d M Y') : '—',
-                'student_name' => $rec->student->name ?? 'Student #' . $rec->student_id,
+                'student_name' => $rec->student->name ?? 'Student #'.$rec->student_id,
                 'class_name' => $session->academicClass->name ?? '—',
                 'session_title' => $session->title ?? 'Roll Call',
                 'status' => ucfirst($rec->status),
@@ -655,7 +654,7 @@ class SchoolReportService
             'headers' => ['Log Date', 'Student Name', 'Class', 'Session Description', 'Status', 'Faculty Remarks'],
             'rows' => $rows,
             'export_headers' => ['Log Date', 'Student Name', 'Class', 'Session Description', 'Status', 'Remarks'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -675,12 +674,12 @@ class SchoolReportService
             $days = ($start && $end) ? $start->diffInDays($end) + 1 : 1;
 
             $rows[] = [
-                'student_name' => $leave->student->name ?? 'Student #' . $leave->student_id,
+                'student_name' => $leave->student->name ?? 'Student #'.$leave->student_id,
                 'class_name' => $leave->student->currentClass->name ?? '—',
                 'leave_type' => ucfirst($leave->type ?: 'medical'),
                 'start_date' => $start ? $start->format('d M Y') : '—',
                 'end_date' => $end ? $end->format('d M Y') : '—',
-                'duration' => $days . ' Day(s)',
+                'duration' => $days.' Day(s)',
                 'reason' => $leave->reason ?: 'Personal',
                 'status' => ucfirst($leave->status ?: 'pending'),
             ];
@@ -689,13 +688,13 @@ class SchoolReportService
         return [
             'kpis' => [
                 ['label' => 'Total Applications', 'value' => count($rows), 'color' => 'indigo', 'subtext' => 'Leaves filed'],
-                ['label' => 'Approved', 'value' => count(array_filter($rows, fn($r) => strtolower($r['status']) === 'approved')), 'color' => 'emerald', 'subtext' => 'Authorized by faculty'],
-                ['label' => 'Pending Review', 'value' => count(array_filter($rows, fn($r) => strtolower($r['status']) === 'pending')), 'color' => 'amber', 'subtext' => 'Awaiting approval'],
+                ['label' => 'Approved', 'value' => count(array_filter($rows, fn ($r) => strtolower($r['status']) === 'approved')), 'color' => 'emerald', 'subtext' => 'Authorized by faculty'],
+                ['label' => 'Pending Review', 'value' => count(array_filter($rows, fn ($r) => strtolower($r['status']) === 'pending')), 'color' => 'amber', 'subtext' => 'Awaiting approval'],
             ],
             'headers' => ['Student Name', 'Class', 'Leave Category', 'From Date', 'To Date', 'Duration', 'Reason', 'Approval Status'],
             'rows' => $rows,
             'export_headers' => ['Student Name', 'Class', 'Category', 'From Date', 'To Date', 'Duration', 'Reason', 'Status'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -713,9 +712,9 @@ class SchoolReportService
         $gateway = $filters['gateway'] ?? null;
 
         $paymentsQuery = FeePayment::with(['invoice.student.currentClass'])
-            ->when($fromDate, fn($q) => $q->whereDate('paid_at', '>=', $fromDate))
-            ->when($toDate, fn($q) => $q->whereDate('paid_at', '<=', $toDate))
-            ->when($gateway, fn($q) => $q->where('payment_gateway', $gateway))
+            ->when($fromDate, fn ($q) => $q->whereDate('paid_at', '>=', $fromDate))
+            ->when($toDate, fn ($q) => $q->whereDate('paid_at', '<=', $toDate))
+            ->when($gateway, fn ($q) => $q->where('payment_gateway', $gateway))
             ->orderBy('paid_at', 'desc');
 
         $payments = $paymentsQuery->get();
@@ -726,11 +725,11 @@ class SchoolReportService
         foreach ($payments as $pay) {
             $inv = $pay->invoice;
             $stu = $inv ? $inv->student : null;
-            $amt = (float)$pay->amount;
+            $amt = (float) $pay->amount;
             $totalCollected += $amt;
 
             $rows[] = [
-                'receipt_number' => $pay->receipt_number ?: 'REC-' . str_pad($pay->id, 5, '0', STR_PAD_LEFT),
+                'receipt_number' => $pay->receipt_number ?: 'REC-'.str_pad($pay->id, 5, '0', STR_PAD_LEFT),
                 'paid_date' => $pay->paid_at ? Carbon::parse($pay->paid_at)->format('d M Y, h:i A') : '—',
                 'invoice_number' => $inv->invoice_number ?? '—',
                 'student_name' => $stu->name ?? '—',
@@ -739,20 +738,20 @@ class SchoolReportService
                 'category' => ucfirst($inv->category ?? 'tuition'),
                 'payment_method' => strtoupper($pay->payment_method ?: 'UPI'),
                 'gateway' => ucfirst($pay->payment_gateway ?: 'bharat_qr'),
-                'amount' => '₹ ' . number_format($amt, 2),
+                'amount' => '₹ '.number_format($amt, 2),
             ];
         }
 
         return [
             'kpis' => [
-                ['label' => 'Total Fee Realized', 'value' => '₹ ' . number_format($totalCollected, 2), 'color' => 'emerald', 'subtext' => 'Gross collections in window'],
+                ['label' => 'Total Fee Realized', 'value' => '₹ '.number_format($totalCollected, 2), 'color' => 'emerald', 'subtext' => 'Gross collections in window'],
                 ['label' => 'Receipts Issued', 'value' => count($rows), 'color' => 'indigo', 'subtext' => 'Successful settlements'],
-                ['label' => 'Mean Transaction', 'value' => count($rows) > 0 ? '₹ ' . number_format($totalCollected / count($rows), 2) : '₹ 0.00', 'color' => 'blue', 'subtext' => 'Average receipt size'],
+                ['label' => 'Mean Transaction', 'value' => count($rows) > 0 ? '₹ '.number_format($totalCollected / count($rows), 2) : '₹ 0.00', 'color' => 'blue', 'subtext' => 'Average receipt size'],
             ],
             'headers' => ['Receipt #', 'Payment Date & Time', 'Invoice #', 'Student Name', 'Admission No', 'Class', 'Fee Head', 'Method', 'Gateway / Mode', 'Collected Amount'],
             'rows' => $rows,
             'export_headers' => ['Receipt Number', 'Payment Date', 'Invoice Number', 'Student Name', 'Admission Number', 'Class', 'Fee Head', 'Method', 'Gateway', 'Amount'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -766,7 +765,7 @@ class SchoolReportService
         $invoicesQuery = FeeInvoice::with(['student.currentClass'])
             ->where('status', '!=', 'paid')
             ->when($classId, function ($q) use ($classId) {
-                $q->whereHas('student', fn($sq) => $sq->where('current_class_id', $classId));
+                $q->whereHas('student', fn ($sq) => $sq->where('current_class_id', $classId));
             })
             ->orderBy('due_date', 'asc');
 
@@ -776,8 +775,8 @@ class SchoolReportService
         $totalOutstanding = 0;
 
         foreach ($invoices as $inv) {
-            $due = (float)$inv->total_due;
-            $paid = (float)$inv->paid_amount;
+            $due = (float) $inv->total_due;
+            $paid = (float) $inv->paid_amount;
             $balance = max(0, $due - $paid);
             $totalOutstanding += $balance;
 
@@ -794,24 +793,24 @@ class SchoolReportService
                 'admission_number' => $stu->admission_number ?? '—',
                 'class_name' => $stu->currentClass->name ?? '—',
                 'category' => ucfirst($inv->category ?? 'tuition'),
-                'total_billed' => '₹ ' . number_format($due, 2),
-                'paid_so_far' => '₹ ' . number_format($paid, 2),
-                'outstanding' => '₹ ' . number_format($balance, 2),
+                'total_billed' => '₹ '.number_format($due, 2),
+                'paid_so_far' => '₹ '.number_format($paid, 2),
+                'outstanding' => '₹ '.number_format($balance, 2),
                 'due_date' => $dueDate ? $dueDate->format('d M Y') : '—',
-                'days_overdue' => $isOverdue ? $daysOverdue . ' Days' : 'Current',
+                'days_overdue' => $isOverdue ? $daysOverdue.' Days' : 'Current',
                 'guardian_phone' => $stu->guardian_phone ?? $stu->phone ?? '—',
             ];
         }
 
         return [
             'kpis' => [
-                ['label' => 'Total Outstanding Arrears', 'value' => '₹ ' . number_format($totalOutstanding, 2), 'color' => 'rose', 'subtext' => 'Unpaid fee balance'],
+                ['label' => 'Total Outstanding Arrears', 'value' => '₹ '.number_format($totalOutstanding, 2), 'color' => 'rose', 'subtext' => 'Unpaid fee balance'],
                 ['label' => 'Defaulter Invoices', 'value' => count($rows), 'color' => 'amber', 'subtext' => 'Pending clearance'],
             ],
             'headers' => ['Invoice #', 'Student Name', 'Roll No', 'Admission No', 'Class', 'Category', 'Total Billed', 'Paid So Far', 'Pending Balance', 'Due Date', 'Overdue Aging', 'Parent Contact Phone'],
             'rows' => $rows,
             'export_headers' => ['Invoice Number', 'Student Name', 'Roll Number', 'Admission Number', 'Class', 'Category', 'Total Billed', 'Paid So Far', 'Pending Balance', 'Due Date', 'Aging', 'Guardian Phone'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -828,12 +827,12 @@ class SchoolReportService
         foreach ($categories as $cat) {
             $invoices = FeeInvoice::where('category', $cat)->get();
             $count = $invoices->count();
-            if ($count === 0 && !in_array($cat, ['tuition', 'admission', 'examination'])) {
+            if ($count === 0 && ! in_array($cat, ['tuition', 'admission', 'examination'])) {
                 continue;
             }
 
-            $billed = (float)$invoices->sum('total_due');
-            $collected = (float)$invoices->sum('paid_amount');
+            $billed = (float) $invoices->sum('total_due');
+            $collected = (float) $invoices->sum('paid_amount');
             $balance = max(0, $billed - $collected);
             $eff = $billed > 0 ? round(($collected / $billed) * 100, 1) : 0;
 
@@ -841,12 +840,12 @@ class SchoolReportService
             $grandCollected += $collected;
 
             $rows[] = [
-                'category' => ucfirst($cat) . ' Fee',
+                'category' => ucfirst($cat).' Fee',
                 'invoices_count' => $count,
-                'total_billed' => '₹ ' . number_format($billed, 2),
-                'total_collected' => '₹ ' . number_format($collected, 2),
-                'outstanding' => '₹ ' . number_format($balance, 2),
-                'recovery_rate' => $eff . '%',
+                'total_billed' => '₹ '.number_format($billed, 2),
+                'total_collected' => '₹ '.number_format($collected, 2),
+                'outstanding' => '₹ '.number_format($balance, 2),
+                'recovery_rate' => $eff.'%',
             ];
         }
 
@@ -854,14 +853,14 @@ class SchoolReportService
 
         return [
             'kpis' => [
-                ['label' => 'Gross Invoiced Value', 'value' => '₹ ' . number_format($grandBilled, 2), 'color' => 'indigo', 'subtext' => 'Across all institutional heads'],
-                ['label' => 'Total Recovered', 'value' => '₹ ' . number_format($grandCollected, 2), 'color' => 'emerald', 'subtext' => 'Collected in institutional treasury'],
-                ['label' => 'Treasury Recovery Rate', 'value' => $overallEff . '%', 'color' => 'blue', 'subtext' => 'Collection efficiency'],
+                ['label' => 'Gross Invoiced Value', 'value' => '₹ '.number_format($grandBilled, 2), 'color' => 'indigo', 'subtext' => 'Across all institutional heads'],
+                ['label' => 'Total Recovered', 'value' => '₹ '.number_format($grandCollected, 2), 'color' => 'emerald', 'subtext' => 'Collected in institutional treasury'],
+                ['label' => 'Treasury Recovery Rate', 'value' => $overallEff.'%', 'color' => 'blue', 'subtext' => 'Collection efficiency'],
             ],
             'headers' => ['Fee Head / Category', 'Invoices Generated', 'Total Billed Amount', 'Recovered Revenue', 'Outstanding Arrears', 'Recovery Efficiency'],
             'rows' => $rows,
             'export_headers' => ['Fee Head', 'Invoices Count', 'Billed Amount', 'Recovered Revenue', 'Outstanding Arrears', 'Recovery Efficiency'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -872,10 +871,10 @@ class SchoolReportService
     {
         $payments = FeePayment::all();
         $channels = [
-            'cash'   => 'Cash Counter',
-            'upi'    => 'UPI Transfer',
-            'qr'     => 'QR Code Scan',
-            'bank'   => 'Bank Transfer / NEFT / RTGS',
+            'cash' => 'Cash Counter',
+            'upi' => 'UPI Transfer',
+            'qr' => 'QR Code Scan',
+            'bank' => 'Bank Transfer / NEFT / RTGS',
             'cheque' => 'Cheque',
             'manual' => 'Manual (Other)',
         ];
@@ -885,32 +884,33 @@ class SchoolReportService
 
         foreach ($channels as $chKey => $chTitle) {
             $chPayments = $payments->filter(function ($p) use ($chKey) {
-                $mode = strtolower((string)($p->payment_mode ?? $p->payment_method ?? $p->payment_gateway ?? ''));
+                $mode = strtolower((string) ($p->payment_mode ?? $p->payment_method ?? $p->payment_gateway ?? ''));
+
                 return $mode === $chKey;
             });
 
             $count = $chPayments->count();
-            $vol = (float)$chPayments->sum('amount');
+            $vol = (float) $chPayments->sum('amount');
             $totalVol += $vol;
 
             $rows[] = [
-                'channel'     => $chTitle,
-                'channel_type'=> in_array($chKey, ['cash', 'cheque']) ? 'Counter / Offline' : 'Digital / Electronic',
-                'transactions'=> $count,
-                'gross_volume'=> '₹ ' . number_format($vol, 2),
-                'status'      => 'Reconciled',
+                'channel' => $chTitle,
+                'channel_type' => in_array($chKey, ['cash', 'cheque']) ? 'Counter / Offline' : 'Digital / Electronic',
+                'transactions' => $count,
+                'gross_volume' => '₹ '.number_format($vol, 2),
+                'status' => 'Reconciled',
             ];
         }
 
         return [
             'kpis' => [
-                ['label' => 'Total Collections', 'value' => '₹ ' . number_format($totalVol, 2), 'color' => 'emerald', 'subtext' => 'All channels aggregated'],
+                ['label' => 'Total Collections', 'value' => '₹ '.number_format($totalVol, 2), 'color' => 'emerald', 'subtext' => 'All channels aggregated'],
                 ['label' => 'Payment Channels', 'value' => count($channels), 'color' => 'indigo', 'subtext' => 'Active collection modes'],
             ],
             'headers' => ['Payment Channel', 'Channel Type', 'Transactions', 'Gross Volume', 'Status'],
             'rows' => $rows,
             'export_headers' => ['Channel', 'Type', 'Transactions', 'Gross Volume', 'Status'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -934,7 +934,7 @@ class SchoolReportService
 
         foreach ($classes as $cls) {
             $enrolled = $cls->students->count();
-            $cap = (int)($cls->capacity ?: 40);
+            $cap = (int) ($cls->capacity ?: 40);
             $util = $cap > 0 ? round(($enrolled / $cap) * 100, 1) : 0;
 
             $totalEnrolled += $enrolled;
@@ -948,7 +948,7 @@ class SchoolReportService
                 'class_teacher' => $cls->classTeacher->name ?? 'Unassigned',
                 'enrolled' => $enrolled,
                 'capacity' => $cap,
-                'utilization' => $util . '%',
+                'utilization' => $util.'%',
                 'status' => $enrolled >= $cap ? 'Full' : 'Seats Open',
             ];
         }
@@ -959,12 +959,12 @@ class SchoolReportService
             'kpis' => [
                 ['label' => 'Total Enrolled Students', 'value' => $totalEnrolled, 'color' => 'indigo', 'subtext' => 'Active student body'],
                 ['label' => 'Approved School Capacity', 'value' => $totalCap, 'color' => 'blue', 'subtext' => 'Physical classroom seats'],
-                ['label' => 'Campus Seat Utilization', 'value' => $overallUtil . '%', 'color' => 'emerald', 'subtext' => 'Occupancy efficiency'],
+                ['label' => 'Campus Seat Utilization', 'value' => $overallUtil.'%', 'color' => 'emerald', 'subtext' => 'Occupancy efficiency'],
             ],
             'headers' => ['Class Name', 'Section', 'Academic Stream', 'Room #', 'Appointed Class Teacher', 'Enrolled Strength', 'Class Capacity', 'Seat Utilization', 'Admission Status'],
             'rows' => $rows,
             'export_headers' => ['Class Name', 'Section', 'Stream', 'Room Number', 'Class Teacher', 'Enrolled', 'Capacity', 'Utilization', 'Status'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -978,9 +978,9 @@ class SchoolReportService
         $classId = $filters['class_id'] ?? null;
 
         $studentsQuery = User::where('role', 'student')
-            ->when($classId, fn($q) => $q->where('current_class_id', $classId))
-            ->when($fromDate, fn($q) => $q->whereDate('created_at', '>=', $fromDate))
-            ->when($toDate, fn($q) => $q->whereDate('created_at', '<=', $toDate))
+            ->when($classId, fn ($q) => $q->where('current_class_id', $classId))
+            ->when($fromDate, fn ($q) => $q->whereDate('created_at', '>=', $fromDate))
+            ->when($toDate, fn ($q) => $q->whereDate('created_at', '<=', $toDate))
             ->with(['currentClass'])
             ->orderBy('created_at', 'desc');
 
@@ -989,9 +989,9 @@ class SchoolReportService
         $rows = [];
         foreach ($students as $stu) {
             $rows[] = [
-                'admission_number' => $stu->admission_number ?: 'ADM-' . $stu->id,
+                'admission_number' => $stu->admission_number ?: 'ADM-'.$stu->id,
                 'student_name' => $stu->name,
-                'class_name' => $stu->currentClass->name ?? 'Class ' . ($stu->current_class_id ?: 'TBA'),
+                'class_name' => $stu->currentClass->name ?? 'Class '.($stu->current_class_id ?: 'TBA'),
                 'roll_number' => $stu->roll_number ?? '—',
                 'admitted_on' => $stu->created_at ? $stu->created_at->format('d M Y') : '—',
                 'academic_tier' => $stu->academic_tier ?: 'Standard',
@@ -1008,7 +1008,7 @@ class SchoolReportService
             'headers' => ['Admission #', 'Student Full Name', 'Assigned Class', 'Roll No', 'Registration Date', 'Academic Tier', 'Guardian Name', 'Guardian Phone', 'Previous School Transfer'],
             'rows' => $rows,
             'export_headers' => ['Admission Number', 'Student Name', 'Class', 'Roll Number', 'Registration Date', 'Academic Tier', 'Guardian Name', 'Guardian Phone', 'Previous School'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -1020,7 +1020,7 @@ class SchoolReportService
         $classId = $filters['class_id'] ?? null;
 
         $students = User::where('role', 'student')
-            ->when($classId, fn($q) => $q->where('current_class_id', $classId))
+            ->when($classId, fn ($q) => $q->where('current_class_id', $classId))
             ->with(['currentClass'])
             ->orderBy('current_class_id')
             ->orderBy('roll_number')
@@ -1029,10 +1029,10 @@ class SchoolReportService
         $rows = [];
         foreach ($students as $stu) {
             $rows[] = [
-                'admission_number' => $stu->admission_number ?: 'ADM-' . $stu->id,
+                'admission_number' => $stu->admission_number ?: 'ADM-'.$stu->id,
                 'roll_number' => $stu->roll_number ?? '—',
                 'student_name' => $stu->name,
-                'class_name' => $stu->currentClass->name ?? 'Class ' . $stu->current_class_id,
+                'class_name' => $stu->currentClass->name ?? 'Class '.$stu->current_class_id,
                 'email' => $stu->email,
                 'blood_group' => $stu->blood_group ?: '—',
                 'guardian_name' => $stu->guardian_name ?: '—',
@@ -1048,7 +1048,7 @@ class SchoolReportService
             'headers' => ['Admission #', 'Roll No', 'Student Name', 'Class', 'Institutional Email', 'Blood Group', 'Guardian Name', 'Parent Contact Phone', 'Dossier Status'],
             'rows' => $rows,
             'export_headers' => ['Admission Number', 'Roll Number', 'Student Name', 'Class', 'Email', 'Blood Group', 'Guardian Name', 'Guardian Phone', 'Status'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -1076,7 +1076,7 @@ class SchoolReportService
 
             // Fallback to sum of subject weekly periods if timetable not scheduled
             if ($weeklyPeriods === 0) {
-                $weeklyPeriods = (int)$subjects->sum('weekly_periods');
+                $weeklyPeriods = (int) $subjects->sum('weekly_periods');
             }
 
             $totalLectures += $weeklyPeriods;
@@ -1084,7 +1084,7 @@ class SchoolReportService
 
             $rows[] = [
                 'teacher_name' => $teacher->name,
-                'faculty_id' => $teacher->student_id_number ?: 'FAC-' . $teacher->id,
+                'faculty_id' => $teacher->student_id_number ?: 'FAC-'.$teacher->id,
                 'email' => $teacher->email,
                 'phone' => $teacher->phone ?: '—',
                 'class_teacher_of' => $classTeacherFor,
@@ -1099,12 +1099,12 @@ class SchoolReportService
             'kpis' => [
                 ['label' => 'Active Faculty Staff', 'value' => count($rows), 'color' => 'indigo', 'subtext' => 'Teaching personnel'],
                 ['label' => 'Weekly Scheduled Periods', 'value' => $totalLectures, 'color' => 'blue', 'subtext' => 'Campus-wide timetable slots'],
-                ['label' => 'Mean Workload', 'value' => count($rows) > 0 ? round($totalLectures / count($rows), 1) . ' periods/wk' : '0', 'color' => 'emerald', 'subtext' => 'Per faculty member'],
+                ['label' => 'Mean Workload', 'value' => count($rows) > 0 ? round($totalLectures / count($rows), 1).' periods/wk' : '0', 'color' => 'emerald', 'subtext' => 'Per faculty member'],
             ],
             'headers' => ['Faculty Member', 'Staff Code', 'Official Email', 'Phone', 'Class Teacher Duty', 'Classes Handled', 'Subjects Taught', 'Weekly Periods', 'Workload Distribution'],
             'rows' => $rows,
             'export_headers' => ['Teacher Name', 'Staff Code', 'Email', 'Phone', 'Class Teacher Of', 'Classes Handled', 'Subjects Taught', 'Weekly Periods', 'Workload Status'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -1124,7 +1124,7 @@ class SchoolReportService
             $rows[] = [
                 'class_name' => $cls->name,
                 'section' => $cls->section ?: 'A',
-                'grade_level' => 'Grade ' . $cls->grade_level,
+                'grade_level' => 'Grade '.$cls->grade_level,
                 'room_number' => $cls->room_number ?: 'TBA',
                 'class_teacher' => $t ? $t->name : 'Unassigned',
                 'teacher_email' => $t ? $t->email : '—',
@@ -1136,12 +1136,12 @@ class SchoolReportService
         return [
             'kpis' => [
                 ['label' => 'Total Academic Classes', 'value' => count($rows), 'color' => 'indigo', 'subtext' => 'Form sections'],
-                ['label' => 'Assigned Class Teachers', 'value' => count(array_filter($rows, fn($r) => $r['class_teacher'] !== 'Unassigned')), 'color' => 'emerald', 'subtext' => 'Homerooms active'],
+                ['label' => 'Assigned Class Teachers', 'value' => count(array_filter($rows, fn ($r) => $r['class_teacher'] !== 'Unassigned')), 'color' => 'emerald', 'subtext' => 'Homerooms active'],
             ],
             'headers' => ['Class Name', 'Section', 'Grade Level', 'Room #', 'Appointed Class Teacher', 'Faculty Email', 'Contact Phone', 'Enrolled Headcount'],
             'rows' => $rows,
             'export_headers' => ['Class Name', 'Section', 'Grade Level', 'Room Number', 'Class Teacher', 'Email', 'Phone', 'Enrolled Students'],
-            'export_rows' => array_map(fn($r) => array_values($r), $rows),
+            'export_rows' => array_map(fn ($r) => array_values($r), $rows),
         ];
     }
 
@@ -1171,7 +1171,7 @@ class SchoolReportService
     public function exportCsv(string $reportType, array $filters, User $user): StreamedResponse
     {
         $reportData = $this->generateReport($reportType, $filters, $user);
-        $filename = 'report_' . $reportType . '_' . now()->format('Ymd_His') . '.csv';
+        $filename = 'report_'.$reportType.'_'.now()->format('Ymd_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -1183,18 +1183,18 @@ class SchoolReportService
 
         return response()->stream(function () use ($reportData) {
             $handle = fopen('php://output', 'w');
-            
+
             // UTF-8 BOM for Excel compatibility
-            fputs($handle, "\xEF\xBB\xBF");
+            fwrite($handle, "\xEF\xBB\xBF");
 
             // School & Report Header Metadata
-            fputcsv($handle, ['--- ' . strtoupper($reportData['title']) . ' ---']);
+            fputcsv($handle, ['--- '.strtoupper($reportData['title']).' ---']);
             fputcsv($handle, ['Generated At:', $reportData['generated_at']]);
             fputcsv($handle, ['Description:', $reportData['description']]);
             fputcsv($handle, []);
 
             // Summary KPIs in CSV
-            if (!empty($reportData['kpis'])) {
+            if (! empty($reportData['kpis'])) {
                 fputcsv($handle, ['--- EXECUTIVE SUMMARY METRICS ---']);
                 foreach ($reportData['kpis'] as $kpi) {
                     fputcsv($handle, [$kpi['label'], $kpi['value'], $kpi['subtext'] ?? '']);

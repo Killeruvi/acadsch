@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\AcademicClass;
 use App\Models\AcademySetting;
 use App\Models\FeeInvoice;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class MonthlyFeeService
@@ -18,8 +20,8 @@ class MonthlyFeeService
     {
         return [
             'auto_enabled' => AcademySetting::get('monthly_fee_auto_enabled', 'false') === 'true',
-            'default_amount' => (float)AcademySetting::get('monthly_fee_default_amount', '0'),
-            'due_day' => (int)AcademySetting::get('monthly_fee_due_day', '10'),
+            'default_amount' => (float) AcademySetting::get('monthly_fee_default_amount', '0'),
+            'due_day' => (int) AcademySetting::get('monthly_fee_due_day', '10'),
             'category' => AcademySetting::get('monthly_fee_category', 'Tuition') ?: 'Tuition',
             'title_template' => AcademySetting::get('monthly_fee_title_template', 'Monthly Tuition Fee - {month} {year}') ?: 'Monthly Tuition Fee - {month} {year}',
             'notes_template' => AcademySetting::get('monthly_fee_notes_template', 'Automated monthly tuition invoice') ?: 'Automated monthly tuition invoice',
@@ -35,19 +37,19 @@ class MonthlyFeeService
             AcademySetting::set('monthly_fee_auto_enabled', filter_var($data['auto_enabled'], FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false');
         }
         if (isset($data['default_amount'])) {
-            AcademySetting::set('monthly_fee_default_amount', (string)max(0.0, (float)$data['default_amount']));
+            AcademySetting::set('monthly_fee_default_amount', (string) max(0.0, (float) $data['default_amount']));
         }
         if (isset($data['due_day'])) {
-            $day = max(1, min(28, (int)$data['due_day']));
-            AcademySetting::set('monthly_fee_due_day', (string)$day);
+            $day = max(1, min(28, (int) $data['due_day']));
+            AcademySetting::set('monthly_fee_due_day', (string) $day);
         }
-        if (!empty($data['category'])) {
+        if (! empty($data['category'])) {
             AcademySetting::set('monthly_fee_category', trim($data['category']));
         }
-        if (!empty($data['title_template'])) {
+        if (! empty($data['title_template'])) {
             AcademySetting::set('monthly_fee_title_template', trim($data['title_template']));
         }
-        if (!empty($data['notes_template'])) {
+        if (! empty($data['notes_template'])) {
             AcademySetting::set('monthly_fee_notes_template', trim($data['notes_template']));
         }
     }
@@ -58,13 +60,13 @@ class MonthlyFeeService
     public static function ensureSchemaExists(): void
     {
         try {
-            if (!\Illuminate\Support\Facades\Schema::hasColumn('fee_invoices', 'billing_type')) {
-                \Illuminate\Support\Facades\Schema::table('fee_invoices', function ($table) {
+            if (! Schema::hasColumn('fee_invoices', 'billing_type')) {
+                Schema::table('fee_invoices', function ($table) {
                     $table->string('billing_type', 30)->default('manual')->after('status');
                 });
             }
-            if (!\Illuminate\Support\Facades\Schema::hasColumn('fee_invoices', 'billing_month')) {
-                \Illuminate\Support\Facades\Schema::table('fee_invoices', function ($table) {
+            if (! Schema::hasColumn('fee_invoices', 'billing_month')) {
+                Schema::table('fee_invoices', function ($table) {
                     $table->string('billing_month', 20)->nullable()->after('billing_type');
                 });
             }
@@ -89,11 +91,11 @@ class MonthlyFeeService
     ): array {
         self::ensureSchemaExists();
 
-        $year = $year ?: (int)date('Y');
-        $month = $month ?: (int)date('n');
+        $year = $year ?: (int) date('Y');
+        $month = $month ?: (int) date('n');
 
         if ($month < 1 || $month > 12) {
-            $month = (int)date('n');
+            $month = (int) date('n');
         }
 
         $config = self::getMonthlyFeeConfig();
@@ -101,7 +103,7 @@ class MonthlyFeeService
         $monthName = $monthDate->format('F');
         $billingMonthKey = sprintf('%04d-%02d', $year, $month);
 
-        $amount = $customAmount !== null ? max(0.0, (float)$customAmount) : (float) $config['default_amount'];
+        $amount = $customAmount !== null ? max(0.0, (float) $customAmount) : (float) $config['default_amount'];
 
         // Determine Due Date
         if ($customDueDate) {
@@ -115,7 +117,7 @@ class MonthlyFeeService
         $titleTemplate = $customTitle ?: ($config['title_template'] ?: 'Monthly Tuition Fee - {month} {year}');
         $title = str_replace(
             ['{month}', '{year}'],
-            [$monthName, (string)$year],
+            [$monthName, (string) $year],
             $titleTemplate
         );
         if (empty(trim($title))) {
@@ -123,7 +125,7 @@ class MonthlyFeeService
         }
 
         $category = $config['category'] ?: 'Tuition';
-        $invoiceNotes = $notes ?: ($config['notes_template'] . " ({$monthName} {$year})");
+        $invoiceNotes = $notes ?: ($config['notes_template']." ({$monthName} {$year})");
 
         // Identify Target Students
         $query = User::with(['currentClass.feeStructures', 'batch.academicClass.feeStructures', 'parent'])
@@ -136,8 +138,8 @@ class MonthlyFeeService
 
         if ($classId) {
             $query->where(function ($sub) use ($classId) {
-                $sub->whereHas('batch', fn($q) => $q->where('class_id', $classId))
-                    ->orWhereHas('classEnrollments', fn($q) => $q->where('class_id', $classId))
+                $sub->whereHas('batch', fn ($q) => $q->where('class_id', $classId))
+                    ->orWhereHas('classEnrollments', fn ($q) => $q->where('class_id', $classId))
                     ->orWhere('current_class_id', $classId);
             });
         }
@@ -152,12 +154,10 @@ class MonthlyFeeService
         DB::transaction(function () use (
             $students,
             $year,
-            $month,
             $monthName,
             $billingMonthKey,
             $amount,
             $customAmount,
-            $config,
             $title,
             $category,
             $dueDate,
@@ -172,17 +172,18 @@ class MonthlyFeeService
                 $alreadyBilled = FeeInvoice::where('student_id', $student->id)
                     ->where(function ($q) use ($billingMonthKey, $title) {
                         $q->where('billing_month', $billingMonthKey)
-                          ->orWhere('title', $title);
+                            ->orWhere('title', $title);
                     })
                     ->exists();
 
                 if ($alreadyBilled) {
                     $skippedCount++;
+
                     continue;
                 }
 
                 // Dynamic monthly fee calculation
-                $studentClass = $student->currentClass ?? $student->batch?->academicClass ?? ($student->current_class_id ? \App\Models\AcademicClass::find($student->current_class_id) : null);
+                $studentClass = $student->currentClass ?? $student->batch?->academicClass ?? ($student->current_class_id ? AcademicClass::find($student->current_class_id) : null);
                 $studentAmount = $amount;
                 $breakdownHeads = [];
 
@@ -197,7 +198,7 @@ class MonthlyFeeService
                             $breakdownHeads[] = [
                                 'title' => $str->fee_title,
                                 'type' => $str->fee_type,
-                                'amount' => (float)$str->amount,
+                                'amount' => (float) $str->amount,
                             ];
                         }
                     }
@@ -205,6 +206,7 @@ class MonthlyFeeService
 
                 if (empty($breakdownHeads) && $studentAmount <= 0) {
                     $skippedCount++;
+
                     continue;
                 }
                 if (empty($breakdownHeads)) {
@@ -216,12 +218,12 @@ class MonthlyFeeService
                     ->where('billing_month', '<', $billingMonthKey)
                     ->whereIn('status', ['unpaid', 'pending', 'partial', 'overdue'])
                     ->get()
-                    ->sum(fn($inv) => max(0.00, (float)$inv->total_due - (float)$inv->paid_amount));
+                    ->sum(fn ($inv) => max(0.00, (float) $inv->total_due - (float) $inv->paid_amount));
 
-                $perStudentNotes = $invoiceNotes . ($pastArrears > 0 ? " [Carried Forward Arrears: {$currencySymbol}" . number_format($pastArrears, 2) . "]" : "");
+                $perStudentNotes = $invoiceNotes.($pastArrears > 0 ? " [Carried Forward Arrears: {$currencySymbol}".number_format($pastArrears, 2).']' : '');
 
                 // Generate unique sequential invoice number
-                $invoiceNumber = 'INV-' . $year . '-' . strtoupper((string) Str::ulid());
+                $invoiceNumber = 'INV-'.$year.'-'.strtoupper((string) Str::ulid());
 
                 $invoice = FeeInvoice::create([
                     'invoice_number' => $invoiceNumber,
@@ -263,7 +265,7 @@ class MonthlyFeeService
                     $student->id,
                     'fee',
                     "Monthly Fee Dues: {$monthName} {$year}",
-                    "Your monthly tuition invoice of {$currencySymbol}" . number_format($studentAmount, 2) . " for {$monthName} {$year} has been issued. Due: " . date('M d, Y', strtotime($dueDate)),
+                    "Your monthly tuition invoice of {$currencySymbol}".number_format($studentAmount, 2)." for {$monthName} {$year} has been issued. Due: ".date('M d, Y', strtotime($dueDate)),
                     route('fees.show', $invoice->id),
                     '📅'
                 );
@@ -277,7 +279,7 @@ class MonthlyFeeService
                         $parent->id,
                         'fee',
                         "Monthly Fee Dues: {$student->name} ({$monthName} {$year})",
-                        "Monthly tuition invoice of {$currencySymbol}" . number_format($studentAmount, 2) . " for {$student->name} ({$monthName} {$year}) has been issued. Due: " . date('M d, Y', strtotime($dueDate)),
+                        "Monthly tuition invoice of {$currencySymbol}".number_format($studentAmount, 2)." for {$student->name} ({$monthName} {$year}) has been issued. Due: ".date('M d, Y', strtotime($dueDate)),
                         route('fees.show', $invoice->id),
                         '📅'
                     );
@@ -309,7 +311,7 @@ class MonthlyFeeService
     {
         self::ensureSchemaExists();
         $config = self::getMonthlyFeeConfig();
-        if (!$config['auto_enabled']) {
+        if (! $config['auto_enabled']) {
             return ['status' => 'disabled', 'message' => 'Monthly fee auto-billing is disabled in Academy Settings.'];
         }
 

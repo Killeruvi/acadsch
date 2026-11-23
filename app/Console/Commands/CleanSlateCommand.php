@@ -30,7 +30,7 @@ class CleanSlateCommand extends Command
      */
     public function handle(DatabaseSetupService $dbService): int
     {
-        $noAdmin = (bool)$this->option('no-admin');
+        $noAdmin = (bool) $this->option('no-admin');
 
         $this->warn('====================================================================');
         $this->warn(' CAUTION: SCHOOL MANAGEMENT SYSTEM CLEAN SLATE RESET');
@@ -43,9 +43,10 @@ class CleanSlateCommand extends Command
             $this->line('Only ONE clean Master Administrator account will be retained.');
         }
 
-        if (!$this->option('force')) {
-            if (!$this->confirm('Are you absolutely sure you want to wipe everything and reset to clean slate?')) {
+        if (! $this->option('force')) {
+            if (! $this->confirm('Are you absolutely sure you want to wipe everything and reset to clean slate?')) {
                 $this->info('Operation cancelled.');
+
                 return self::SUCCESS;
             }
         }
@@ -53,14 +54,15 @@ class CleanSlateCommand extends Command
         $email = $this->option('admin-email');
         $password = $this->option('admin-password');
 
-        $result = $dbService->wipeAndInitializeCleanSlate($email, $password, !$noAdmin);
+        $result = $dbService->wipeAndInitializeCleanSlate($email, $password, ! $noAdmin);
 
-        if (!$result['success']) {
-            $this->error('ERROR: ' . $result['message']);
+        if (! $result['success']) {
+            $this->error('ERROR: '.$result['message']);
+
             return self::FAILURE;
         }
 
-        $this->info('✔ ' . $result['message']);
+        $this->info('✔ '.$result['message']);
 
         if ($noAdmin) {
             $this->table(

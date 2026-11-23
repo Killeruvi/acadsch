@@ -3,11 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
-use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\ClassEnrollment;
-use App\Models\SchoolPeriod;
-use App\Models\SchoolPeriodTimetable;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,9 +16,13 @@ class AttendanceRegisterAndAutoAbsentEditTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $teacher;
+
     private User $student1;
+
     private User $student2;
+
     private AcademicClass $class;
 
     protected function setUp(): void

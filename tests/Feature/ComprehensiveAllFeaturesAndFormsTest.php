@@ -5,23 +5,16 @@ namespace Tests\Feature;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
 use App\Models\AcademyNotice;
-use App\Models\AcademySetting;
 use App\Models\Assignment;
-use App\Models\AttendanceRecord;
-use App\Models\AttendanceSession;
 use App\Models\BloomAssignment;
 use App\Models\Course;
 use App\Models\CurriculumTopic;
-use App\Models\DailyDpp;
 use App\Models\DailyLesson;
-use App\Models\DppQuestion;
-use App\Models\DppSubmission;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
 use App\Models\HomeworkSubmission;
 use App\Models\HomeworkTask;
 use App\Models\InAppNotification;
-use App\Models\QuestionBank;
 use App\Models\Schedule;
 use App\Models\StudentLeaveRequest;
 use App\Models\Submission;
@@ -41,9 +34,13 @@ class ComprehensiveAllFeaturesAndFormsTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $class8;
+
     protected AcademicSubject $scienceSubject;
 
     protected function setUp(): void
@@ -102,7 +99,7 @@ class ComprehensiveAllFeaturesAndFormsTest extends TestCase
 
         $maxRoll = $this->class8->enrollments()->max('roll_number') ?? 0;
         $this->class8->students()->syncWithoutDetaching([
-            $this->student->id => ['roll_number' => $maxRoll + 1, 'status' => 'active']
+            $this->student->id => ['roll_number' => $maxRoll + 1, 'status' => 'active'],
         ]);
     }
 
@@ -363,7 +360,7 @@ class ComprehensiveAllFeaturesAndFormsTest extends TestCase
     public function test_blooms_taxonomy_daily_lesson_engine(): void
     {
         $topic = CurriculumTopic::where('subject_id', $this->scienceSubject->id)->first();
-        if (!$topic) {
+        if (! $topic) {
             $topic = CurriculumTopic::create([
                 'subject_id' => $this->scienceSubject->id,
                 'chapter_number' => 1,

@@ -7,11 +7,10 @@ use App\Models\AcademicSubject;
 use App\Models\Batch;
 use App\Models\Course;
 use App\Models\CourseLesson;
+use App\Models\CourseLessonVideo;
 use App\Models\CourseModule;
 use App\Models\CurriculumNote;
 use App\Models\CurriculumTopic;
-use App\Models\CurriculumVideo;
-use App\Models\DailyDpp;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -358,7 +357,7 @@ class CourseVideoDppAndNotesPdfTest extends TestCase
             'title' => 'Lesson with Videos',
         ]);
 
-        $video = \App\Models\CourseLessonVideo::create([
+        $video = CourseLessonVideo::create([
             'lesson_id' => $lesson->id,
             'course_id' => $course->id,
             'title' => 'Temporary Video',

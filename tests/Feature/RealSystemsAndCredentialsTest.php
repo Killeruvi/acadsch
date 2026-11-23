@@ -7,16 +7,16 @@ use App\Models\AcademicClass;
 use App\Models\AcademySetting;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
-use App\Models\SchoolSection;
 use App\Models\SchoolFeeStructure;
+use App\Models\SchoolSection;
 use App\Models\User;
 use App\Services\StudentIdCardVerificationService;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Tests\TestCase;
 
 class RealSystemsAndCredentialsTest extends TestCase
@@ -24,7 +24,9 @@ class RealSystemsAndCredentialsTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $student;
+
     protected AcademicClass $academicClass;
 
     protected function setUp(): void
@@ -73,7 +75,7 @@ class RealSystemsAndCredentialsTest extends TestCase
      */
     public function test_bulk_student_import_creates_passwords_and_linked_parent_accounts(): void
     {
-        $csvContent = "Full Name,Email,Admission Number,Roll Number,Stream,Section,Guardian Name,Guardian Phone,Guardian Email,Previous School Name,Previous School Board,Previous School Year,TC Number,Previous School Remarks\n" .
+        $csvContent = "Full Name,Email,Admission Number,Roll Number,Stream,Section,Guardian Name,Guardian Phone,Guardian Email,Previous School Name,Previous School Board,Previous School Year,TC Number,Previous School Remarks\n".
                       "Aarav Mehta,aarav.m@primeos.edu,ADM-2026-042,12,General,A,Rajesh Mehta,+91 9876543210,rajesh.mehta@example.com,Central School,CBSE,2025-26,TC-778,Transferred\n";
 
         $file = UploadedFile::fake()->createWithContent('students.csv', $csvContent);
@@ -120,7 +122,7 @@ class RealSystemsAndCredentialsTest extends TestCase
      */
     public function test_bulk_parent_import_and_linkage_to_existing_students(): void
     {
-        $csvContent = "Guardian Name,Email,Phone,Student Admission Number,Relationship\n" .
+        $csvContent = "Guardian Name,Email,Phone,Student Admission Number,Relationship\n".
                       "Sunita Sharma,sunita.sharma@example.com,+91 9123456780,ADM-2026-001,Mother\n";
 
         $file = UploadedFile::fake()->createWithContent('parents.csv', $csvContent);
@@ -151,7 +153,7 @@ class RealSystemsAndCredentialsTest extends TestCase
                 'id_number' => 'ADM-099',
                 'password' => 'K3#mP9qZ2x',
                 'detail' => 'Class Grade 10-A',
-            ]
+            ],
         ];
 
         $response = $this->actingAs($this->admin)
@@ -184,7 +186,7 @@ class RealSystemsAndCredentialsTest extends TestCase
                 'id_number' => 'ADM-777',
                 'password' => 'SecurePass9!',
                 'detail' => 'Class Grade 10-A',
-            ]
+            ],
         ];
 
         $response = $this->actingAs($this->admin)
@@ -193,7 +195,7 @@ class RealSystemsAndCredentialsTest extends TestCase
 
         $response->assertSessionHas('success');
 
-        Mail::assertSent(UserCredentialsMailable::class, function ($mail) use ($targetUser) {
+        Mail::assertSent(UserCredentialsMailable::class, function ($mail) {
             return $mail->hasTo('dispatch.test@primeos.edu') &&
                    $mail->plainPassword === 'SecurePass9!';
         });
@@ -242,7 +244,7 @@ class RealSystemsAndCredentialsTest extends TestCase
         $payment = FeePayment::find($data['payment_id']);
         $this->assertNotNull($payment);
         $this->assertEquals('pending', $payment->status);
-        $this->assertEquals(4500.00, (float)$payment->amount);
+        $this->assertEquals(4500.00, (float) $payment->amount);
     }
 
     /**
@@ -288,7 +290,7 @@ class RealSystemsAndCredentialsTest extends TestCase
         $this->assertEquals($bankUtr, $payment->transaction_reference);
 
         $invoice->refresh();
-        $this->assertEquals(5000.00, (float)$invoice->paid_amount);
+        $this->assertEquals(5000.00, (float) $invoice->paid_amount);
         $this->assertEquals('paid', $invoice->status);
     }
 
@@ -319,14 +321,14 @@ class RealSystemsAndCredentialsTest extends TestCase
     public function test_student_digital_id_card_cryptographic_verification(): void
     {
         $signature = app(StudentIdCardVerificationService::class)->signature($this->student);
-        $expectedHash = $this->student->id . '.' . $signature;
+        $expectedHash = $this->student->id.'.'.$signature;
 
         // Unauthenticated public request
         $response = $this->get(route('school.students.verify-id', $expectedHash));
 
         $response->assertOk();
         $response->assertSee($this->student->name);
-        $response->assertSee('••••' . substr((string) $this->student->admission_number, -4));
+        $response->assertSee('••••'.substr((string) $this->student->admission_number, -4));
         $response->assertDontSee($this->student->guardian_phone ?? 'guardian-private-value');
         $response->assertDontSee($this->student->address ?? 'private-street-address');
         $response->assertSee('Identity verified — enrollment inactive');
@@ -339,10 +341,11 @@ class RealSystemsAndCredentialsTest extends TestCase
         $invalidResponse = $this->get(route('school.students.verify-id', 'fake-tampered-hash-value-1234'));
         $invalidResponse->assertNotFound();
 
-        $forgedToken = $this->student->id . '.' . str_repeat('a', 64);
+        $forgedToken = $this->student->id.'.'.str_repeat('a', 64);
         $forgedResponse = $this->get(route('school.students.verify-id', $forgedToken));
         $forgedResponse->assertNotFound();
     }
+
     public function test_student_id_card_signature_is_invalidated_when_expiry_is_changed(): void
     {
         $service = app(StudentIdCardVerificationService::class);
@@ -372,9 +375,8 @@ class RealSystemsAndCredentialsTest extends TestCase
         $this->student->forceFill(['card_valid_until' => today()->subDay()->toDateString()])->save();
         $signature = app(StudentIdCardVerificationService::class)->signature($this->student);
 
-        $this->get(route('school.students.verify-id', $this->student->id . '.' . $signature))
+        $this->get(route('school.students.verify-id', $this->student->id.'.'.$signature))
             ->assertOk()
             ->assertSee('Expired identity card');
     }
-
 }

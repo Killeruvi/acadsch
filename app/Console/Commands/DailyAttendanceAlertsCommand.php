@@ -33,7 +33,7 @@ class DailyAttendanceAlertsCommand extends Command
         $dateStr = $this->option('date') ?: Carbon::today()->toDateString();
         $isDryRun = (bool) $this->option('dry-run');
 
-        $this->info("Scanning attendance records for date: {$dateStr}" . ($isDryRun ? " (DRY-RUN)" : ""));
+        $this->info("Scanning attendance records for date: {$dateStr}".($isDryRun ? ' (DRY-RUN)' : ''));
 
         // 1. Process Absent Students
         $absentRecords = AttendanceRecord::with(['student.parent', 'student.currentClass', 'session.academicClass'])
@@ -48,7 +48,7 @@ class DailyAttendanceAlertsCommand extends Command
 
         foreach ($absentRecords as $record) {
             $student = $record->student;
-            if (!$student) {
+            if (! $student) {
                 continue;
             }
 
@@ -60,13 +60,14 @@ class DailyAttendanceAlertsCommand extends Command
                 ->exists();
 
             if ($hasApprovedLeave) {
-                if (!$isDryRun) {
+                if (! $isDryRun) {
                     $record->update([
                         'status' => 'excused',
-                        'remarks' => $record->remarks ? $record->remarks . ' (Auto-excused: Approved Leave)' : 'Auto-excused: Approved Leave',
+                        'remarks' => $record->remarks ? $record->remarks.' (Auto-excused: Approved Leave)' : 'Auto-excused: Approved Leave',
                     ]);
                 }
                 $leavesExcused++;
+
                 continue;
             }
 
@@ -75,7 +76,7 @@ class DailyAttendanceAlertsCommand extends Command
                 ->where('email', $student->guardian_email)
                 ->first();
 
-            if (!$isDryRun) {
+            if (! $isDryRun) {
                 // Alert Parent if linked
                 if ($parent) {
                     NotificationService::notifyUser(
@@ -92,7 +93,7 @@ class DailyAttendanceAlertsCommand extends Command
                 NotificationService::notifyUser(
                     $student->id,
                     'attendance',
-                    "Attendance Notification: Marked Absent",
+                    'Attendance Notification: Marked Absent',
                     "You were recorded as absent on {$dateStr} for {$className}.",
                     route('attendance.index'),
                     '⚠️'
@@ -112,14 +113,14 @@ class DailyAttendanceAlertsCommand extends Command
                 ->whereDate('session_date', $dateStr)
                 ->exists();
 
-            if (!$hasSession) {
+            if (! $hasSession) {
                 $missingClassesCount++;
                 if ($class->class_teacher_id) {
-                    if (!$isDryRun) {
+                    if (! $isDryRun) {
                         NotificationService::notifyUser(
                             $class->class_teacher_id,
                             'attendance',
-                            "⏰ Action Required: Morning Roll Call Missing",
+                            '⏰ Action Required: Morning Roll Call Missing',
                             "Daily roll call for {$class->display_name} on {$dateStr} has not been recorded yet. Please submit the attendance register.",
                             route('school.attendance.take', $class->id),
                             '⏰'
@@ -143,7 +144,8 @@ class DailyAttendanceAlertsCommand extends Command
             ]
         );
 
-        $this->info("Daily attendance automation completed successfully.");
+        $this->info('Daily attendance automation completed successfully.');
+
         return self::SUCCESS;
     }
 }

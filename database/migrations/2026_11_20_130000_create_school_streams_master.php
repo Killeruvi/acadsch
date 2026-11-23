@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('school_streams')) {
+        if (! Schema::hasTable('school_streams')) {
             Schema::create('school_streams', function (Blueprint $table) {
                 $table->id();
                 $table->string('name', 50)->unique();

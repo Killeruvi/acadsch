@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('batches')) {
+        if (! Schema::hasTable('batches')) {
             Schema::create('batches', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('class_id')->constrained('academic_classes')->cascadeOnDelete();
@@ -24,7 +24,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasColumn('users', 'batch_id')) {
+        if (! Schema::hasColumn('users', 'batch_id')) {
             Schema::table('users', function (Blueprint $table) {
                 $table->foreignId('batch_id')->nullable()->after('role')->constrained('batches')->nullOnDelete();
             });

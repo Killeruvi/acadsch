@@ -8,7 +8,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -38,7 +37,8 @@ class AuthController extends Controller
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+            }
 
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials do not match our records.'],
@@ -58,7 +58,8 @@ class AuthController extends Controller
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+            }
 
             return response()->json([
                 'message' => 'This account is inactive or awaiting administrative approval.',
@@ -79,7 +80,8 @@ class AuthController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
 
         return response()->json([
             'message' => 'Login successful',

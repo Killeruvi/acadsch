@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
+use App\Models\User;
 use App\Services\AttendanceAccessControlService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\User;
 
 class AttendanceApiController extends Controller
 {
@@ -46,6 +46,7 @@ class AttendanceApiController extends Controller
                 $request->validate(['date' => 'required|date_format:Y-m-d']);
                 $sessionQuery->whereDate('session_date', $request->query('date'));
             }
+
             return response()->json($sessionQuery->latest('session_date')->paginate(20));
         } else {
             return response()->json(['message' => 'Unauthorized.'], 403);
@@ -77,7 +78,7 @@ class AttendanceApiController extends Controller
     public function store(Request $request, AttendanceAccessControlService $accessControl): JsonResponse
     {
         $user = $request->user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             return response()->json(['message' => 'Unauthorized to record attendance.'], 403);
         }
 
@@ -118,18 +119,18 @@ class AttendanceApiController extends Controller
             $user,
             $class,
             $validated['session_date'],
-            $user->isAdmin() && !empty($validated['period_number']) ? (int) $validated['period_number'] : null,
+            $user->isAdmin() && ! empty($validated['period_number']) ? (int) $validated['period_number'] : null,
             'api_store'
         );
 
-        if (!$validation['allowed']) {
+        if (! $validation['allowed']) {
             return response()->json([
                 'message' => $validation['reason'],
                 'error' => $validation['reason'],
             ], 403);
         }
 
-        $session = DB::transaction(function () use ($validated, $user, $class, $validation, $request) {
+        $session = DB::transaction(function () use ($validated, $user, $validation) {
             $session = AttendanceSession::updateOrCreate(
                 [
                     'class_id' => $validated['class_id'],
@@ -148,7 +149,7 @@ class AttendanceApiController extends Controller
                 $record = AttendanceRecord::query()->where('session_id', $session->id)
                     ->where('student_id', $recordData['student_id'])->lockForUpdate()->first();
                 $beforeStatus = $record?->status;
-                if (!$record) {
+                if (! $record) {
                     $record = new AttendanceRecord(['session_id' => $session->id, 'student_id' => $recordData['student_id']]);
                 }
                 $record->status = $recordData['status'];

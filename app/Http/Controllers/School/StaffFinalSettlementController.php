@@ -15,6 +15,7 @@ class StaffFinalSettlementController extends Controller
     {
         $user = auth()->user();
         abort_unless($user && $user->isAdmin(), 403);
+
         return $user;
     }
 
@@ -29,6 +30,7 @@ class StaffFinalSettlementController extends Controller
             ->where('p.employment_status', 'separated')
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('staff_final_settlements as s')->whereColumn('s.staff_id', 'p.staff_id'))
             ->select('p.staff_id', 'p.employee_code', 'p.last_working_date', 'u.name')->orderByDesc('p.last_working_date')->get();
+
         return view('school.final-settlements.index', compact('settlements', 'separated'));
     }
 
@@ -60,6 +62,7 @@ class StaffFinalSettlementController extends Controller
             $this->recalculate($settlementId);
             $this->audit($settlementId, $actor->id, 'created', null, ['staff_id' => $data['staff_id'], 'last_working_date' => $profile->last_working_date]);
         }, 3);
+
         return redirect()->route('school.staff.final-settlements.index')->with('success', 'Final settlement draft created. Add and verify all earnings and deductions before approval.');
     }
 
@@ -80,6 +83,7 @@ class StaffFinalSettlementController extends Controller
             $this->recalculate($settlement);
             $this->audit($settlement, $actor->id, 'item_added', null, $data);
         }, 3);
+
         return back()->with('success', 'Settlement item added and totals recalculated.');
     }
 
@@ -96,6 +100,7 @@ class StaffFinalSettlementController extends Controller
             $this->recalculate($settlement);
             $this->audit($settlement, $actor->id, 'item_removed', (array) $itemRow, null);
         }, 3);
+
         return back()->with('success', 'Draft settlement item removed.');
     }
 
@@ -115,6 +120,7 @@ class StaffFinalSettlementController extends Controller
             DB::table('staff_final_settlements')->where('id', $settlement)->update(['status' => 'approved', 'approved_by' => $actor->id, 'approved_at' => now(), 'settlement_date' => today(), 'updated_at' => now()]);
             $this->audit($settlement, $actor->id, 'approved', ['status' => 'draft'], ['status' => 'approved', 'totals' => $totals]);
         }, 3);
+
         return back()->with('success', 'Final settlement approved by an independent administrator. Record payment when funds are transferred.');
     }
 
@@ -134,6 +140,7 @@ class StaffFinalSettlementController extends Controller
             DB::table('staff_final_settlements')->where('id', $settlement)->update(['amount_paid' => $paid, 'status' => $status, 'updated_at' => now()]);
             $this->audit($settlement, $actor->id, 'payment_recorded', ['amount_paid' => $row->amount_paid], ['payment' => $data, 'amount_paid' => $paid, 'status' => $status]);
         }, 3);
+
         return back()->with('success', 'Settlement payment recorded.');
     }
 
@@ -144,6 +151,7 @@ class StaffFinalSettlementController extends Controller
         $deductions = round((float) $items->where('direction', 'deduction')->sum('amount'), 2);
         $net = round($earnings - $deductions, 2);
         DB::table('staff_final_settlements')->where('id', $id)->update(['total_earnings' => $earnings, 'total_deductions' => $deductions, 'net_payable' => $net, 'updated_at' => now()]);
+
         return ['earnings' => $earnings, 'deductions' => $deductions, 'net' => $net];
     }
 

@@ -24,7 +24,7 @@ class NotificationController extends Controller
             $type = $request->validate([
                 'type' => 'required|string|in:general,assignment,bloom,blooms,fee,fees,dpp,homework,attendance,notice,leave,exam,transport',
             ])['type'];
-            $normalizedType = match($type) {
+            $normalizedType = match ($type) {
                 'blooms', 'bloom' => 'bloom',
                 'fees', 'fee' => 'fee',
                 default => $type,
@@ -93,7 +93,7 @@ class NotificationController extends Controller
             ->where('is_read', true)
             ->delete();
 
-        return back()->with('success', "{$deleted} read notification" . ($deleted === 1 ? '' : 's') . " deleted successfully.");
+        return back()->with('success', "{$deleted} read notification".($deleted === 1 ? '' : 's').' deleted successfully.');
     }
 
     /**
@@ -110,7 +110,7 @@ class NotificationController extends Controller
             ->whereIn('id', $validated['ids'])
             ->delete();
 
-        return back()->with('success', "{$deleted} notification" . ($deleted === 1 ? '' : 's') . " deleted successfully.");
+        return back()->with('success', "{$deleted} notification".($deleted === 1 ? '' : 's').' deleted successfully.');
     }
 
     /**
@@ -145,7 +145,6 @@ class NotificationController extends Controller
             return false;
         }
 
-        return str_starts_with($url, '/') && !str_starts_with($url, '/\\');
+        return str_starts_with($url, '/') && ! str_starts_with($url, '/\\');
     }
-
 }

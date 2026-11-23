@@ -4,22 +4,26 @@ namespace App\Http\Controllers\School;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
-use App\Models\AcademySetting;
+use App\Models\AcademicHoliday;
 use App\Models\AcademicSubject;
+use App\Models\AcademySetting;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
+use App\Models\SchoolExamGradeScale;
 use App\Models\SchoolExamMark;
 use App\Models\SchoolExamSchedule;
 use App\Models\SchoolExamTerm;
-use App\Models\SchoolExamGradeScale;
 use App\Models\SchoolReportCard;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class SchoolExaminationController extends Controller
 {
@@ -28,7 +32,7 @@ class SchoolExaminationController extends Controller
      */
     public function index(Request $request): View
     {
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = Auth::user();
         $termId = $request->input('term_id');
         $terms = SchoolExamTerm::withCount(['schedules', 'marks', 'reportCards'])
             ->latest('start_date')
@@ -107,24 +111,24 @@ class SchoolExaminationController extends Controller
             $schedules = $schedulesQuery->paginate(12, ['*'], 'schedules_page')->withQueryString();
             $reportCards = $reportCardsQuery->paginate(15)->withQueryString();
         } else {
-            $schedules = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 12, 1, ['pageName' => 'schedules_page']);
-            $reportCards = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15, 1);
+            $schedules = new LengthAwarePaginator([], 0, 12, 1, ['pageName' => 'schedules_page']);
+            $reportCards = new LengthAwarePaginator([], 0, 15, 1);
         }
 
         $scopeClassIds = $classes->pluck('id');
         $stats = [
             'total_terms' => $terms->count(),
-            'total_schedules' => SchoolExamSchedule::when(!$user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count(),
-            'total_marks' => SchoolExamMark::when(!$user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count(),
-            'total_report_cards' => SchoolReportCard::when(!$user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count(),
+            'total_schedules' => SchoolExamSchedule::when(! $user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count(),
+            'total_marks' => SchoolExamMark::when(! $user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count(),
+            'total_report_cards' => SchoolReportCard::when(! $user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count(),
         ];
 
         // Exam Readiness Checklist (Rule 2)
         $totalClassesCount = $classes->count();
         $totalSubjectsCount = AcademicSubject::count();
-        $scheduledCount = $currentTerm ? SchoolExamSchedule::where('exam_term_id', $currentTerm->id)->when(!$user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count() : 0;
-        $marksCount = $currentTerm ? SchoolExamMark::where('exam_term_id', $currentTerm->id)->when(!$user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count() : 0;
-        $reportCardsCount = $currentTerm ? SchoolReportCard::where('exam_term_id', $currentTerm->id)->where('is_published', true)->when(!$user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count() : 0;
+        $scheduledCount = $currentTerm ? SchoolExamSchedule::where('exam_term_id', $currentTerm->id)->when(! $user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count() : 0;
+        $marksCount = $currentTerm ? SchoolExamMark::where('exam_term_id', $currentTerm->id)->when(! $user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count() : 0;
+        $reportCardsCount = $currentTerm ? SchoolReportCard::where('exam_term_id', $currentTerm->id)->where('is_published', true)->when(! $user->isAdmin(), fn ($q) => $q->whereIn('class_id', $scopeClassIds))->count() : 0;
 
         $readiness = [
             'term_defined' => $currentTerm !== null,
@@ -169,7 +173,7 @@ class SchoolExaminationController extends Controller
             'description' => 'nullable|string|max:500',
         ]);
         $activeSession = AcademySetting::get('academic_session');
-        if (empty($validated['academic_year']) && !$activeSession) {
+        if (empty($validated['academic_year']) && ! $activeSession) {
             return back()->withInput()->withErrors(['academic_year' => 'Configure the active academic session first.']);
         }
         $validated['academic_year'] = $validated['academic_year'] ?? $activeSession;
@@ -179,6 +183,7 @@ class SchoolExaminationController extends Controller
         abort_if($overlap, 422, 'An examination term already overlaps these dates in this academic year.');
         $term = SchoolExamTerm::create($validated);
         Log::info('Examination term created', ['actor_id' => $actor->id, 'term_id' => $term->id]);
+
         return redirect()->route('school.exams.index', ['term_id' => $term->id])
             ->with('success', 'Examination term created.');
     }
@@ -216,6 +221,7 @@ class SchoolExaminationController extends Controller
         abort_if($overlap, 422, 'Another examination term overlaps these dates in this academic year.');
         $term->update($validated);
         Log::warning('Examination term updated', ['actor_id' => $actor->id, 'term_id' => $term->id]);
+
         return back()->with('success', 'Examination term updated.');
     }
 
@@ -228,6 +234,7 @@ class SchoolExaminationController extends Controller
             409, 'This examination term has academic records and cannot be deleted. Mark it completed instead.');
         $term->delete();
         Log::warning('Examination term deleted', ['actor_id' => $actor->id, 'term_id' => $id]);
+
         return redirect()->route('school.exams.index')->with('success', 'Empty examination term deleted.');
     }
 
@@ -256,7 +263,7 @@ class SchoolExaminationController extends Controller
         $subjectBelongs = AcademicSubject::whereKey($validated['subject_id'])
             ->where('class_id', $validated['class_id'])->exists();
         abort_unless($subjectBelongs, 422, 'Subject does not belong to the selected class.');
-        $holiday = \App\Models\AcademicHoliday::findHolidayForDate($validated['exam_date']);
+        $holiday = AcademicHoliday::findHolidayForDate($validated['exam_date']);
         abort_if($holiday && $holiday->is_instructional_off, 422, 'Examinations cannot be scheduled on an institutional holiday.');
         $existingSchedule = SchoolExamSchedule::where('exam_term_id', $term->id)
             ->where('class_id', $validated['class_id'])
@@ -268,7 +275,7 @@ class SchoolExaminationController extends Controller
                 ->where('room_number', $room)
                 ->where(function ($q) use ($validated) {
                     $q->where('start_time', '<', $validated['end_time'])
-                      ->where('end_time', '>', $validated['start_time']);
+                        ->where('end_time', '>', $validated['start_time']);
                 })->exists();
             abort_if($collision, 409, 'The selected room is already allocated during this time.');
         }
@@ -277,7 +284,7 @@ class SchoolExaminationController extends Controller
             ->where('class_id', $validated['class_id'])
             ->where(function ($q) use ($validated) {
                 $q->where('start_time', '<', $validated['end_time'])
-                  ->where('end_time', '>', $validated['start_time']);
+                    ->where('end_time', '>', $validated['start_time']);
             })->exists();
         abort_if($sameClassCollision, 409, 'This class already has an examination scheduled during this time.');
 
@@ -305,6 +312,7 @@ class SchoolExaminationController extends Controller
         );
         Log::info('Exam schedule saved', ['actor_id' => $actor->id, 'term_id' => $term->id,
             'class_id' => $validated['class_id'], 'subject_id' => $validated['subject_id']]);
+
         return back()->with('success', 'Examination schedule saved.');
     }
 
@@ -321,6 +329,7 @@ class SchoolExaminationController extends Controller
             409, 'This schedule has marks recorded and cannot be deleted.');
         $schedule->delete();
         Log::warning('Exam schedule deleted', ['actor_id' => $actor->id, 'schedule_id' => $id]);
+
         return back()->with('success', 'Examination schedule removed.');
     }
 
@@ -357,8 +366,8 @@ class SchoolExaminationController extends Controller
 
                 while ($currentDate->lte($termEnd)) {
                     $isWeekend = in_array($currentDate->format('l'), config('attendance.weekend_days', ['Sunday']), true);
-                    $holiday = \App\Models\AcademicHoliday::findHolidayForDate($currentDate);
-                    if (!$isWeekend && (!$holiday || !$holiday->is_instructional_off)) {
+                    $holiday = AcademicHoliday::findHolidayForDate($currentDate);
+                    if (! $isWeekend && (! $holiday || ! $holiday->is_instructional_off)) {
                         break;
                     }
                     $currentDate->addDay();
@@ -387,7 +396,6 @@ class SchoolExaminationController extends Controller
     }
     // Administrators must create schedules from verified examination planning data.
 
-
     /**
      * Bulk Import Marks from CSV file.
      * Rule 2: Bulk marks import (CSV/Excel).
@@ -415,7 +423,7 @@ class SchoolExaminationController extends Controller
         abort_if($handle === false, 422, 'Unable to read the uploaded CSV file.');
         try {
             $header = fgetcsv($handle);
-            abort_if(!$header, 422, 'CSV file is empty.');
+            abort_if(! $header, 422, 'CSV file is empty.');
             $headerMap = [];
             foreach ($header as $index => $column) {
                 $headerMap[strtolower(trim((string) $column))] = $index;
@@ -430,21 +438,23 @@ class SchoolExaminationController extends Controller
             $line = 1;
             while (($row = fgetcsv($handle)) !== false) {
                 $line++;
-                if (!array_filter($row, fn ($v) => trim((string) $v) !== '')) continue;
+                if (! array_filter($row, fn ($v) => trim((string) $v) !== '')) {
+                    continue;
+                }
                 $admission = isset($headerMap['admission_number']) ? trim((string) ($row[$headerMap['admission_number']] ?? '')) : '';
                 $roll = isset($headerMap['roll_number']) ? trim((string) ($row[$headerMap['roll_number']] ?? '')) : '';
                 $student = ($admission !== '' ? $students->get($admission) : null)
                     ?? ($roll !== '' ? $rollStudents->get($roll) : null);
-                if (!$student) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['marks_file' => "CSV row {$line}: student is not enrolled in the selected class."]);
+                if (! $student) {
+                    throw ValidationException::withMessages(['marks_file' => "CSV row {$line}: student is not enrolled in the selected class."]);
                 }
                 $raw = trim((string) ($row[$marksColumn] ?? ''));
-                if ($raw === '' || !is_numeric($raw)) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['marks_file' => "CSV row {$line}: marks must be numeric."]);
+                if ($raw === '' || ! is_numeric($raw)) {
+                    throw ValidationException::withMessages(['marks_file' => "CSV row {$line}: marks must be numeric."]);
                 }
                 $obtained = (float) $raw;
                 if ($obtained < 0 || $obtained > (float) $schedule->max_marks) {
-                    throw \Illuminate\Validation\ValidationException::withMessages(['marks_file' => "CSV row {$line}: marks are outside the permitted range."]);
+                    throw ValidationException::withMessages(['marks_file' => "CSV row {$line}: marks are outside the permitted range."]);
                 }
                 $rows[] = [
                     'student_id' => $student->id,
@@ -452,7 +462,7 @@ class SchoolExaminationController extends Controller
                     'remarks' => isset($headerMap['remarks']) ? trim((string) ($row[$headerMap['remarks']] ?? '')) : null,
                 ];
             }
-            abort_if(!$rows, 422, 'CSV contains no valid marks rows.');
+            abort_if(! $rows, 422, 'CSV contains no valid marks rows.');
             abort_if(count(array_unique(array_column($rows, 'student_id'))) !== count($rows), 422,
                 'CSV contains duplicate student rows.');
         } finally {
@@ -467,16 +477,17 @@ class SchoolExaminationController extends Controller
                 abort_if($published, 409, 'Published results are locked. Use re-evaluation.');
                 SchoolExamMark::updateOrCreate(
                     ['exam_term_id' => $term->id, 'class_id' => $class->id,
-                     'subject_id' => $subject->id, 'student_id' => $row['student_id']],
+                        'subject_id' => $subject->id, 'student_id' => $row['student_id']],
                     ['marks_obtained' => $row['marks_obtained'], 'max_marks' => $schedule->max_marks,
-                     'pass_marks' => $schedule->pass_marks,
-                     'letter_grade' => SchoolExamMark::calculateGrade($row['marks_obtained'], (float) $schedule->max_marks),
-                     'teacher_remarks' => $row['remarks']]
+                        'pass_marks' => $schedule->pass_marks,
+                        'letter_grade' => SchoolExamMark::calculateGrade($row['marks_obtained'], (float) $schedule->max_marks),
+                        'teacher_remarks' => $row['remarks']]
                 );
             }
             Log::info('Exam marks CSV imported', ['actor_id' => $actor->id, 'term_id' => $term->id,
                 'class_id' => $class->id, 'subject_id' => $subject->id, 'row_count' => count($rows)]);
         });
+
         return back()->with('success', 'CSV marks imported successfully.');
     }
 
@@ -490,7 +501,7 @@ class SchoolExaminationController extends Controller
         abort_unless($actor && $actor->isAdmin(), 403);
         $mark = SchoolExamMark::with(['student', 'subject', 'academicClass', 'examTerm'])->findOrFail($markId);
         $validated = $request->validate([
-            'revised_marks' => ['required', 'numeric', 'min:0', 'max:' . $mark->max_marks],
+            'revised_marks' => ['required', 'numeric', 'min:0', 'max:'.$mark->max_marks],
             'reason' => 'required|string|min:10|max:1000',
         ]);
         $newValue = (float) $validated['revised_marks'];
@@ -506,7 +517,7 @@ class SchoolExaminationController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            $remarks = trim(($locked->teacher_remarks ? $locked->teacher_remarks . ' | ' : '') . 'Re-evaluation: ' . $validated['reason']);
+            $remarks = trim(($locked->teacher_remarks ? $locked->teacher_remarks.' | ' : '').'Re-evaluation: '.$validated['reason']);
             $locked->update([
                 'marks_obtained' => $newValue,
                 'letter_grade' => SchoolExamMark::calculateGrade($newValue, (float) $locked->max_marks),
@@ -521,6 +532,7 @@ class SchoolExaminationController extends Controller
                 'old_marks' => $oldValue, 'new_marks' => $newValue,
             ]);
         });
+
         return back()->with('success', 'Re-evaluation saved with an immutable revision record. Regenerate the draft report card for review.');
     }
 
@@ -540,6 +552,7 @@ class SchoolExaminationController extends Controller
         ]);
         SchoolExamGradeScale::create($validated + ['is_active' => true]);
         Log::info('Exam grade scale created', ['actor_id' => $request->user()->id, 'grade_code' => $validated['grade_code']]);
+
         return back()->with('success', 'Grading scale added.');
     }
 
@@ -548,8 +561,8 @@ class SchoolExaminationController extends Controller
         abort_unless($request->user()?->isAdmin(), 403);
         $scale = SchoolExamGradeScale::findOrFail($id);
         $validated = $request->validate([
-            'grade_code' => ['required', 'string', 'max:10', 'regex:/^[A-Za-z0-9+_-]+$/', 'unique:school_exam_grade_scales,grade_code,' . $id],
-            'minimum_percentage' => 'required|numeric|min:0|max:100|unique:school_exam_grade_scales,minimum_percentage,' . $id,
+            'grade_code' => ['required', 'string', 'max:10', 'regex:/^[A-Za-z0-9+_-]+$/', 'unique:school_exam_grade_scales,grade_code,'.$id],
+            'minimum_percentage' => 'required|numeric|min:0|max:100|unique:school_exam_grade_scales,minimum_percentage,'.$id,
             'label' => 'required|string|max:80',
             'is_passing' => 'required|boolean',
             'sort_order' => 'required|integer|min:0|max:999',
@@ -557,6 +570,7 @@ class SchoolExaminationController extends Controller
         ]);
         $scale->update($validated);
         Log::warning('Exam grade scale updated', ['actor_id' => $request->user()->id, 'grade_scale_id' => $id]);
+
         return back()->with('success', 'Grading scale updated.');
     }
 
@@ -568,6 +582,7 @@ class SchoolExaminationController extends Controller
             'This grade is used by recorded marks. Deactivate it instead of deleting it.');
         $scale->delete();
         Log::warning('Exam grade scale deleted', ['actor_id' => $request->user()->id, 'grade_scale_id' => $id]);
+
         return back()->with('success', 'Unused grading scale deleted.');
     }
 
@@ -594,6 +609,7 @@ class SchoolExaminationController extends Controller
                 'actor_id' => $actor->id, 'report_card_ids' => $drafts->pluck('id')->all(),
             ]);
         });
+
         return back()->with('success', 'Reviewed report cards published.');
     }
 
@@ -616,7 +632,7 @@ class SchoolExaminationController extends Controller
         $termId = $request->integer('term_id') ?: $terms->first()?->id;
         $classId = $request->integer('class_id') ?: $classes->first()?->id;
         $selectedClass = $classes->firstWhere('id', $classId);
-        abort_if($classId && !$selectedClass, 403, 'You are not assigned to this class.');
+        abort_if($classId && ! $selectedClass, 403, 'You are not assigned to this class.');
 
         $subjects = $selectedClass ? $selectedClass->subjects : collect();
         if ($user->isTeacher() && $selectedClass) {
@@ -624,7 +640,7 @@ class SchoolExaminationController extends Controller
         }
         $subjectId = $request->integer('subject_id') ?: $subjects->first()?->id;
         $selectedSubject = $subjects->firstWhere('id', $subjectId);
-        abort_if($subjectId && !$selectedSubject, 403, 'You are not assigned to this subject.');
+        abort_if($subjectId && ! $selectedSubject, 403, 'You are not assigned to this subject.');
 
         $students = [];
         $schedule = null;
@@ -692,12 +708,12 @@ class SchoolExaminationController extends Controller
 
         DB::transaction(function () use ($validated, $term, $class, $subject, $schedule, $actor) {
             foreach ($validated['marks'] as $studentId => $data) {
-                if (!array_key_exists('marks_obtained', $data) || $data['marks_obtained'] === null || $data['marks_obtained'] === '') {
+                if (! array_key_exists('marks_obtained', $data) || $data['marks_obtained'] === null || $data['marks_obtained'] === '') {
                     continue;
                 }
                 $obtained = (float) $data['marks_obtained'];
                 if ($obtained > (float) $schedule->max_marks) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                    throw ValidationException::withMessages([
                         "marks.{$studentId}.marks_obtained" => 'Marks cannot exceed the scheduled maximum.',
                     ]);
                 }
@@ -708,7 +724,7 @@ class SchoolExaminationController extends Controller
                 if ($mark->exists && SchoolReportCard::where('exam_term_id', $term->id)
                     ->where('class_id', $class->id)->where('student_id', (int) $studentId)
                     ->where('is_published', true)->exists()) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                    throw ValidationException::withMessages([
                         "marks.{$studentId}.marks_obtained" => 'Published results are locked. Submit a re-evaluation request.',
                     ]);
                 }
@@ -766,12 +782,12 @@ class SchoolExaminationController extends Controller
             abort_if($totalMax <= 0, 422, 'A student has no valid maximum-mark total.');
             $percentage = round(($totalObtained / $totalMax) * 100, 2);
             $failedSubject = $studentMarks->contains(fn ($mark) => (float) $mark->marks_obtained < (float) $mark->pass_marks);
-            $gradeScale = \App\Models\SchoolExamGradeScale::query()
+            $gradeScale = SchoolExamGradeScale::query()
                 ->where('is_active', true)
                 ->where('minimum_percentage', '<=', $percentage)
                 ->orderByDesc('minimum_percentage')
                 ->first();
-            abort_if(!$gradeScale, 422, "No active grading scale covers a student percentage. Configure grading master data.");
+            abort_if(! $gradeScale, 422, 'No active grading scale covers a student percentage. Configure grading master data.');
 
             $termEnd = $term->end_date->toDateString();
             $sessionsQuery = AttendanceSession::where('class_id', $class->id)
@@ -800,7 +816,7 @@ class SchoolExaminationController extends Controller
                 'gpa' => 0,
                 'gpa_configured' => false,
                 'overall_grade' => $gradeScale->grade_code,
-                'result_status' => ($failedSubject || !$gradeScale->is_passing) ? 'FAIL' : 'PASS',
+                'result_status' => ($failedSubject || ! $gradeScale->is_passing) ? 'FAIL' : 'PASS',
                 'total_working_days' => $totalSessions,
                 'days_present' => $daysPresent,
                 'attendance_percentage' => $attendancePercentage,
@@ -848,6 +864,7 @@ class SchoolExaminationController extends Controller
                 'class_id' => $class->id, 'student_count' => count($results),
             ]);
         });
+
         return redirect()->route('school.exams.index', ['term_id' => $term->id])
             ->with('success', 'Draft report cards generated from complete marks, configured grading scales and available attendance records. Review before publication.');
     }
@@ -873,7 +890,7 @@ class SchoolExaminationController extends Controller
         abort_unless($isFaculty || $isOwnStudentRecord || $isOwnChildRecord, 403,
             'You are not authorized to view this report card.');
 
-        if (!$isFaculty) {
+        if (! $isFaculty) {
             abort_unless($reportCard->is_published, 404,
                 'This report card has not been published.');
         }
@@ -952,7 +969,7 @@ class SchoolExaminationController extends Controller
         $class = $student->currentClass ?? $student->classEnrollments()->where('status', 'active')->first()?->academicClass;
         abort_unless($class, 422, 'The student does not have an active class enrollment.');
 
-        if ($actor->isTeacher() && !$actor->isAdmin()) {
+        if ($actor->isTeacher() && ! $actor->isAdmin()) {
             $assignedClassIds = AcademicClass::query()
                 ->where(function ($query) use ($actor) {
                     $query->where('class_teacher_id', $actor->id)
@@ -996,7 +1013,7 @@ class SchoolExaminationController extends Controller
         }
         $decoded = json_decode(base64_decode($base64), true);
 
-        if (!$decoded || !isset($decoded['term_id'], $decoded['student_id'], $decoded['sig'])) {
+        if (! $decoded || ! isset($decoded['term_id'], $decoded['student_id'], $decoded['sig'])) {
             if (request()->wantsJson() || request()->is('api/*')) {
                 return response()->json([
                     'valid' => false,
@@ -1009,7 +1026,7 @@ class SchoolExaminationController extends Controller
         $term = SchoolExamTerm::find($decoded['term_id']);
         $student = User::where('role', 'student')->find($decoded['student_id']);
 
-        if (!$term || !$student) {
+        if (! $term || ! $student) {
             if (request()->wantsJson() || request()->is('api/*')) {
                 return response()->json([
                     'valid' => false,
@@ -1020,7 +1037,7 @@ class SchoolExaminationController extends Controller
         }
 
         $expectedSig = hash_hmac('sha256', "admit:{$term->id}:{$student->id}:{$student->admission_number}", config('app.key'));
-        if (!hash_equals($expectedSig, $decoded['sig'])) {
+        if (! hash_equals($expectedSig, $decoded['sig'])) {
             if (request()->wantsJson() || request()->is('api/*')) {
                 return response()->json([
                     'valid' => false,

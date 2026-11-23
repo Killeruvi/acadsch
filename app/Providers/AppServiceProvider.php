@@ -12,6 +12,7 @@ use App\Policies\AssignmentPolicy;
 use App\Policies\CoursePolicy;
 use App\Policies\EnrollmentPolicy;
 use App\Policies\SchoolFeePolicy;
+use App\Services\AppearanceService;
 use App\Services\SchoolBrandingService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -35,7 +36,7 @@ class AppServiceProvider extends ServiceProvider
         // Globally share institutional school branding & Infix Appearance system
         View::composer('*', function ($view) {
             $view->with('school', SchoolBrandingService::get());
-            $view->with('appearance', \App\Services\AppearanceService::get());
+            $view->with('appearance', AppearanceService::get());
         });
 
         // Explicitly register model authorization policies

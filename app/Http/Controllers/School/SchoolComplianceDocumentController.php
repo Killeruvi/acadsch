@@ -37,7 +37,7 @@ class SchoolComplianceDocumentController extends Controller
         if ($request->hasFile('document_file')) {
             $file = $request->file('document_file');
             $storedPath = $file->store('school-compliance', 'local');
-            abort_if(!$storedPath, 500, 'The document could not be stored. Please retry.');
+            abort_if(! $storedPath, 500, 'The document could not be stored. Please retry.');
             $data['file_path'] = $storedPath;
             $data['original_filename'] = mb_substr($file->getClientOriginalName(), 0, 255);
         }
@@ -47,7 +47,9 @@ class SchoolComplianceDocumentController extends Controller
         try {
             SchoolComplianceDocument::create($data);
         } catch (\Throwable $exception) {
-            if ($storedPath) Storage::disk('local')->delete($storedPath);
+            if ($storedPath) {
+                Storage::disk('local')->delete($storedPath);
+            }
             throw $exception;
         }
 
@@ -76,7 +78,7 @@ class SchoolComplianceDocumentController extends Controller
         if ($request->hasFile('document_file')) {
             $file = $request->file('document_file');
             $newPath = $file->store('school-compliance', 'local');
-            abort_if(!$newPath, 500, 'The document could not be stored. Please retry.');
+            abort_if(! $newPath, 500, 'The document could not be stored. Please retry.');
             $data['file_path'] = $newPath;
             $data['original_filename'] = mb_substr($file->getClientOriginalName(), 0, 255);
         }
@@ -84,10 +86,14 @@ class SchoolComplianceDocumentController extends Controller
         try {
             $document->update($data);
         } catch (\Throwable $exception) {
-            if ($newPath) Storage::disk('local')->delete($newPath);
+            if ($newPath) {
+                Storage::disk('local')->delete($newPath);
+            }
             throw $exception;
         }
-        if ($newPath && $oldPath) Storage::disk('local')->delete($oldPath);
+        if ($newPath && $oldPath) {
+            Storage::disk('local')->delete($oldPath);
+        }
 
         return back()->with('success', 'School compliance document updated.');
     }
@@ -95,6 +101,7 @@ class SchoolComplianceDocumentController extends Controller
     public function download(SchoolComplianceDocument $document): StreamedResponse
     {
         abort_unless($document->file_path && Storage::disk('local')->exists($document->file_path), 404);
+
         return Storage::disk('local')->download($document->file_path, $document->original_filename ?: basename($document->file_path));
     }
 
@@ -102,7 +109,10 @@ class SchoolComplianceDocumentController extends Controller
     {
         $filePath = $document->file_path;
         $document->delete();
-        if ($filePath) Storage::disk('local')->delete($filePath);
+        if ($filePath) {
+            Storage::disk('local')->delete($filePath);
+        }
+
         return back()->with('success', 'School compliance document deleted.');
     }
 }

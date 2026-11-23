@@ -9,12 +9,12 @@ class TelegramService
 {
     public static function getBotToken(): string
     {
-        return (string)(config('services.telegram.bot_token') ?? env('TELEGRAM_BOT_TOKEN', ''));
+        return (string) (config('services.telegram.bot_token') ?? env('TELEGRAM_BOT_TOKEN', ''));
     }
 
     public static function getDefaultChatId(): string
     {
-        return (string)(config('services.telegram.chat_id') ?? env('TELEGRAM_CHAT_ID', ''));
+        return (string) (config('services.telegram.chat_id') ?? env('TELEGRAM_CHAT_ID', ''));
     }
 
     /**
@@ -27,6 +27,7 @@ class TelegramService
 
         if (empty($token) || empty($targetChatId)) {
             Log::warning('Telegram message skipped: missing token or chatId.');
+
             return false;
         }
 
@@ -38,14 +39,16 @@ class TelegramService
                 'disable_web_page_preview' => true,
             ]);
 
-            if (!$response->successful()) {
-                Log::error('Telegram API error response: ' . $response->body());
+            if (! $response->successful()) {
+                Log::error('Telegram API error response: '.$response->body());
+
                 return false;
             }
 
             return true;
         } catch (\Throwable $e) {
-            Log::error('Failed to send Telegram message: ' . $e->getMessage());
+            Log::error('Failed to send Telegram message: '.$e->getMessage());
+
             return false;
         }
     }
@@ -56,7 +59,7 @@ class TelegramService
     public static function sendReminder(string $title, string $details, ?string $actionUrl = null): bool
     {
         $timeStr = now()->format('d M Y, h:i A');
-        $school = \App\Services\SchoolBrandingService::get();
+        $school = SchoolBrandingService::get();
         $schoolName = $school['name'] ?? 'PrimeOS School';
         $msg = "🔔 <b>[{$schoolName} Reminder]</b>\n\n";
         $msg .= "📌 <b>{$title}</b>\n";
@@ -84,7 +87,7 @@ class TelegramService
 
         $msg = "{$icon} <b>{$title}</b>\n\n";
         $msg .= "{$message}\n";
-        $msg .= "\n📅 " . now()->format('Y-m-d H:i:s');
+        $msg .= "\n📅 ".now()->format('Y-m-d H:i:s');
 
         return self::sendMessage($msg);
     }

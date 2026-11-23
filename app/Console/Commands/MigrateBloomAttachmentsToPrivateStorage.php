@@ -33,34 +33,37 @@ class MigrateBloomAttachmentsToPrivateStorage extends Command
                 foreach ($assignments as $assignment) {
                     foreach (['teacher_attachment_path', 'submission_attachment_path'] as $column) {
                         $path = $assignment->{$column};
-                        if (!$path || str_contains($path, '..') || str_starts_with($path, '/')) {
+                        if (! $path || str_contains($path, '..') || str_starts_with($path, '/')) {
                             continue;
                         }
 
                         if ($private->exists($path)) {
                             $alreadyPrivate++;
                             // If a legacy public copy remains, remove it only after the private copy is confirmed.
-                            if (!$dryRun && $public->exists($path)) {
+                            if (! $dryRun && $public->exists($path)) {
                                 $public->delete($path);
                             }
+
                             continue;
                         }
 
-                        if (!$public->exists($path)) {
+                        if (! $public->exists($path)) {
                             $this->warn("Missing attachment for assignment {$assignment->id}: {$column}");
                             $missing++;
+
                             continue;
                         }
 
                         if ($dryRun) {
                             $this->line("Would migrate assignment {$assignment->id}: {$column}");
                             $moved++;
+
                             continue;
                         }
 
                         try {
                             $stream = $public->readStream($path);
-                            if (!is_resource($stream)) {
+                            if (! is_resource($stream)) {
                                 throw new \RuntimeException('Unable to read source file stream.');
                             }
                             try {
@@ -71,7 +74,7 @@ class MigrateBloomAttachmentsToPrivateStorage extends Command
                                 }
                             }
 
-                            if (!$stored || !$private->exists($path)) {
+                            if (! $stored || ! $private->exists($path)) {
                                 throw new \RuntimeException('Private storage copy could not be verified.');
                             }
 
@@ -92,6 +95,7 @@ class MigrateBloomAttachmentsToPrivateStorage extends Command
 
         if ($missing > 0 || $failed > 0) {
             $this->error('Resolve missing/failed files and rerun before enabling the new release.');
+
             return self::FAILURE;
         }
 

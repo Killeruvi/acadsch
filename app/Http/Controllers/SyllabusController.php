@@ -7,7 +7,6 @@ use App\Models\AcademicSubject;
 use App\Models\CurriculumTopic;
 use App\Models\CurriculumVideo;
 use App\Models\DailyDpp;
-use App\Models\DppQuestion;
 use App\Models\HomeworkTask;
 use App\Models\TopicBloomActivity;
 use App\Models\UserVideoProgress;
@@ -21,14 +20,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SyllabusController extends Controller
 {
-    public function __construct(protected CsvService $csvService)
-    {
-    }
+    public function __construct(protected CsvService $csvService) {}
 
     protected function authorizeFaculty(): void
     {
         $user = Auth::user();
-        if (!$user || (!$user->isTeacher() && !$user->isAdmin())) {
+        if (! $user || (! $user->isTeacher() && ! $user->isAdmin())) {
             abort(403, 'Unauthorized. Faculty or administrator credentials required.');
         }
     }
@@ -48,8 +45,8 @@ class SyllabusController extends Controller
         }
 
         $selectedGrade = (int) $request->query('grade', $request->query('class_id', $defaultGrade));
-        $selectedClass = $allClasses->firstWhere('grade_level', $selectedGrade) 
-            ?? $allClasses->firstWhere('id', $selectedGrade) 
+        $selectedClass = $allClasses->firstWhere('grade_level', $selectedGrade)
+            ?? $allClasses->firstWhere('id', $selectedGrade)
             ?? $allClasses->first();
 
         // Step 2: Subjects for Selected Class
@@ -58,9 +55,9 @@ class SyllabusController extends Controller
         $selectedSubjectId = $request->query('subject_id');
         $selectedSubject = null;
         if ($selectedSubjectId && $selectedSubjectId !== 'all') {
-            $selectedSubject = $subjects->firstWhere('id', (int)$selectedSubjectId);
+            $selectedSubject = $subjects->firstWhere('id', (int) $selectedSubjectId);
         }
-        if (!$selectedSubject && $selectedSubjectId !== 'all' && $subjects->isNotEmpty()) {
+        if (! $selectedSubject && $selectedSubjectId !== 'all' && $subjects->isNotEmpty()) {
             $selectedSubject = $subjects->first();
             $selectedSubjectId = $selectedSubject->id;
         }
@@ -84,7 +81,7 @@ class SyllabusController extends Controller
             $s = strtolower($search);
             $query->where(function ($q) use ($s) {
                 $q->whereRaw('LOWER(title) LIKE ?', ["%{$s}%"])
-                  ->orWhereRaw('LOWER(description) LIKE ?', ["%{$s}%"]);
+                    ->orWhereRaw('LOWER(description) LIKE ?', ["%{$s}%"]);
             });
         }
 
@@ -162,12 +159,12 @@ class SyllabusController extends Controller
         })->count();
 
         $totalDpps = $topic->dpps->count();
-        $attemptedDpps = $topic->dpps->filter(function ($d) use ($userId) {
+        $attemptedDpps = $topic->dpps->filter(function ($d) {
             return $d->submissions->isNotEmpty();
         })->count();
 
         $totalHomework = $topic->homeworkTasks->count();
-        $submittedHomework = $topic->homeworkTasks->filter(function ($h) use ($userId) {
+        $submittedHomework = $topic->homeworkTasks->filter(function ($h) {
             return $h->submissions->isNotEmpty();
         })->count();
 
@@ -259,7 +256,7 @@ class SyllabusController extends Controller
         $video = CurriculumVideo::findOrFail($id);
         $title = $video->title;
 
-        \App\Models\UserVideoProgress::where('video_id', $video->id)->delete();
+        UserVideoProgress::where('video_id', $video->id)->delete();
         $video->delete();
 
         return back()->with('success', "Video lecture '{$title}' removed from syllabus.");
@@ -353,7 +350,7 @@ class SyllabusController extends Controller
             ]
         );
 
-        $newStatus = !$progress->is_completed;
+        $newStatus = ! $progress->is_completed;
         $progress->update([
             'is_completed' => $newStatus,
             'last_watched_at' => now(),
@@ -382,19 +379,19 @@ class SyllabusController extends Controller
                 '1',
                 'Introduction to Data Structures & Algorithms',
                 'Arrays, Linked Lists, Stacks, Queues',
-                'Fundamental linear and non-linear data structures, memory layout, and computational complexity analysis.'
+                'Fundamental linear and non-linear data structures, memory layout, and computational complexity analysis.',
             ],
             [
                 '2',
                 'Sorting and Searching Algorithms',
                 'Binary Search, Merge Sort, Quick Sort, Complexity O(n log n)',
-                'Algorithmic design patterns, divide and conquer paradigms, and empirical runtime benchmarking.'
+                'Algorithmic design patterns, divide and conquer paradigms, and empirical runtime benchmarking.',
             ],
             [
                 '3',
                 'Graph Theory and Pathfinding',
                 'Breadth-First Search, Depth-First Search, Dijkstras Algorithm',
-                'Graph traversal, shortest path computations, and real-world network routing models.'
+                'Graph traversal, shortest path computations, and real-world network routing models.',
             ],
         ];
 
@@ -427,6 +424,7 @@ class SyllabusController extends Controller
         }
 
         $filename = "Syllabus_{$class->name}_Academic_Curriculum.csv";
+
         return $this->csvService->downloadCsv($filename, $headers, $data);
     }
 
@@ -453,19 +451,19 @@ class SyllabusController extends Controller
             $chapterNumber = isset($row['chapter_number']) ? (int) $row['chapter_number'] : ($importedCount + 1);
             $title = $row['title'] ?? ($row['chapter_title'] ?? null);
 
-            if (!$title) {
+            if (! $title) {
                 continue;
             }
 
             $subtopics = [];
-            if (!empty($row['subtopics'])) {
+            if (! empty($row['subtopics'])) {
                 $subtopics = array_map('trim', explode(';', $row['subtopics']));
                 if (count($subtopics) === 1 && str_contains($row['subtopics'], ',')) {
                     $subtopics = array_map('trim', explode(',', $row['subtopics']));
                 }
             }
 
-            $description = $row['description'] ?? 'Curriculum standard topic for ' . $subject->name;
+            $description = $row['description'] ?? 'Curriculum standard topic for '.$subject->name;
 
             CurriculumTopic::updateOrCreate(
                 [
@@ -507,7 +505,7 @@ class SyllabusController extends Controller
             'resource_url' => $validated['resource_url'] ?? null,
         ]);
 
-        return back()->with('success', "Curriculum topic '{$topic->title}' status updated to " . ucwords(str_replace('_', ' ', $validated['status'])) . "!");
+        return back()->with('success', "Curriculum topic '{$topic->title}' status updated to ".ucwords(str_replace('_', ' ', $validated['status'])).'!');
     }
 
     /**
@@ -526,8 +524,8 @@ class SyllabusController extends Controller
         }
 
         $selectedGrade = (int) $request->query('grade', $request->query('class_id', $defaultGrade));
-        $selectedClass = $allClasses->firstWhere('grade_level', $selectedGrade) 
-            ?? $allClasses->firstWhere('id', $selectedGrade) 
+        $selectedClass = $allClasses->firstWhere('grade_level', $selectedGrade)
+            ?? $allClasses->firstWhere('id', $selectedGrade)
             ?? $allClasses->first();
 
         $subjects = $selectedClass ? $selectedClass->subjects()->withCount('topics')->orderBy('name')->get() : collect();
@@ -535,7 +533,7 @@ class SyllabusController extends Controller
         $selectedSubjectId = $request->query('subject_id', 'all');
         $selectedSubject = null;
         if ($selectedSubjectId && $selectedSubjectId !== 'all') {
-            $selectedSubject = $subjects->firstWhere('id', (int)$selectedSubjectId);
+            $selectedSubject = $subjects->firstWhere('id', (int) $selectedSubjectId);
         }
 
         $activityFilter = $request->query('activity', 'all');
@@ -562,7 +560,7 @@ class SyllabusController extends Controller
             $s = strtolower($search);
             $query->where(function ($q) use ($s) {
                 $q->whereRaw('LOWER(title) LIKE ?', ["%{$s}%"])
-                  ->orWhereRaw('LOWER(description) LIKE ?', ["%{$s}%"]);
+                    ->orWhereRaw('LOWER(description) LIKE ?', ["%{$s}%"]);
             });
         }
 
@@ -572,21 +570,35 @@ class SyllabusController extends Controller
         foreach ($allClassTopics as $top) {
             if (empty($top->activity_checklist) && $top->lessonPlans->isNotEmpty()) {
                 $checklist = $top->normalized_activity_checklist;
-                $hasComp = $top->lessonPlans->contains(fn($lp) => $lp->isCompetition());
-                $hasProj = $top->lessonPlans->contains(fn($lp) => $lp->isProject());
-                $hasDeb = $top->lessonPlans->contains(fn($lp) => $lp->isDebate());
-                $hasSymp = $top->lessonPlans->contains(fn($lp) => $lp->isSymposium());
-                $hasLab = $top->lessonPlans->contains(fn($lp) => !empty($lp->practical_lab));
-                $hasRev = $top->lessonPlans->contains(fn($lp) => $lp->isRevision());
-                $hasTest = $top->lessonPlans->contains(fn($lp) => $lp->isTest());
+                $hasComp = $top->lessonPlans->contains(fn ($lp) => $lp->isCompetition());
+                $hasProj = $top->lessonPlans->contains(fn ($lp) => $lp->isProject());
+                $hasDeb = $top->lessonPlans->contains(fn ($lp) => $lp->isDebate());
+                $hasSymp = $top->lessonPlans->contains(fn ($lp) => $lp->isSymposium());
+                $hasLab = $top->lessonPlans->contains(fn ($lp) => ! empty($lp->practical_lab));
+                $hasRev = $top->lessonPlans->contains(fn ($lp) => $lp->isRevision());
+                $hasTest = $top->lessonPlans->contains(fn ($lp) => $lp->isTest());
 
-                if ($hasComp) { $checklist['competition']['organized'] = true; }
-                if ($hasProj) { $checklist['project']['organized'] = true; }
-                if ($hasDeb) { $checklist['debate']['organized'] = true; }
-                if ($hasSymp) { $checklist['symposium']['organized'] = true; }
-                if ($hasLab) { $checklist['lab']['organized'] = true; }
-                if ($hasRev) { $checklist['revision']['organized'] = true; }
-                if ($hasTest) { $checklist['test']['organized'] = true; }
+                if ($hasComp) {
+                    $checklist['competition']['organized'] = true;
+                }
+                if ($hasProj) {
+                    $checklist['project']['organized'] = true;
+                }
+                if ($hasDeb) {
+                    $checklist['debate']['organized'] = true;
+                }
+                if ($hasSymp) {
+                    $checklist['symposium']['organized'] = true;
+                }
+                if ($hasLab) {
+                    $checklist['lab']['organized'] = true;
+                }
+                if ($hasRev) {
+                    $checklist['revision']['organized'] = true;
+                }
+                if ($hasTest) {
+                    $checklist['test']['organized'] = true;
+                }
 
                 $top->activity_checklist = $checklist;
                 $top->save();
@@ -607,13 +619,13 @@ class SyllabusController extends Controller
         $inProgressTheoryCount = $allClassTopics->where('status', 'in_progress')->count();
         $theoryRate = $totalChapters > 0 ? round(($completedTheoryCount / $totalChapters) * 100, 1) : 0.0;
 
-        $totalLabsOrganized = $allClassTopics->filter(fn($t) => $t->isActivityOrganized('lab'))->count();
-        $totalCompetitionsOrganized = $allClassTopics->filter(fn($t) => $t->isActivityOrganized('competition'))->count();
-        $totalProjectsOrganized = $allClassTopics->filter(fn($t) => $t->isActivityOrganized('project'))->count();
-        $totalDebatesOrganized = $allClassTopics->filter(fn($t) => $t->isActivityOrganized('debate'))->count();
-        $totalSymposiaOrganized = $allClassTopics->filter(fn($t) => $t->isActivityOrganized('symposium'))->count();
-        $totalRevisionsOrganized = $allClassTopics->filter(fn($t) => $t->isActivityOrganized('revision'))->count();
-        $totalTestsOrganized = $allClassTopics->filter(fn($t) => $t->isActivityOrganized('test'))->count();
+        $totalLabsOrganized = $allClassTopics->filter(fn ($t) => $t->isActivityOrganized('lab'))->count();
+        $totalCompetitionsOrganized = $allClassTopics->filter(fn ($t) => $t->isActivityOrganized('competition'))->count();
+        $totalProjectsOrganized = $allClassTopics->filter(fn ($t) => $t->isActivityOrganized('project'))->count();
+        $totalDebatesOrganized = $allClassTopics->filter(fn ($t) => $t->isActivityOrganized('debate'))->count();
+        $totalSymposiaOrganized = $allClassTopics->filter(fn ($t) => $t->isActivityOrganized('symposium'))->count();
+        $totalRevisionsOrganized = $allClassTopics->filter(fn ($t) => $t->isActivityOrganized('revision'))->count();
+        $totalTestsOrganized = $allClassTopics->filter(fn ($t) => $t->isActivityOrganized('test'))->count();
 
         $activitiesPerChapter = count(CurriculumTopic::defaultActivityChecklistTemplate());
         $totalPossibleActivities = $totalChapters * $activitiesPerChapter;
@@ -654,7 +666,7 @@ class SyllabusController extends Controller
     public function toggleActivity(Request $request, int $id): JsonResponse|RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isTeacher() && !$user->isAdmin())) {
+        if (! $user || (! $user->isTeacher() && ! $user->isAdmin())) {
             if ($request->wantsJson()) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
@@ -690,7 +702,7 @@ class SyllabusController extends Controller
                 'item' => $item,
                 'organized_count' => $topic->organized_activities_count,
                 'progress_percent' => $topic->activity_progress_percent,
-                'message' => "{$item['icon']} {$item['name']} marked as " . ($item['organized'] ? 'Organized / Completed' : 'Pending') . "!",
+                'message' => "{$item['icon']} {$item['name']} marked as ".($item['organized'] ? 'Organized / Completed' : 'Pending').'!',
             ]);
         }
 
@@ -714,13 +726,13 @@ class SyllabusController extends Controller
         ]);
 
         $subtopics = [];
-        if (!empty($validated['subtopics'])) {
+        if (! empty($validated['subtopics'])) {
             $subtopics = array_values(array_filter(array_map('trim', preg_split('/[;,\n\r]+/', $validated['subtopics']))));
         }
 
         $topic = CurriculumTopic::create([
             'subject_id' => $validated['subject_id'],
-            'chapter_number' => (int)$validated['chapter_number'],
+            'chapter_number' => (int) $validated['chapter_number'],
             'title' => $validated['title'],
             'description' => $validated['description'] ?? '',
             'subtopics' => $subtopics,
@@ -755,12 +767,12 @@ class SyllabusController extends Controller
         ]);
 
         $subtopics = [];
-        if (!empty($validated['subtopics'])) {
+        if (! empty($validated['subtopics'])) {
             $subtopics = array_values(array_filter(array_map('trim', preg_split('/[;,\n\r]+/', $validated['subtopics']))));
         }
 
         $updateData = [
-            'chapter_number' => (int)$validated['chapter_number'],
+            'chapter_number' => (int) $validated['chapter_number'],
             'title' => $validated['title'],
             'description' => $validated['description'] ?? '',
             'subtopics' => $subtopics,
@@ -768,9 +780,9 @@ class SyllabusController extends Controller
             'study_notes' => $validated['study_notes'] ?? null,
         ];
 
-        if (!empty($validated['status'])) {
+        if (! empty($validated['status'])) {
             $updateData['status'] = $validated['status'];
-            if ($validated['status'] === 'completed' && !$topic->completed_at) {
+            if ($validated['status'] === 'completed' && ! $topic->completed_at) {
                 $updateData['completed_at'] = now();
             } elseif ($validated['status'] !== 'completed') {
                 $updateData['completed_at'] = null;

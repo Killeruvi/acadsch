@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SchoolHolidayController extends Controller
@@ -88,7 +89,7 @@ class SchoolHolidayController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Unauthorized. Administrator credentials required to add academic holidays.');
         }
 
@@ -118,7 +119,7 @@ class SchoolHolidayController extends Controller
     public function update(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Unauthorized. Administrator credentials required to update academic holidays.');
         }
 
@@ -150,7 +151,7 @@ class SchoolHolidayController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Unauthorized. Administrator credentials required to delete academic holidays.');
         }
 
@@ -174,7 +175,8 @@ class SchoolHolidayController extends Controller
             }
         }
         $year = (int) Carbon::parse($date)->format('Y');
-        return $year . '-' . ($year + 1);
+
+        return $year.'-'.($year + 1);
     }
 
     private function ensureNoInstructionalOverlap(array $data, ?int $ignoreId): void
@@ -197,10 +199,9 @@ class SchoolHolidayController extends Controller
             ->exists();
 
         if ($overlap) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'holiday_date' => 'This date range overlaps another instructional closure. Edit the existing closure or choose a non-overlapping range.',
             ]);
         }
     }
-
 }

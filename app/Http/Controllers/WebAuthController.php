@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicClass;
+use App\Models\AcademySetting;
 use App\Models\Batch;
 use App\Models\ClassEnrollment;
 use App\Models\FacultyAccessCode;
@@ -12,6 +13,7 @@ use App\Services\CaptchaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -23,20 +25,22 @@ class WebAuthController extends Controller
 {
     public function showLogin(): View|RedirectResponse
     {
-        $isOnboarded = \App\Models\AcademySetting::get('onboarding_completed') === 'true';
+        $isOnboarded = AcademySetting::get('onboarding_completed') === 'true';
         $adminCount = User::where('role', 'admin')->count();
 
         // If system is unconfigured and has zero admins, send straight to onboarding
-        if (!$isOnboarded && $adminCount === 0) {
+        if (! $isOnboarded && $adminCount === 0) {
             return redirect()->route('school.onboarding.index');
         }
 
         if (Auth::check()) {
-            if (!$isOnboarded && Auth::user()->isAdmin()) {
+            if (! $isOnboarded && Auth::user()->isAdmin()) {
                 return redirect()->route('school.onboarding.index');
             }
+
             return redirect()->route('dashboard');
         }
+
         return view('auth.login');
     }
 
@@ -48,22 +52,24 @@ class WebAuthController extends Controller
             'captcha' => 'nullable|string',
         ]);
 
-        $throttleKey = Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+        $throttleKey = Str::transliterate(Str::lower($request->input('email')).'|'.$request->ip());
 
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
             $targetUser = User::where('email', $credentials['email'])->first();
             $this->logAuthAudit($targetUser?->id, 'login_throttled', "Rate limit cap triggered for {$credentials['email']}", ['ip' => $request->ip(), 'seconds' => $seconds], $request->ip());
+
             return back()->withErrors([
                 'email' => "Too many authentication attempts. Rate limit cap triggered. Please wait {$seconds} seconds before trying again.",
             ])->onlyInput('email');
         }
 
         // Verify institutional security captcha
-        if (!CaptchaService::verify($request->input('captcha'), $request->input('captcha_token'))) {
+        if (! CaptchaService::verify($request->input('captcha'), $request->input('captcha_token'))) {
             RateLimiter::hit($throttleKey, 60);
             $targetUser = User::where('email', $credentials['email'])->first();
             $this->logAuthAudit($targetUser?->id, 'login_captcha_failed', "Security captcha verification failed for {$credentials['email']}", ['ip' => $request->ip()], $request->ip());
+
             return back()->withErrors([
                 'captcha' => 'Invalid or expired security captcha. Please enter the fresh code.',
             ])->onlyInput('email');
@@ -75,7 +81,7 @@ class WebAuthController extends Controller
             $user = Auth::user();
 
             // Institutional access lock: faculty and students require an active approval state.
-            if (($user->isTeacher() || $user->isStudent()) && !$user->is_approved) {
+            if (($user->isTeacher() || $user->isStudent()) && ! $user->is_approved) {
                 $this->logAuthAudit($user->id, 'login_unapproved_blocked', "Unapproved {$user->role} account attempted login: {$user->email}", ['role' => $user->role], $request->ip());
                 Auth::logout();
                 $request->session()->invalidate();
@@ -88,11 +94,11 @@ class WebAuthController extends Controller
                 return back()->withErrors(['email' => $message])->onlyInput('email');
             }
 
-            $isOnboarded = \App\Models\AcademySetting::get('onboarding_completed') === 'true';
+            $isOnboarded = AcademySetting::get('onboarding_completed') === 'true';
 
             // Initial System Setup enforcement
-            if (!$isOnboarded) {
-                if (!$user->isAdmin()) {
+            if (! $isOnboarded) {
+                if (! $user->isAdmin()) {
                     $this->logAuthAudit($user->id, 'login_setup_blocked', "Non-admin account blocked during institutional setup: {$user->email}", ['role' => $user->role], $request->ip());
                     Auth::logout();
                     $request->session()->invalidate();
@@ -105,7 +111,7 @@ class WebAuthController extends Controller
 
                 RateLimiter::clear($throttleKey);
                 $request->session()->regenerate();
-                \Illuminate\Support\Facades\Cache::put('user_active_session_' . $user->id, session()->getId(), now()->addDay());
+                Cache::put('user_active_session_'.$user->id, session()->getId(), now()->addDay());
                 $user->recordDailyActivity('login');
                 $this->logAuthAudit($user->id, 'login_success', "Administrator {$user->name} authenticated into setup wizard", ['role' => $user->role], $request->ip());
 
@@ -115,12 +121,12 @@ class WebAuthController extends Controller
 
             RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
-            \Illuminate\Support\Facades\Cache::put('user_active_session_' . $user->id, session()->getId(), now()->addDay());
+            Cache::put('user_active_session_'.$user->id, session()->getId(), now()->addDay());
             $user->recordDailyActivity('login');
             $this->logAuthAudit($user->id, 'login_success', "User {$user->name} ({$user->role}) authenticated successfully", ['role' => $user->role, 'email' => $user->email], $request->ip());
 
             return redirect()->intended(route('dashboard'))
-                ->with('success', 'Welcome back, ' . $user->name . '!');
+                ->with('success', 'Welcome back, '.$user->name.'!');
         }
 
         RateLimiter::hit($throttleKey, 60);
@@ -138,22 +144,25 @@ class WebAuthController extends Controller
             return redirect()->route('dashboard');
         }
         $classes = AcademicClass::orderBy('grade_level')->get();
+
         return view('auth.register', compact('classes'));
     }
 
     public function register(Request $request): RedirectResponse
     {
-        $throttleKey = 'register|' . $request->ip();
+        $throttleKey = 'register|'.$request->ip();
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
+
             return back()->withErrors([
                 'email' => "Too many registration attempts. Rate limit cap triggered. Please wait {$seconds} seconds.",
             ])->onlyInput('email');
         }
 
         // Verify institutional security captcha
-        if (!CaptchaService::verify($request->input('captcha'), $request->input('captcha_token'))) {
+        if (! CaptchaService::verify($request->input('captcha'), $request->input('captcha_token'))) {
             RateLimiter::hit($throttleKey, 60);
+
             return back()->withErrors([
                 'captcha' => 'Invalid or expired security captcha. Please enter the fresh code.',
             ])->withInput($request->except(['password', 'password_confirmation', 'captcha']));
@@ -169,11 +178,12 @@ class WebAuthController extends Controller
 
         if ($role === 'teacher') {
             $deviceId = $request->cookie('pa_device_id') ?? $request->header('X-Device-Id');
-            $deviceFingerprint = hash('sha256', $request->ip() . '|' . ($request->userAgent() ?? ''));
+            $deviceFingerprint = hash('sha256', $request->ip().'|'.($request->userAgent() ?? ''));
 
             // 0. Enforce single teacher registration per physical device
-            if (!empty($deviceId) && FacultyDeviceLock::isDeviceLocked($deviceId, null)) {
+            if (! empty($deviceId) && FacultyDeviceLock::isDeviceLocked($deviceId, null)) {
                 RateLimiter::hit($throttleKey, 60);
+
                 return back()->withErrors([
                     'faculty_code' => 'A teacher registration has already been submitted from this device. Institutional security allows only 1 faculty registration per hardware device. Please contact administration.',
                 ])->withInput($request->except(['password', 'password_confirmation', 'captcha']));
@@ -184,9 +194,10 @@ class WebAuthController extends Controller
             }
 
             // 1. Special code manually generated by admin is strictly required
-            $rawCode = strtoupper(trim((string)$request->input('faculty_code')));
+            $rawCode = strtoupper(trim((string) $request->input('faculty_code')));
             if (empty($rawCode)) {
                 RateLimiter::hit($throttleKey, 60);
+
                 return back()->withErrors([
                     'faculty_code' => 'The special faculty authorization code is mandatory for teacher registration.',
                 ])->withInput($request->except(['password', 'password_confirmation', 'captcha']));
@@ -196,8 +207,9 @@ class WebAuthController extends Controller
                 ->where('is_used', false)
                 ->first();
 
-            if (!$accessCode) {
+            if (! $accessCode) {
                 RateLimiter::hit($throttleKey, 60);
+
                 return back()->withErrors([
                     'faculty_code' => 'The provided faculty authorization code is invalid, expired, or has already been used. Please contact the administrator.',
                 ])->withInput($request->except(['password', 'password_confirmation', 'captcha']));
@@ -209,7 +221,7 @@ class WebAuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'nullable|in:student,teacher',
-            'class_id' => ($role === 'student' && $hasClasses ? 'required' : 'nullable') . '|exists:academic_classes,id',
+            'class_id' => ($role === 'student' && $hasClasses ? 'required' : 'nullable').'|exists:academic_classes,id',
             'phone' => ['required', 'string', 'min:7', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/'],
             'faculty_code' => $role === 'teacher' ? 'required|string|max:50' : 'nullable|string',
             'captcha' => 'nullable|string',
@@ -224,19 +236,19 @@ class WebAuthController extends Controller
         RateLimiter::hit($throttleKey, 60);
 
         $role = $validated['role'] ?? 'student';
-        $classId = !empty($validated['class_id']) ? (int)$validated['class_id'] : null;
+        $classId = ! empty($validated['class_id']) ? (int) $validated['class_id'] : null;
 
         $batchId = null;
         $classAcademicYear = $classId ? AcademicClass::query()->whereKey($classId)->value('academic_year') : null;
         if ($classId) {
             $batch = Batch::where('class_id', $classId)->where('is_active', true)->first();
-            if (!$batch) {
+            if (! $batch) {
                 $academicClass = AcademicClass::find($classId);
                 if ($academicClass) {
                     $batch = Batch::create([
                         'class_id' => $academicClass->id,
-                        'name' => $academicClass->name . ' - Morning Batch',
-                        'code' => 'B-' . $academicClass->grade_level . '-MORN',
+                        'name' => $academicClass->name.' - Morning Batch',
+                        'code' => 'B-'.$academicClass->grade_level.'-MORN',
                         'shift' => 'morning',
                         'timing_slot' => '08:00 AM - 01:00 PM',
                         'academic_year' => $academicClass->academic_year,
@@ -251,7 +263,7 @@ class WebAuthController extends Controller
 
         $admissionNumber = $role === 'student' ? User::generateNextAdmissionNumber() : null;
         $prefix = $role === 'teacher' ? 'PA-FAC-' : 'PA-STD-';
-        $studentIdNum = $admissionNumber ?: ($prefix . date('Y') . '-' . str_pad((string)(User::count() + 1), 4, '0', STR_PAD_LEFT));
+        $studentIdNum = $admissionNumber ?: ($prefix.date('Y').'-'.str_pad((string) (User::count() + 1), 4, '0', STR_PAD_LEFT));
 
         $user = User::create([
             'name' => $validated['name'],
@@ -313,14 +325,14 @@ class WebAuthController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
-        \Illuminate\Support\Facades\Cache::put('user_active_session_' . $user->id, session()->getId(), now()->addDay());
+        Cache::put('user_active_session_'.$user->id, session()->getId(), now()->addDay());
 
         $response = redirect()->route('dashboard')
             ->with('success', $role === 'teacher'
                 ? "Faculty registration verified and activated with administrator code [{$accessCode->code}]!"
                 : 'Your institutional account has been successfully verified and activated! (+100 Scholar XP)');
 
-        if ($role === 'teacher' && !empty($deviceId)) {
+        if ($role === 'teacher' && ! empty($deviceId)) {
             $response->withCookie(cookie()->forever('pa_device_id', $deviceId));
         }
 
@@ -358,7 +370,7 @@ class WebAuthController extends Controller
                 'updated_at' => now(),
             ]);
         } catch (\Throwable $e) {
-            Log::error('Auth audit log write failed: ' . $e->getMessage());
+            Log::error('Auth audit log write failed: '.$e->getMessage());
         }
     }
 }

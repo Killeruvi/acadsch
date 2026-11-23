@@ -18,7 +18,6 @@ use App\Models\SchoolReportCard;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class SchoolSystemSeeder extends Seeder
 {
@@ -158,7 +157,7 @@ class SchoolSystemSeeder extends Seeder
                 'class_teacher_id' => $cfg['teacher'] ?? $class->class_teacher_id,
             ]);
 
-            $classesMap[$cfg['name'] . '-' . $cfg['section']] = $class;
+            $classesMap[$cfg['name'].'-'.$cfg['section']] = $class;
         }
 
         $class10A = $classesMap['Class 10-A'];
@@ -260,7 +259,7 @@ class SchoolSystemSeeder extends Seeder
                     'roll_number' => $st['roll'],
                     'date_of_birth' => '2010-06-20',
                     'blood_group' => 'B+',
-                    'guardian_name' => 'Parent of ' . $st['name'],
+                    'guardian_name' => 'Parent of '.$st['name'],
                     'guardian_phone' => '+91 98222 33445',
                     'is_approved' => true,
                 ]
@@ -381,7 +380,7 @@ class SchoolSystemSeeder extends Seeder
             ];
         }
 
-        usort($results, fn($a, $b) => $b['pct'] <=> $a['pct']);
+        usort($results, fn ($a, $b) => $b['pct'] <=> $a['pct']);
 
         foreach ($results as $rank => $r) {
             SchoolReportCard::updateOrCreate(

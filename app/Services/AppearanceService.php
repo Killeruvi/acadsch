@@ -187,7 +187,7 @@ class AppearanceService
 
         $available = static::availableThemes();
         $activeKey = $settings['active_theme'] ?? 'infix_classic';
-        if (!isset($available[$activeKey])) {
+        if (! isset($available[$activeKey])) {
             $activeKey = 'infix_classic';
         }
 
@@ -221,7 +221,7 @@ class AppearanceService
             'fonts' => [
                 'family1' => $fontFamily1,
                 'family2' => $fontFamily2,
-                'google_fonts_url' => 'https://fonts.googleapis.com/css2?family=' . urlencode($fontFamily1) . ':wght@300;400;500;600;700;800;900&family=' . urlencode($fontFamily2) . ':wght@400;500;600;700;800&display=swap',
+                'google_fonts_url' => 'https://fonts.googleapis.com/css2?family='.urlencode($fontFamily1).':wght@300;400;500;600;700;800;900&family='.urlencode($fontFamily2).':wght@400;500;600;700;800&display=swap',
             ],
             'preloader' => [
                 'status' => $preloaderStatus,
@@ -239,7 +239,7 @@ class AppearanceService
     public static function setActiveTheme(string $themeKey): bool
     {
         $available = static::availableThemes();
-        if (!isset($available[$themeKey])) {
+        if (! isset($available[$themeKey])) {
             return false;
         }
 
@@ -255,6 +255,7 @@ class AppearanceService
         AcademySetting::set('brand_primary_color', $theme['primary_color']);
 
         static::flush();
+
         return true;
     }
 
@@ -263,26 +264,26 @@ class AppearanceService
      */
     public static function saveCustomColors(array $colors): void
     {
-        if (!empty($colors['primary_color'])) {
+        if (! empty($colors['primary_color'])) {
             AcademySetting::set('theme_primary_color', $colors['primary_color']);
             AcademySetting::set('brand_primary_color', $colors['primary_color']);
         }
-        if (!empty($colors['secondary_color'])) {
+        if (! empty($colors['secondary_color'])) {
             AcademySetting::set('theme_secondary_color', $colors['secondary_color']);
         }
-        if (!empty($colors['gradient'])) {
+        if (! empty($colors['gradient'])) {
             AcademySetting::set('theme_primary_gradient', $colors['gradient']);
         }
-        if (!empty($colors['accent_color'])) {
+        if (! empty($colors['accent_color'])) {
             AcademySetting::set('theme_accent_color', $colors['accent_color']);
         }
-        if (!empty($colors['bg_color'])) {
+        if (! empty($colors['bg_color'])) {
             AcademySetting::set('theme_bg_color', $colors['bg_color']);
         }
-        if (!empty($colors['footer_bg'])) {
+        if (! empty($colors['footer_bg'])) {
             AcademySetting::set('theme_footer_bg', $colors['footer_bg']);
         }
-        if (!empty($colors['footer_text'])) {
+        if (! empty($colors['footer_text'])) {
             AcademySetting::set('theme_footer_text', $colors['footer_text']);
         }
 

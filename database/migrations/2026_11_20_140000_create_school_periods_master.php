@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('school_periods')) {
+        if (! Schema::hasTable('school_periods')) {
             Schema::create('school_periods', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedTinyInteger('period_number')->unique();

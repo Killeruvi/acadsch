@@ -2,11 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\AcademySetting;
 use App\Models\AcademicClass;
+use App\Models\AcademySetting;
 use App\Models\ClassEnrollment;
 use App\Models\FeeInvoice;
-use App\Models\FeePayment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -16,9 +15,13 @@ class PaymentGatewayPurgeAndQrOnlyTest extends TestCase
     use RefreshDatabase;
 
     protected User $student;
+
     protected User $admin;
+
     protected User $cashier;
+
     protected FeeInvoice $invoice;
+
     protected AcademicClass $academicClass;
 
     protected function setUp(): void

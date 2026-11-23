@@ -62,13 +62,13 @@ class StudentTransportAssignment extends Model
     public function getEffectiveFareAttribute(): float
     {
         $base = (float) $this->monthly_fare;
-        if ($base <= 0 && $this->stop && $this->stop->fare !== null && (float)$this->stop->fare > 0) {
+        if ($base <= 0 && $this->stop && $this->stop->fare !== null && (float) $this->stop->fare > 0) {
             $base = (float) $this->stop->fare;
         } elseif ($base <= 0 && $this->route) {
             $base = (float) $this->route->fare;
         }
 
-        $waiver = $this->waiver_percentage > 0 ? ($base * ((float)$this->waiver_percentage / 100)) : 0.0;
+        $waiver = $this->waiver_percentage > 0 ? ($base * ((float) $this->waiver_percentage / 100)) : 0.0;
         $discount = (float) $this->discount_amount;
 
         return max(0.0, round($base - $waiver - $discount, 2));

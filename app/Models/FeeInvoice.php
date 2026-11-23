@@ -76,6 +76,6 @@ class FeeInvoice extends Model
 
     public function getBalanceAttribute(): float
     {
-        return max(0.00, (float)$this->total_due - (float)$this->paid_amount);
+        return max(0.00, (float) $this->total_due - (float) $this->paid_amount);
     }
 }

@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\AcademicClass;
+use App\Models\AcademicSubject;
 use App\Models\Course;
 use App\Models\CourseAssessment;
 use App\Models\CourseLesson;
@@ -19,30 +21,32 @@ class SpokenEnglishCoursePdfSeeder extends Seeder
     public function run(): void
     {
         $jsonPath = storage_path('app/spoken_english_curriculum.json');
-        if (!File::exists($jsonPath)) {
+        if (! File::exists($jsonPath)) {
             $this->command?->error("JSON curriculum not found at {$jsonPath}. Run build_curriculum_from_pdf.py first.");
+
             return;
         }
 
         $dataset = json_decode(File::get($jsonPath), true);
-        if (!$dataset || !is_array($dataset)) {
+        if (! $dataset || ! is_array($dataset)) {
             $this->command?->error("Failed to parse JSON curriculum from {$jsonPath}.");
+
             return;
         }
 
         // 1. Resolve Teacher, Class and Subject
-        $teacher = User::where('role', 'teacher')->first() 
+        $teacher = User::where('role', 'teacher')->first()
             ?? User::where('role', 'admin')->first()
             ?? User::factory()->create(['role' => 'teacher', 'name' => 'English Faculty Lead']);
 
-        $academicClass = \App\Models\AcademicClass::first() 
-            ?? \App\Models\AcademicClass::create([
+        $academicClass = AcademicClass::first()
+            ?? AcademicClass::create([
                 'name' => 'Communication & Language Arts',
                 'grade_level' => 1,
             ]);
 
-        $academicSubject = \App\Models\AcademicSubject::first() 
-            ?? \App\Models\AcademicSubject::create([
+        $academicSubject = AcademicSubject::first()
+            ?? AcademicSubject::create([
                 'class_id' => $academicClass->id,
                 'name' => 'English Grammar & Spoken Communication',
                 'code' => 'ENG',
@@ -174,7 +178,7 @@ class SpokenEnglishCoursePdfSeeder extends Seeder
             );
 
             // Create Lesson Video record for direct playback
-            if (!empty($row['video_url'])) {
+            if (! empty($row['video_url'])) {
                 CourseLessonVideo::updateOrCreate(
                     [
                         'course_id' => $course->id,
@@ -234,7 +238,7 @@ class SpokenEnglishCoursePdfSeeder extends Seeder
                     'type' => 'test',
                     'week_number' => $ass['week'],
                     'total_points' => $ass['points'],
-                    'passing_score' => (int)($ass['points'] * 0.6),
+                    'passing_score' => (int) ($ass['points'] * 0.6),
                     'description' => "Complete all questions based on the Spoken English Guru course syllabus for Week {$ass['week']}.",
                     'is_published' => true,
                 ]
@@ -284,7 +288,7 @@ class SpokenEnglishCoursePdfSeeder extends Seeder
                     'option_c' => 'Grammar translation without spoken conversational drills',
                     'option_d' => 'Passive listening without speaking practice',
                     'correct_option' => 'A',
-                    'explanation' => "As detailed in the textbook, active practice and pronunciation mastery are required for authentic spoken communication.",
+                    'explanation' => 'As detailed in the textbook, active practice and pronunciation mastery are required for authentic spoken communication.',
                     'marks' => 2,
                 ]);
             }

@@ -57,7 +57,7 @@ class ClassEnrollment extends Model
 
         $taken = $query->whereNotNull('roll_number')
             ->pluck('roll_number')
-            ->map(fn($v) => (int)$v)
+            ->map(fn ($v) => (int) $v)
             ->all();
 
         $takenSet = array_flip($taken);
@@ -85,6 +85,6 @@ class ClassEnrollment extends Model
             $query->where('academic_year', $academicYear);
         }
 
-        return !$query->exists();
+        return ! $query->exists();
     }
 }

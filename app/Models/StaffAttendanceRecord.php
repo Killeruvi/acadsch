@@ -14,6 +14,13 @@ class StaffAttendanceRecord extends Model
         return ['attendance_date' => 'date'];
     }
 
-    public function staff(): BelongsTo { return $this->belongsTo(User::class, 'staff_id'); }
-    public function marker(): BelongsTo { return $this->belongsTo(User::class, 'marked_by'); }
+    public function staff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'staff_id');
+    }
+
+    public function marker(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'marked_by');
+    }
 }

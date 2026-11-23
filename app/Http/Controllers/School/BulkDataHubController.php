@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\School;
 
 use App\Http\Controllers\Controller;
+use App\Mail\UserCredentialsMailable;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
+use App\Models\AcademySetting;
 use App\Models\User;
 use App\Services\BulkImportService;
+use App\Services\SchoolAcademicAuditService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -22,7 +27,7 @@ class BulkDataHubController extends Controller
     protected function checkAdminAccess(): void
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Unauthorized. Bulk data import and export is restricted to administrators.');
         }
     }
@@ -55,7 +60,7 @@ class BulkDataHubController extends Controller
     public function sampleCsv(string $type): StreamedResponse
     {
         // Sample templates are public header outlines with zero private institutional data
-        if (!in_array($type, ['students', 'staff', 'classes_subjects', 'parents'], true)) {
+        if (! in_array($type, ['students', 'staff', 'classes_subjects', 'parents'], true)) {
             abort(404, 'Invalid template requested.');
         }
 
@@ -82,35 +87,37 @@ class BulkDataHubController extends Controller
         );
 
         $isOnboarding = $request->input('source') === 'onboarding' || $request->has('onboarding_step');
-        $onboardingStep = (int)$request->input('onboarding_step', 5);
+        $onboardingStep = (int) $request->input('onboarding_step', 5);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             if ($isOnboarding) {
                 return redirect()->route('school.onboarding.index', ['step' => $onboardingStep])
                     ->withErrors($result['errors']);
             }
+
             return redirect()->route('school.bulk.index', ['tab' => 'students'])
                 ->withErrors($result['errors']);
         }
 
-        if (!empty($result['credentials'])) {
+        if (! empty($result['credentials'])) {
             session(['bulk_last_credentials' => $result['credentials']]);
             session()->flash('bulk_last_credentials', $result['credentials']);
         }
 
         $msg = "Successfully imported {$result['total']} student records ({$result['created']} created, {$result['updated']} updated).";
-        if (!empty($result['credentials'])) {
-            $msg .= " Generated " . count($result['credentials']) . " new login credentials available for export and dispatch below.";
+        if (! empty($result['credentials'])) {
+            $msg .= ' Generated '.count($result['credentials']).' new login credentials available for export and dispatch below.';
         }
-        if (!empty($result['parents_created'])) {
+        if (! empty($result['parents_created'])) {
             $msg .= " Additionally generated and linked {$result['parents_created']} verified Parent/Guardian accounts!";
         }
-        if (!empty($result['errors'])) {
-            $msg .= ' Warning: ' . implode(' ', $result['errors']);
+        if (! empty($result['errors'])) {
+            $msg .= ' Warning: '.implode(' ', $result['errors']);
         }
 
         if ($isOnboarding) {
-            \App\Models\AcademySetting::set('onboarding_step_5_done', 'true');
+            AcademySetting::set('onboarding_step_5_done', 'true');
+
             return redirect()->route('school.onboarding.index', ['step' => $onboardingStep])
                 ->with('success', $msg);
         }
@@ -172,7 +179,7 @@ class BulkDataHubController extends Controller
             fclose($handle);
         }, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="school_students_master_' . date('Y-m-d') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="school_students_master_'.date('Y-m-d').'.csv"',
         ]);
     }
 
@@ -191,26 +198,28 @@ class BulkDataHubController extends Controller
         $result = $this->bulkImportService->importStaffFromCsv($request->file('csv_file'), $autoPassword);
 
         $isOnboarding = $request->input('source') === 'onboarding' || $request->has('onboarding_step');
-        $onboardingStep = (int)$request->input('onboarding_step', 4);
+        $onboardingStep = (int) $request->input('onboarding_step', 4);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             if ($isOnboarding) {
                 return redirect()->route('school.onboarding.index', ['step' => $onboardingStep])
                     ->withErrors($result['errors']);
             }
+
             return redirect()->route('school.bulk.index', ['tab' => 'staff'])
                 ->withErrors($result['errors']);
         }
 
-        if (!empty($result['credentials'])) {
+        if (! empty($result['credentials'])) {
             session(['bulk_last_credentials' => $result['credentials']]);
             session()->flash('bulk_last_credentials', $result['credentials']);
         }
 
         $msg = "Successfully ingested {$result['total']} faculty & staff members ({$result['created']} created, {$result['updated']} updated).";
-        
+
         if ($isOnboarding) {
-            \App\Models\AcademySetting::set('onboarding_step_4_done', 'true');
+            AcademySetting::set('onboarding_step_4_done', 'true');
+
             return redirect()->route('school.onboarding.index', ['step' => $onboardingStep])
                 ->with('success', $msg);
         }
@@ -233,22 +242,22 @@ class BulkDataHubController extends Controller
         $autoPassword = $request->boolean('auto_generate_password', true);
         $result = $this->bulkImportService->importParentsFromCsv($request->file('csv_file'), $autoPassword);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return redirect()->route('school.bulk.index', ['tab' => 'parents'])
                 ->withErrors($result['errors']);
         }
 
-        if (!empty($result['credentials'])) {
+        if (! empty($result['credentials'])) {
             session(['bulk_last_credentials' => $result['credentials']]);
             session()->flash('bulk_last_credentials', $result['credentials']);
         }
 
         $msg = "Successfully ingested {$result['total']} parent/guardian records ({$result['created']} created, {$result['updated']} updated).";
-        if (!empty($result['linked'])) {
+        if (! empty($result['linked'])) {
             $msg .= " Verified & linked to {$result['linked']} student academic files!";
         }
-        if (!empty($result['errors'])) {
-            $msg .= ' Warning: ' . implode(' ', $result['errors']);
+        if (! empty($result['errors'])) {
+            $msg .= ' Warning: '.implode(' ', $result['errors']);
         }
 
         return redirect()->route('school.bulk.index', ['tab' => 'parents'])
@@ -274,7 +283,7 @@ class BulkDataHubController extends Controller
                 $children = User::childrenOf($p)
                     ->get();
 
-                $childrenDesc = $children->map(fn($c) => ($c->admission_number ?? $c->student_id_number ?? 'N/A') . ' - ' . $c->name)->implode('; ');
+                $childrenDesc = $children->map(fn ($c) => ($c->admission_number ?? $c->student_id_number ?? 'N/A').' - '.$c->name)->implode('; ');
 
                 fputcsv($handle, [
                     $p->name,
@@ -287,7 +296,7 @@ class BulkDataHubController extends Controller
             fclose($handle);
         }, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="school_parents_master_' . date('Y-m-d') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="school_parents_master_'.date('Y-m-d').'.csv"',
         ]);
     }
 
@@ -325,18 +334,19 @@ class BulkDataHubController extends Controller
 
         foreach ($credentials as $cred) {
             $user = User::find($cred['user_id'] ?? null);
-            if (!$user || empty($cred['password']) || empty($user->email)) {
+            if (! $user || empty($cred['password']) || empty($user->email)) {
                 $failedCount++;
+
                 continue;
             }
 
             try {
-                \Illuminate\Support\Facades\Mail::to($user->email)
-                    ->send(new \App\Mail\UserCredentialsMailable($user, $cred['password']));
+                Mail::to($user->email)
+                    ->send(new UserCredentialsMailable($user, $cred['password']));
                 $sentCount++;
             } catch (\Throwable $e) {
                 // If mail transport fails (e.g. no SMTP configured), log error and continue
-                \Illuminate\Support\Facades\Log::warning("Failed to dispatch credential email to {$user->email}: " . $e->getMessage());
+                Log::warning("Failed to dispatch credential email to {$user->email}: ".$e->getMessage());
                 $failedCount++;
             }
         }
@@ -379,7 +389,7 @@ class BulkDataHubController extends Controller
             fclose($handle);
         }, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="school_faculty_staff_' . date('Y-m-d') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="school_faculty_staff_'.date('Y-m-d').'.csv"',
         ]);
     }
 
@@ -397,18 +407,19 @@ class BulkDataHubController extends Controller
         $result = $this->bulkImportService->importClassesAndSubjectsFromCsv($request->file('csv_file'), Auth::user(), $request);
 
         $isOnboarding = $request->input('source') === 'onboarding' || $request->has('onboarding_step');
-        $onboardingStep = (int)$request->input('onboarding_step', 3);
+        $onboardingStep = (int) $request->input('onboarding_step', 3);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             if ($isOnboarding) {
                 return redirect()->route('school.onboarding.index', ['step' => $onboardingStep])
                     ->withErrors($result['errors']);
             }
+
             return redirect()->route('school.bulk.index', ['tab' => 'classes_subjects'])
                 ->withErrors($result['errors']);
         }
 
-        app(\App\Services\SchoolAcademicAuditService::class)->log(
+        app(SchoolAcademicAuditService::class)->log(
             Auth::user(),
             'bulk_imported_classes_subjects',
             "Imported {$result['classes_count']} classes and {$result['subjects_count']} class-subject mappings from CSV.",
@@ -417,9 +428,10 @@ class BulkDataHubController extends Controller
             $request
         );
         $msg = "Successfully ingested {$result['classes_count']} academic classes and {$result['subjects_count']} subjects.";
-        
+
         if ($isOnboarding) {
-            \App\Models\AcademySetting::set('onboarding_step_3_done', 'true');
+            AcademySetting::set('onboarding_step_3_done', 'true');
+
             return redirect()->route('school.onboarding.index', ['step' => $onboardingStep])
                 ->with('success', $msg);
         }
@@ -457,7 +469,7 @@ class BulkDataHubController extends Controller
             fclose($handle);
         }, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="school_classes_subjects_' . date('Y-m-d') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="school_classes_subjects_'.date('Y-m-d').'.csv"',
         ]);
     }
 }

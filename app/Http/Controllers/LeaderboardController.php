@@ -24,7 +24,7 @@ class LeaderboardController extends Controller
         if ($selectedClassId) {
             $query->where(function ($q) use ($selectedClassId) {
                 $q->whereHas('classEnrollments', fn ($sub) => $sub->where('class_id', $selectedClassId))
-                  ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $selectedClassId));
+                    ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $selectedClassId));
             });
         }
 

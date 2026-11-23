@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 class SyncStaffApprovedLeaveCommand extends Command
 {
     protected $signature = 'staff:sync-approved-leave';
+
     protected $description = 'Create today staff attendance leave records from approved staff leave requests';
 
     public function handle(): int
@@ -18,6 +19,7 @@ class SyncStaffApprovedLeaveCommand extends Command
         $date = now()->toDateString();
         if (in_array(now()->format('l'), config('attendance.weekend_days', ['Sunday']), true) || AcademicHoliday::findHolidayForDate(now())) {
             $this->info('Today is a configured non-working day; no staff leave attendance was created.');
+
             return self::SUCCESS;
         }
 
@@ -28,12 +30,12 @@ class SyncStaffApprovedLeaveCommand extends Command
                     DB::transaction(function () use ($leave, $date) {
                         $attendance = StaffAttendanceRecord::firstOrCreate(
                             ['staff_id' => $leave->staff_id, 'attendance_date' => $date],
-                            ['status' => 'leave', 'remarks' => ucfirst($leave->leave_type) . ' leave approved', 'marked_by' => $leave->reviewed_by]
+                            ['status' => 'leave', 'remarks' => ucfirst($leave->leave_type).' leave approved', 'marked_by' => $leave->reviewed_by]
                         );
                         if ($attendance->wasRecentlyCreated || $attendance->status === 'absent') {
                             $before = $attendance->wasRecentlyCreated ? null : $attendance->only(['staff_id', 'attendance_date', 'status', 'remarks', 'marked_by']);
                             if ($before) {
-                                $attendance->update(['status' => 'leave', 'remarks' => ucfirst($leave->leave_type) . ' leave approved', 'marked_by' => $leave->reviewed_by]);
+                                $attendance->update(['status' => 'leave', 'remarks' => ucfirst($leave->leave_type).' leave approved', 'marked_by' => $leave->reviewed_by]);
                             }
                             DB::table('staff_hr_audits')->insert([
                                 'entity_type' => 'attendance', 'entity_id' => $attendance->id,
@@ -47,7 +49,8 @@ class SyncStaffApprovedLeaveCommand extends Command
                 }
             });
 
-        $this->info('Approved staff leave synchronized for ' . $date . '.');
+        $this->info('Approved staff leave synchronized for '.$date.'.');
+
         return self::SUCCESS;
     }
 }

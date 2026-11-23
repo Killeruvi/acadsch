@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Batch Change Requests (Students can only request; only teachers/admins approve)
-        if (!Schema::hasTable('batch_change_requests')) {
+        if (! Schema::hasTable('batch_change_requests')) {
             Schema::create('batch_change_requests', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('student_id')->constrained('users')->cascadeOnDelete();
@@ -28,7 +28,7 @@ return new class extends Migration
         }
 
         // 2. Curriculum Notes (Allows multiple notes / documents per chapter)
-        if (!Schema::hasTable('curriculum_notes')) {
+        if (! Schema::hasTable('curriculum_notes')) {
             Schema::create('curriculum_notes', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('topic_id')->constrained('curriculum_topics')->cascadeOnDelete();

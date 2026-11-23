@@ -18,7 +18,7 @@ class CourseAssessmentController extends Controller
     public function store(Request $request, int $courseId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -49,7 +49,7 @@ class CourseAssessmentController extends Controller
     public function update(Request $request, int $courseId, int $assessmentId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -78,7 +78,7 @@ class CourseAssessmentController extends Controller
     public function destroy(Request $request, int $courseId, int $assessmentId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -112,7 +112,7 @@ class CourseAssessmentController extends Controller
     public function submit(Request $request, int $courseId, int $assessmentId): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             abort(403);
         }
 
@@ -124,19 +124,24 @@ class CourseAssessmentController extends Controller
             ->first();
 
         $answers = $request->input('answers', []);
-        $rawScore = (float)$request->input('score', 0);
-        
+        $rawScore = (float) $request->input('score', 0);
+
         // Auto-scoring fallback if oral/written submission
         if ($rawScore <= 0) {
             $rawScore = $assessment->total_points * 0.85; // Default proficiency benchmark
         }
         $percentage = round(($rawScore / max(1, $assessment->total_points)) * 100, 1);
-        
+
         $gradeLetter = 'A';
-        if ($percentage < 60) $gradeLetter = 'F';
-        elseif ($percentage < 70) $gradeLetter = 'C';
-        elseif ($percentage < 85) $gradeLetter = 'B';
-        elseif ($percentage >= 95) $gradeLetter = 'A+';
+        if ($percentage < 60) {
+            $gradeLetter = 'F';
+        } elseif ($percentage < 70) {
+            $gradeLetter = 'C';
+        } elseif ($percentage < 85) {
+            $gradeLetter = 'B';
+        } elseif ($percentage >= 95) {
+            $gradeLetter = 'A+';
+        }
 
         if ($existing) {
             $existing->update([

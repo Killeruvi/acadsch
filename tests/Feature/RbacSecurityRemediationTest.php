@@ -6,12 +6,14 @@ use App\Models\AcademicClass;
 use App\Models\Assignment;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
+use App\Models\ClassEnrollment;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
 use App\Models\InAppNotification;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
@@ -21,10 +23,15 @@ class RbacSecurityRemediationTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $teacher;
+
     private User $otherTeacher;
+
     private User $student;
+
     private User $otherStudent;
+
     private User $parent;
 
     protected function setUp(): void
@@ -73,7 +80,7 @@ class RbacSecurityRemediationTest extends TestCase
     {
         return Course::create([
             'title' => 'Advanced Physics',
-            'code' => 'PHYS-' . uniqid(),
+            'code' => 'PHYS-'.uniqid(),
             'description' => 'Calculus based physics',
             'credits' => 4,
             'category' => 'Science',
@@ -388,7 +395,7 @@ class RbacSecurityRemediationTest extends TestCase
             'is_active' => true,
         ]);
 
-        \App\Models\ClassEnrollment::create([
+        ClassEnrollment::create([
             'student_id' => $this->student->id,
             'class_id' => $class->id,
             'status' => 'active',
@@ -436,7 +443,7 @@ class RbacSecurityRemediationTest extends TestCase
 
     public function test_parent_and_student_forbidden_from_taking_roll_call(): void
     {
-        \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-11-16 09:30:00'));
+        Carbon::setTestNow(Carbon::parse('2026-11-16 09:30:00'));
         $class = AcademicClass::create([
             'name' => 'Grade 9',
             'section' => 'B',
@@ -466,7 +473,7 @@ class RbacSecurityRemediationTest extends TestCase
         $this->actingAs($this->teacher)
             ->get(route('school.attendance.take', $class->id))
             ->assertStatus(200);
-        \Carbon\Carbon::setTestNow();
+        Carbon::setTestNow();
     }
 
     public function test_parent_and_student_access_to_individual_attendance_sessions(): void
@@ -504,7 +511,7 @@ class RbacSecurityRemediationTest extends TestCase
 
     public function test_school_attendance_store_succeeds_without_title(): void
     {
-        \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-11-16 09:30:00'));
+        Carbon::setTestNow(Carbon::parse('2026-11-16 09:30:00'));
         $class = AcademicClass::create([
             'name' => 'Grade 10',
             'section' => 'A',
@@ -513,7 +520,7 @@ class RbacSecurityRemediationTest extends TestCase
             'is_active' => true,
         ]);
 
-        \App\Models\ClassEnrollment::create([
+        ClassEnrollment::create([
             'student_id' => $this->student->id,
             'class_id' => $class->id,
             'status' => 'active',
@@ -538,7 +545,7 @@ class RbacSecurityRemediationTest extends TestCase
             'class_id' => $class->id,
             'title' => "Daily Roll Call - {$class->display_name}",
         ]);
-        \Carbon\Carbon::setTestNow();
+        Carbon::setTestNow();
     }
 
     public function test_notification_one_by_one_and_bulk_deletion(): void

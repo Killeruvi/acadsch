@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Assignment;
+use App\Models\Course;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,19 +18,30 @@ class AssignmentController extends Controller
         $user = $request->user();
         $query = Assignment::with(['course:id,title,code', 'teacher:id,name'])->withCount('submissions');
         if ($user->isAdmin()) {
-            if ($request->filled('course_id')) $query->where('course_id', $request->integer('course_id'));
-            if ($request->filled('teacher_id')) $query->where('teacher_id', $request->integer('teacher_id'));
+            if ($request->filled('course_id')) {
+                $query->where('course_id', $request->integer('course_id'));
+            }
+            if ($request->filled('teacher_id')) {
+                $query->where('teacher_id', $request->integer('teacher_id'));
+            }
         } elseif ($user->isTeacher()) {
             $query->where('teacher_id', $user->id);
         } elseif ($user->isStudent()) {
             $courseIds = $user->enrolledCourses()->pluck('courses.id');
             $query->where(function ($q) use ($user, $courseIds) {
-                $q->where(function ($q) use ($courseIds) { $q->where('target_type', 'all_enrolled')->whereIn('course_id', $courseIds); })
-                  ->orWhere('target_type', 'all_students')
-                  ->orWhere(function ($q) use ($user) { $q->where('target_type', 'specific_student')->where('student_id', $user->id); });
+                $q->where(function ($q) use ($courseIds) {
+                    $q->where('target_type', 'all_enrolled')->whereIn('course_id', $courseIds);
+                })
+                    ->orWhere('target_type', 'all_students')
+                    ->orWhere(function ($q) use ($user) {
+                        $q->where('target_type', 'specific_student')->where('student_id', $user->id);
+                    });
             });
-        } else { return response()->json(['message' => 'Forbidden'], 403); }
+        } else {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
         $perPage = min(100, max(1, $request->integer('per_page', 20)));
+
         return response()->json($query->orderBy('due_date')->paginate($perPage));
     }
 
@@ -48,7 +60,9 @@ class AssignmentController extends Controller
 
         $user = $request->user();
         abort_unless($user && $user->can('create', Assignment::class), 403);
-        if ($user->isTeacher() && !\App\Models\Course::whereKey($validated['course_id'])->where('teacher_id', $user->id)->exists()) abort(403, 'You may only create assignments for courses you teach.');
+        if ($user->isTeacher() && ! Course::whereKey($validated['course_id'])->where('teacher_id', $user->id)->exists()) {
+            abort(403, 'You may only create assignments for courses you teach.');
+        }
         $validated['teacher_id'] = $user->id;
 
         $assignment = Assignment::create($validated);
@@ -93,7 +107,7 @@ class AssignmentController extends Controller
         $assignment = Assignment::findOrFail($id);
         $user = $request->user();
 
-        if (!$user->can('update', $assignment)) {
+        if (! $user->can('update', $assignment)) {
             return response()->json(['message' => 'Unauthorized. You may only edit your own assignments.'], 403);
         }
 
@@ -120,7 +134,7 @@ class AssignmentController extends Controller
         $assignment = Assignment::findOrFail($id);
         $user = $request->user();
 
-        if (!$user->can('delete', $assignment)) {
+        if (! $user->can('delete', $assignment)) {
             return response()->json(['message' => 'Unauthorized. You may only delete your own assignments.'], 403);
         }
 

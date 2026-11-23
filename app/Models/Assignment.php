@@ -37,7 +37,7 @@ class Assignment extends Model
 
     public function hasAttachment(): bool
     {
-        return !empty($this->attachment_path);
+        return ! empty($this->attachment_path);
     }
 
     public function getAttachmentUrlAttribute(): ?string
@@ -45,7 +45,10 @@ class Assignment extends Model
         if (empty($this->attachment_path)) {
             return null;
         }
-        if (str_starts_with($this->attachment_path, 'https://')) return $this->attachment_path;
+        if (str_starts_with($this->attachment_path, 'https://')) {
+            return $this->attachment_path;
+        }
+
         return route('assignments.attachment', $this->id);
     }
 
@@ -56,12 +59,13 @@ class Assignment extends Model
             return '';
         }
         if ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 1) . ' MB';
+            return number_format($bytes / 1048576, 1).' MB';
         }
         if ($bytes >= 1024) {
-            return number_format($bytes / 1024, 0) . ' KB';
+            return number_format($bytes / 1024, 0).' KB';
         }
-        return $bytes . ' B';
+
+        return $bytes.' B';
     }
 
     public function getIsPdfAttachmentAttribute(): bool
@@ -93,11 +97,12 @@ class Assignment extends Model
     public function getAssignedToLabelAttribute(): string
     {
         if ($this->target_type === 'specific_student' && $this->student) {
-            return "👤 " . $this->student->name;
+            return '👤 '.$this->student->name;
         }
         if ($this->target_type === 'all_students') {
-            return "🏫 All Scholars (Campus)";
+            return '🏫 All Scholars (Campus)';
         }
-        return "👥 All Enrolled Scholars (" . ($this->course->code ?? 'Course') . ")";
+
+        return '👥 All Enrolled Scholars ('.($this->course->code ?? 'Course').')';
     }
 }

@@ -13,44 +13,44 @@ return new class extends Migration
     {
         // 1. Enhance transport_routes
         Schema::table('transport_routes', function (Blueprint $table) {
-            if (!Schema::hasColumn('transport_routes', 'distance_km')) {
+            if (! Schema::hasColumn('transport_routes', 'distance_km')) {
                 $table->decimal('distance_km', 6, 2)->nullable()->after('end_point');
             }
-            if (!Schema::hasColumn('transport_routes', 'morning_timing')) {
+            if (! Schema::hasColumn('transport_routes', 'morning_timing')) {
                 $table->string('morning_timing', 50)->nullable()->after('distance_km');
             }
-            if (!Schema::hasColumn('transport_routes', 'evening_timing')) {
+            if (! Schema::hasColumn('transport_routes', 'evening_timing')) {
                 $table->string('evening_timing', 50)->nullable()->after('morning_timing');
             }
-            if (!Schema::hasColumn('transport_routes', 'status')) {
+            if (! Schema::hasColumn('transport_routes', 'status')) {
                 $table->string('status', 20)->default('active')->after('evening_timing');
             }
         });
 
         // 2. Enhance transport_vehicles
         Schema::table('transport_vehicles', function (Blueprint $table) {
-            if (!Schema::hasColumn('transport_vehicles', 'vehicle_type')) {
+            if (! Schema::hasColumn('transport_vehicles', 'vehicle_type')) {
                 $table->string('vehicle_type', 50)->default('Bus')->after('vehicle_number');
             }
-            if (!Schema::hasColumn('transport_vehicles', 'capacity')) {
+            if (! Schema::hasColumn('transport_vehicles', 'capacity')) {
                 $table->integer('capacity')->default(40)->after('vehicle_type');
             }
-            if (!Schema::hasColumn('transport_vehicles', 'insurance_renewal_date')) {
+            if (! Schema::hasColumn('transport_vehicles', 'insurance_renewal_date')) {
                 $table->date('insurance_renewal_date')->nullable()->after('year_made');
             }
-            if (!Schema::hasColumn('transport_vehicles', 'fitness_certificate_expiry')) {
+            if (! Schema::hasColumn('transport_vehicles', 'fitness_certificate_expiry')) {
                 $table->date('fitness_certificate_expiry')->nullable()->after('insurance_renewal_date');
             }
-            if (!Schema::hasColumn('transport_vehicles', 'status')) {
+            if (! Schema::hasColumn('transport_vehicles', 'status')) {
                 $table->string('status', 30)->default('active')->after('fitness_certificate_expiry'); // active, inactive, maintenance
             }
-            if (!Schema::hasColumn('transport_vehicles', 'driver_id')) {
+            if (! Schema::hasColumn('transport_vehicles', 'driver_id')) {
                 $table->unsignedBigInteger('driver_id')->nullable()->after('driver_phone');
             }
         });
 
         // 3. Transport Staff (Drivers / Attendants / Conductors)
-        if (!Schema::hasTable('transport_staff')) {
+        if (! Schema::hasTable('transport_staff')) {
             Schema::create('transport_staff', function (Blueprint $table) {
                 $table->id();
                 $table->string('name');
@@ -67,7 +67,7 @@ return new class extends Migration
         }
 
         // 4. Transport Route Stops
-        if (!Schema::hasTable('transport_route_stops')) {
+        if (! Schema::hasTable('transport_route_stops')) {
             Schema::create('transport_route_stops', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('route_id')->constrained('transport_routes')->cascadeOnDelete();
@@ -84,7 +84,7 @@ return new class extends Migration
         }
 
         // 5. Student Transport Assignment
-        if (!Schema::hasTable('student_transport_assignments')) {
+        if (! Schema::hasTable('student_transport_assignments')) {
             Schema::create('student_transport_assignments', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('student_id')->constrained('users')->cascadeOnDelete();
@@ -104,7 +104,7 @@ return new class extends Migration
         }
 
         // 6. Transport Trips (Daily Fleet Dispatch)
-        if (!Schema::hasTable('transport_trips')) {
+        if (! Schema::hasTable('transport_trips')) {
             Schema::create('transport_trips', function (Blueprint $table) {
                 $table->id();
                 $table->date('trip_date');
@@ -121,7 +121,7 @@ return new class extends Migration
         }
 
         // 7. Transport Trip Passengers (Boarding Confirmation)
-        if (!Schema::hasTable('transport_trip_passengers')) {
+        if (! Schema::hasTable('transport_trip_passengers')) {
             Schema::create('transport_trip_passengers', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('trip_id')->constrained('transport_trips')->cascadeOnDelete();
@@ -134,7 +134,7 @@ return new class extends Migration
         }
 
         // 8. Transport Audit Logs
-        if (!Schema::hasTable('transport_audit_logs')) {
+        if (! Schema::hasTable('transport_audit_logs')) {
             Schema::create('transport_audit_logs', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();

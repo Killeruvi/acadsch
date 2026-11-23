@@ -16,9 +16,13 @@ class MonthlyFeesAutomationTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $student1;
+
     protected User $student2;
+
     protected AcademicClass $class10;
+
     protected Batch $batch10A;
 
     protected function setUp(): void

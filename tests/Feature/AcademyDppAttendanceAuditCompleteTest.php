@@ -4,12 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
+use App\Models\AttendanceRecord;
+use App\Models\AttendanceSession;
 use App\Models\DailyDpp;
 use App\Models\DppQuestion;
 use App\Models\DppSubmission;
-use App\Models\AttendanceSession;
-use App\Models\AttendanceRecord;
 use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,16 +19,20 @@ class AcademyDppAttendanceAuditCompleteTest extends TestCase
     use RefreshDatabase;
 
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $class10;
+
     protected AcademicClass $class9;
+
     protected AcademicSubject $physics;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->seed(\Database\Seeders\DatabaseSeeder::class);
+        $this->seed(DatabaseSeeder::class);
 
         $this->teacher = User::firstOrCreate(
             ['email' => 'audit_teacher@primearc.academy'],

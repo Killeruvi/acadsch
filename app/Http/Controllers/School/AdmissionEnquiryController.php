@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\AdmissionEnquiry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 class AdmissionEnquiryController extends Controller
 {
@@ -47,8 +47,10 @@ class AdmissionEnquiryController extends Controller
         ]);
 
         $query = AdmissionEnquiry::query()->latest();
-        if (!empty($filters['status'])) $query->where('status', $filters['status']);
-        if (!empty($filters['search'])) {
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+        if (! empty($filters['search'])) {
             $term = trim($filters['search']);
             $query->where(fn ($q) => $q->where('student_name', 'like', "%{$term}%")
                 ->orWhere('guardian_name', 'like', "%{$term}%")
@@ -58,6 +60,7 @@ class AdmissionEnquiryController extends Controller
 
         $enquiries = $query->paginate(20)->withQueryString();
         $counts = AdmissionEnquiry::query()->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
+
         return view('school.admissions.enquiries', compact('enquiries', 'counts', 'filters'));
     }
 
@@ -71,6 +74,7 @@ class AdmissionEnquiryController extends Controller
         $data['contacted_at'] = in_array($data['status'], ['contacted', 'visit_scheduled', 'approved', 'converted'], true)
             ? ($enquiry->contacted_at ?? now()) : $enquiry->contacted_at;
         $enquiry->update($data);
+
         return back()->with('success', 'Admission enquiry updated.');
     }
 }

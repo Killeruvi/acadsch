@@ -23,43 +23,63 @@ class DppController extends Controller
 {
     protected function authorizeManageDpp(DailyDpp $dpp, $user): void
     {
-        if (!$user || (!$user->isTeacher() && !$user->isAdmin())) abort(403, 'Only teachers and administrators can manage assessments.');
-        if (!$user->isAdmin() && (int) $dpp->teacher_id !== (int) $user->id) abort(403, 'You can only manage assessments you created.');
+        if (! $user || (! $user->isTeacher() && ! $user->isAdmin())) {
+            abort(403, 'Only teachers and administrators can manage assessments.');
+        }
+        if (! $user->isAdmin() && (int) $dpp->teacher_id !== (int) $user->id) {
+            abort(403, 'You can only manage assessments you created.');
+        }
     }
 
     protected function isWithinSubmissionWindow(DailyDpp $dpp): bool
     {
-        if (!$dpp->assigned_date) return false;
+        if (! $dpp->assigned_date) {
+            return false;
+        }
         $assignedAt = $dpp->assigned_date->copy()->startOfDay();
-        if (now()->lt($assignedAt)) return false;
+        if (now()->lt($assignedAt)) {
+            return false;
+        }
         try {
             $deadline = $dpp->assigned_date->copy()->setTimeFromTimeString($dpp->due_time ?: '23:59');
         } catch (\Throwable $exception) {
             $deadline = $dpp->assigned_date->copy()->endOfDay();
         }
+
         return now()->lte($deadline);
     }
 
     protected function authorizeStudentClassAccess(DailyDpp $dpp, $user): void
     {
-        if (!$user || !$user->isStudent()) return;
+        if (! $user || ! $user->isStudent()) {
+            return;
+        }
         $classIds = collect([$user->current_class_id, $user->batch?->class_id])->filter()->map(fn ($id) => (int) $id);
-        if (method_exists($user, 'classEnrollments')) $classIds = $classIds->merge($user->classEnrollments()->pluck('class_id')->map(fn ($id) => (int) $id));
-        if (!$classIds->contains((int) $dpp->class_id)) abort(403, 'This practice assessment is not assigned to your enrolled class.');
+        if (method_exists($user, 'classEnrollments')) {
+            $classIds = $classIds->merge($user->classEnrollments()->pluck('class_id')->map(fn ($id) => (int) $id));
+        }
+        if (! $classIds->contains((int) $dpp->class_id)) {
+            abort(403, 'This practice assessment is not assigned to your enrolled class.');
+        }
     }
+
     /**
      * DPP & Timed Tests Index Feed (Role Tailored).
      */
     public function index(Request $request): View
     {
         $user = Auth::user();
-        if (!$user->isStudent() && !$user->isTeacher() && !$user->isAdmin()) abort(403, 'Practice assessments are not available for this role.');
+        if (! $user->isStudent() && ! $user->isTeacher() && ! $user->isAdmin()) {
+            abort(403, 'Practice assessments are not available for this role.');
+        }
         $user->recordDailyActivity('visit');
 
         $allClasses = AcademicClass::with(['subjects.topics'])->orderBy('grade_level')->get();
         if ($user->isStudent()) {
             $visibleClassIds = collect([$user->current_class_id, $user->batch?->class_id])->filter();
-            if (method_exists($user, 'classEnrollments')) $visibleClassIds = $visibleClassIds->merge($user->classEnrollments()->pluck('class_id'));
+            if (method_exists($user, 'classEnrollments')) {
+                $visibleClassIds = $visibleClassIds->merge($user->classEnrollments()->pluck('class_id'));
+            }
             $allClasses = $allClasses->whereIn('id', $visibleClassIds->unique());
         }
 
@@ -70,7 +90,7 @@ class DppController extends Controller
         if ($isAllClasses) {
             $selectedClass = null;
         } elseif ($rawClassId !== null && $rawClassId !== '') {
-            $numericId = (int)$rawClassId;
+            $numericId = (int) $rawClassId;
             $selectedClass = $allClasses->firstWhere('id', $numericId)
                 ?? $allClasses->firstWhere('grade_level', $numericId);
         } else {
@@ -83,7 +103,7 @@ class DppController extends Controller
                     $selectedClass = $firstEnroll?->academicClass;
                 }
             }
-            if (!$selectedClass && !$user->isStudent()) {
+            if (! $selectedClass && ! $user->isStudent()) {
                 $classWithDpps = DailyDpp::first()?->academicClass;
                 $selectedClass = $classWithDpps ?? $allClasses->first();
             }
@@ -91,7 +111,7 @@ class DppController extends Controller
 
         $selectedGrade = $selectedClass ? $selectedClass->grade_level : null;
         $subjects = $selectedClass ? $selectedClass->subjects()->orderBy('name')->get() : AcademicSubject::orderBy('name')->get();
-        if ($user->isStudent() && !$selectedClass) {
+        if ($user->isStudent() && ! $selectedClass) {
             $subjects = AcademicSubject::whereIn('class_id', $visibleClassIds->unique())->orderBy('name')->get();
         }
         $selectedSubjectId = $request->query('subject_id');
@@ -100,7 +120,7 @@ class DppController extends Controller
         // Validate selectedSubjectId against selectedClass:
         // If user changed class and subject belonged to previous class, automatically reset it to avoid 0-result mismatch!
         if ($selectedClass && $selectedSubjectId) {
-            if (!$subjects->contains('id', (int)$selectedSubjectId)) {
+            if (! $subjects->contains('id', (int) $selectedSubjectId)) {
                 $selectedSubjectId = null;
             }
         }
@@ -111,10 +131,14 @@ class DppController extends Controller
         if ($user->isStudent()) {
             $query->whereDate('assigned_date', '<=', now()->toDateString());
             $studentClassIds = collect([$user->current_class_id, $user->batch?->class_id])->filter();
-            if (method_exists($user, 'classEnrollments')) $studentClassIds = $studentClassIds->merge($user->classEnrollments()->pluck('class_id'));
+            if (method_exists($user, 'classEnrollments')) {
+                $studentClassIds = $studentClassIds->merge($user->classEnrollments()->pluck('class_id'));
+            }
             $studentClassIds = $studentClassIds->unique()->values();
             $query->whereIn('class_id', $studentClassIds);
-            if ($selectedClass && !$studentClassIds->contains($selectedClass->id)) abort(403, 'You cannot view assessments for another class.');
+            if ($selectedClass && ! $studentClassIds->contains($selectedClass->id)) {
+                abort(403, 'You cannot view assessments for another class.');
+            }
         } elseif ($selectedClass) {
             $query->where('class_id', $selectedClass->id);
         }
@@ -139,12 +163,14 @@ class DppController extends Controller
 
         // Question Bank for this class & subject
         $questionBank = $user->isStudent() ? collect() : QuestionBank::with(['subject', 'topic'])
-            ->when($selectedClass, fn($q) => $q->where('class_id', $selectedClass->id))
+            ->when($selectedClass, fn ($q) => $q->where('class_id', $selectedClass->id))
             ->latest()->limit(100)->get();
 
         // Stats are scoped to the student's enrolled classes; staff retain academy-wide totals.
         $statsQuery = DailyDpp::query();
-        if ($user->isStudent()) $statsQuery->whereIn('class_id', $visibleClassIds->unique());
+        if ($user->isStudent()) {
+            $statsQuery->whereIn('class_id', $visibleClassIds->unique());
+        }
         $todayDppCount = (clone $statsQuery)->where('assigned_date', now()->toDateString())->count();
         $testCount = (clone $statsQuery)->where('type', 'test')->count();
         $rapidFireCount = (clone $statsQuery)->where('type', 'rapid_fire')->count();
@@ -179,12 +205,14 @@ class DppController extends Controller
             ->withCount('submissions')->findOrFail($id);
 
         $user = Auth::user();
-        if (!$user->isStudent() && !$user->isTeacher() && !$user->isAdmin()) abort(403, 'Practice assessments are not available for this role.');
+        if (! $user->isStudent() && ! $user->isTeacher() && ! $user->isAdmin()) {
+            abort(403, 'Practice assessments are not available for this role.');
+        }
         $this->authorizeStudentClassAccess($dpp, $user);
         $isResolving = $request->boolean('resolve') || $request->query('resolve') == '1';
 
-        $submission = ($user->isStudent() && !$isResolving)
-            ? DppSubmission::where('dpp_id', $dpp->id)->where('student_id', Auth::id())->first() 
+        $submission = ($user->isStudent() && ! $isResolving)
+            ? DppSubmission::where('dpp_id', $dpp->id)->where('student_id', Auth::id())->first()
             : null;
 
         $previousSubmission = Auth::user()->isStudent()
@@ -192,14 +220,16 @@ class DppController extends Controller
             : null;
 
         // Do not expose the answer key or explanations before the student's attempt.
-        if ($user->isStudent() && !$submission) {
+        if ($user->isStudent() && ! $submission) {
             $dpp->setRelation('questions', $dpp->questions->map(function ($question) {
                 $question->setAttribute('correct_option', null);
                 $question->setAttribute('explanation', null);
+
                 return $question;
             }));
         }
         $submissions = $user->isStudent() ? collect() : $dpp->submissions()->with('student:id,name,student_id_number')->latest('id')->paginate(15, ['*'], 'submissions_page')->withQueryString();
+
         return view('dpp.show', compact('dpp', 'submission', 'isResolving', 'previousSubmission', 'submissions'));
     }
 
@@ -211,12 +241,18 @@ class DppController extends Controller
         $dpp = DailyDpp::with('questions')->findOrFail($id);
         $user = Auth::user();
 
-        if (!$user->isStudent()) abort(403, 'Only students can submit practice problems or tests.');
+        if (! $user->isStudent()) {
+            abort(403, 'Only students can submit practice problems or tests.');
+        }
         $this->authorizeStudentClassAccess($dpp, $user);
-        if (!$this->isWithinSubmissionWindow($dpp)) return back()->with('error', 'The assessment is not currently open for submissions. Check its assigned date and deadline.');
-        if ($dpp->questions->isEmpty()) return back()->with('error', 'This assessment has no questions and cannot be submitted.');
+        if (! $this->isWithinSubmissionWindow($dpp)) {
+            return back()->with('error', 'The assessment is not currently open for submissions. Check its assigned date and deadline.');
+        }
+        if ($dpp->questions->isEmpty()) {
+            return back()->with('error', 'This assessment has no questions and cannot be submitted.');
+        }
         $existingSubmission = DppSubmission::where('dpp_id', $dpp->id)->where('student_id', $user->id)->first();
-        if ($existingSubmission && !$request->boolean('resolve')) {
+        if ($existingSubmission && ! $request->boolean('resolve')) {
             return redirect()->route('dpp.show', $dpp->id)->with('error', 'An attempt has already been recorded. Use Resolve DPP to make a revision attempt.');
         }
         $validated = $request->validate([
@@ -232,10 +268,10 @@ class DppController extends Controller
         $correctCount = 0;
         $incorrectCount = 0;
         $unattemptedCount = 0;
-        $negativeMarksPerQuestion = (float)($dpp->negative_marks ?? 0.0);
+        $negativeMarksPerQuestion = (float) ($dpp->negative_marks ?? 0.0);
 
         foreach ($dpp->questions as $question) {
-            $qNum = (string)$question->question_number;
+            $qNum = (string) $question->question_number;
             $studentChoice = $answers[$qNum] ?? null;
             $questionMarks = $question->marks;
             $maxScore += $questionMarks;
@@ -268,7 +304,7 @@ class DppController extends Controller
         $negativeDeduction = round($incorrectCount * $negativeMarksPerQuestion, 2);
         $percentage = $maxScore > 0 ? round(($finalScore / $maxScore) * 100, 1) : 0;
         $isPassed = ($percentage >= ($dpp->pass_percentage ?? 40));
-        
+
         // Tests award +50 XP, DPPs award +30 XP
         $xpEarned = $dpp->isTest() ? 50 : 30;
 
@@ -305,15 +341,17 @@ class DppController extends Controller
 
         // XP is awarded only for the first attempt; revision attempts update the result without farming XP.
         $xpAwarded = $existingSubmission ? 0 : $xpEarned;
-        if ($xpAwarded > 0) $user->recordDailyActivity($xpAwarded);
+        if ($xpAwarded > 0) {
+            $user->recordDailyActivity($xpAwarded);
+        }
 
         // Send instant notification
-        $moduleTitle = $dpp->isTest() ? "Timed Examination" : "Daily DPP";
+        $moduleTitle = $dpp->isTest() ? 'Timed Examination' : 'Daily DPP';
         NotificationService::notifyUser(
             $user->id,
             'dpp',
             "{$moduleTitle} Evaluation: {$dpp->dpp_number}",
-            "Your submission was evaluated instantly! Score: {$finalScore}/{$maxScore} ({$percentage}%). " . ($isPassed ? 'Passed ✅' : 'Needs Revision ⚠️') . " +{$xpAwarded} XP awarded.",
+            "Your submission was evaluated instantly! Score: {$finalScore}/{$maxScore} ({$percentage}%). ".($isPassed ? 'Passed ✅' : 'Needs Revision ⚠️')." +{$xpAwarded} XP awarded.",
             route('dpp.show', $dpp->id),
             '🎯'
         );
@@ -335,7 +373,7 @@ class DppController extends Controller
             'Option D',
             'Correct Option',
             'Explanation',
-            'Marks'
+            'Marks',
         ];
 
         $sampleData = [
@@ -347,7 +385,7 @@ class DppController extends Controller
                 'Watt',
                 'B',
                 'The SI unit of electric potential difference is the Volt (V), named after Alessandro Volta.',
-                '4'
+                '4',
             ],
             [
                 'Which organelle is known as the powerhouse of the cell?',
@@ -357,7 +395,7 @@ class DppController extends Controller
                 'Lysosome',
                 'C',
                 'Mitochondria generate most of the chemical energy needed to power the cell\'s biochemical reactions (ATP).',
-                '4'
+                '4',
             ],
             [
                 'If f(x) = 3x^2 - 5x + 2, what is the value of f\'(2)?',
@@ -367,7 +405,7 @@ class DppController extends Controller
                 '9',
                 'A',
                 'The derivative f\'(x) = 6x - 5. Evaluating at x = 2 gives f\'(2) = 6(2) - 5 = 12 - 5 = 7.',
-                '4'
+                '4',
             ],
             [
                 'What is the oxidation state of Manganese in KMnO4?',
@@ -377,7 +415,7 @@ class DppController extends Controller
                 '+7',
                 'D',
                 'In KMnO4, K is +1 and oxygen is -2. Total is 0: +1 + Mn + 4(-2) = 0 => Mn = +7.',
-                '4'
+                '4',
             ],
             [
                 'Light year is a unit of which physical quantity?',
@@ -387,8 +425,8 @@ class DppController extends Controller
                 'Mass',
                 'B',
                 'A light-year is the distance that light travels in a vacuum in one Julian year (approx. 9.46 trillion km).',
-                '4'
-            ]
+                '4',
+            ],
         ];
 
         return $csvService->downloadCsv('primearc_dpp_sample_template.csv', $headers, $sampleData);
@@ -399,7 +437,7 @@ class DppController extends Controller
      */
     public function exportCsv(int $id, CsvService $csvService): StreamedResponse
     {
-        $dpp = DailyDpp::with(['questions' => fn($q) => $q->orderBy('question_number')])->findOrFail($id);
+        $dpp = DailyDpp::with(['questions' => fn ($q) => $q->orderBy('question_number')])->findOrFail($id);
         $this->authorizeManageDpp($dpp, Auth::user());
 
         $headers = [
@@ -411,7 +449,7 @@ class DppController extends Controller
             'Option D',
             'Correct Option',
             'Explanation',
-            'Marks'
+            'Marks',
         ];
 
         $data = [];
@@ -430,6 +468,7 @@ class DppController extends Controller
         }
 
         $safeNum = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $dpp->dpp_number);
+
         return $csvService->downloadCsv("primearc_{$safeNum}_questions.csv", $headers, $data);
     }
 
@@ -464,14 +503,14 @@ class DppController extends Controller
         ]);
 
         $class = AcademicClass::findOrFail($validated['class_id']);
-        if (!$class->subjects()->whereKey($validated['subject_id'])->exists()) {
+        if (! $class->subjects()->whereKey($validated['subject_id'])->exists()) {
             return back()->withErrors(['subject_id' => 'The selected subject is not assigned to the selected class.'])->withInput();
         }
         $selectedSubject = AcademicSubject::findOrFail($validated['subject_id']);
         if (Auth::user()->isTeacher() && (int) $selectedSubject->teacher_id !== (int) Auth::id()) {
             abort(403, 'You can only create assessments for subjects assigned to you.');
         }
-        if (!empty($validated['topic_id']) && !CurriculumTopic::whereKey($validated['topic_id'])->whereHas('subject', fn ($q) => $q->whereKey($validated['subject_id']))->exists()) {
+        if (! empty($validated['topic_id']) && ! CurriculumTopic::whereKey($validated['topic_id'])->whereHas('subject', fn ($q) => $q->whereKey($validated['subject_id']))->exists()) {
             return back()->withErrors(['topic_id' => 'The selected topic does not belong to the selected subject.'])->withInput();
         }
         $csvService = app(CsvService::class);
@@ -481,7 +520,7 @@ class DppController extends Controller
         if ($request->hasFile('csv_file')) {
             $file = $request->file('csv_file');
             $ext = strtolower($file->getClientOriginalExtension());
-            if (!in_array($ext, ['csv', 'txt', 'tsv'])) {
+            if (! in_array($ext, ['csv', 'txt', 'tsv'])) {
                 return back()->withErrors(['csv_file' => 'Uploaded question file must be a CSV, TSV, or TXT file.'])->withInput();
             }
 
@@ -492,10 +531,10 @@ class DppController extends Controller
         }
 
         // 2. Process manual question builder inputs (if submitted)
-        if (!empty($validated['questions']) && is_array($validated['questions'])) {
+        if (! empty($validated['questions']) && is_array($validated['questions'])) {
             foreach ($validated['questions'] as $q) {
-                if (!empty(trim((string)($q['text'] ?? '')))) {
-                    $rawCorrect = strtoupper(trim((string)($q['correct'] ?? 'A')));
+                if (! empty(trim((string) ($q['text'] ?? '')))) {
+                    $rawCorrect = strtoupper(trim((string) ($q['correct'] ?? 'A')));
                     $correct = in_array($rawCorrect, ['A', 'B', 'C', 'D']) ? $rawCorrect : 'A';
 
                     $questionsList[] = [
@@ -506,7 +545,7 @@ class DppController extends Controller
                         'option_d' => trim($q['option_d'] ?? ''),
                         'correct' => $correct,
                         'explanation' => trim($q['explanation'] ?? ''),
-                        'marks' => max(1, (int)($q['marks'] ?? 4)),
+                        'marks' => max(1, (int) ($q['marks'] ?? 4)),
                     ];
                 }
             }
@@ -514,18 +553,18 @@ class DppController extends Controller
 
         if (empty($questionsList)) {
             return back()->withErrors([
-                'questions' => 'Please provide at least one valid question either by filling out the form or uploading a CSV file.'
+                'questions' => 'Please provide at least one valid question either by filling out the form or uploading a CSV file.',
             ])->withInput();
         }
 
         $isTest = ($validated['type'] === 'test');
-        
+
         $itemCount = DailyDpp::where('class_id', $validated['class_id'])
             ->where('type', $validated['type'])
             ->count() + 1;
-            
+
         $prefix = $isTest ? 'TEST' : 'DPP';
-        $dppNum = "{$prefix}-" . str_pad($class->grade_level, 2, '0', STR_PAD_LEFT) . "-" . str_pad($itemCount, 2, '0', STR_PAD_LEFT);
+        $dppNum = "{$prefix}-".str_pad($class->grade_level, 2, '0', STR_PAD_LEFT).'-'.str_pad($itemCount, 2, '0', STR_PAD_LEFT);
 
         $totalMarks = 0;
         foreach ($questionsList as $q) {
@@ -542,15 +581,15 @@ class DppController extends Controller
             'title' => $validated['title'],
             'assigned_date' => $validated['assigned_date'],
             'difficulty' => $validated['difficulty'],
-            'duration_minutes' => (int)$validated['duration_minutes'],
-            'is_timed' => ((int)$validated['duration_minutes'] > 0),
-            'pass_percentage' => (int)($validated['pass_percentage'] ?? ($isTest ? 50 : 40)),
-            'negative_marks' => (float)($request->input('negative_marks', 0.0)),
+            'duration_minutes' => (int) $validated['duration_minutes'],
+            'is_timed' => ((int) $validated['duration_minutes'] > 0),
+            'pass_percentage' => (int) ($validated['pass_percentage'] ?? ($isTest ? 50 : 40)),
+            'negative_marks' => (float) ($request->input('negative_marks', 0.0)),
             'total_marks' => $totalMarks,
         ]);
 
         foreach ($questionsList as $idx => $q) {
-            $marks = (int)($q['marks'] ?? 4);
+            $marks = (int) ($q['marks'] ?? 4);
 
             DppQuestion::create([
                 'dpp_id' => $dpp->id,
@@ -566,7 +605,7 @@ class DppController extends Controller
             ]);
 
             // If teacher wants to save to central Question Bank
-            if (!empty($validated['save_to_bank'])) {
+            if (! empty($validated['save_to_bank'])) {
                 QuestionBank::firstOrCreate(
                     [
                         'class_id' => $class->id,
@@ -590,18 +629,18 @@ class DppController extends Controller
         }
 
         // Notify class students
-        $typeLabel = $isTest ? "Timed Online Test" : "Daily DPP";
+        $typeLabel = $isTest ? 'Timed Online Test' : 'Daily DPP';
         NotificationService::notifyClass(
             $class->id,
             'dpp',
             "New {$typeLabel}: {$dpp->title}",
-            "{$typeLabel} {$dpp->dpp_number} ({$dpp->duration_minutes} mins, " . count($questionsList) . " questions) published with instant scoring!",
+            "{$typeLabel} {$dpp->dpp_number} ({$dpp->duration_minutes} mins, ".count($questionsList).' questions) published with instant scoring!',
             route('dpp.show', $dpp->id),
             $isTest ? '⏱️' : '📝'
         );
 
         return redirect()->route('dpp.show', $dpp->id)
-            ->with('success', "{$typeLabel} {$dpp->dpp_number} created successfully with " . count($questionsList) . " questions!");
+            ->with('success', "{$typeLabel} {$dpp->dpp_number} created successfully with ".count($questionsList).' questions!');
     }
 
     /**
@@ -620,7 +659,7 @@ class DppController extends Controller
 
         $file = $request->file('csv_file');
         $ext = strtolower($file->getClientOriginalExtension());
-        if (!in_array($ext, ['csv', 'txt', 'tsv'])) {
+        if (! in_array($ext, ['csv', 'txt', 'tsv'])) {
             return back()->withErrors(['csv_file' => 'Uploaded question file must be a CSV, TSV, or TXT file.']);
         }
 
@@ -633,12 +672,14 @@ class DppController extends Controller
         if ($request->input('target') === 'dpp') {
             $dpp = DailyDpp::with('questions')->findOrFail($request->input('dpp_id'));
             $this->authorizeManageDpp($dpp, Auth::user());
-            if ($dpp->submissions()->exists()) return back()->with('error', 'Questions are locked after student attempts to preserve result integrity.');
+            if ($dpp->submissions()->exists()) {
+                return back()->with('error', 'Questions are locked after student attempts to preserve result integrity.');
+            }
             $currentMaxNumber = $dpp->questions->max('question_number') ?? 0;
             $addedMarks = 0;
 
             foreach ($questions as $idx => $q) {
-                $marks = (int)($q['marks'] ?? 4);
+                $marks = (int) ($q['marks'] ?? 4);
                 $addedMarks += $marks;
 
                 DppQuestion::create([
@@ -658,16 +699,20 @@ class DppController extends Controller
             $dpp->increment('total_marks', $addedMarks);
 
             return redirect()->route('dpp.show', $dpp->id)
-                ->with('success', count($questions) . " questions successfully appended to {$dpp->dpp_number} from file!");
+                ->with('success', count($questions)." questions successfully appended to {$dpp->dpp_number} from file!");
         } else {
             // Target is Question Bank
             $classId = $request->input('class_id');
             $subjectId = $request->input('subject_id');
             $difficulty = $request->input('difficulty', 'standard');
             $class = AcademicClass::findOrFail($classId);
-            if (!$class->subjects()->whereKey($subjectId)->exists()) return back()->withErrors(['subject_id' => 'The selected subject is not assigned to this class.']);
+            if (! $class->subjects()->whereKey($subjectId)->exists()) {
+                return back()->withErrors(['subject_id' => 'The selected subject is not assigned to this class.']);
+            }
             $subject = AcademicSubject::findOrFail($subjectId);
-            if (Auth::user()->isTeacher() && (int) $subject->teacher_id !== (int) Auth::id()) abort(403, 'You can only import questions for subjects assigned to you.');
+            if (Auth::user()->isTeacher() && (int) $subject->teacher_id !== (int) Auth::id()) {
+                abort(403, 'You can only import questions for subjects assigned to you.');
+            }
             $importedCount = 0;
 
             foreach ($questions as $q) {
@@ -686,7 +731,7 @@ class DppController extends Controller
                         'correct_option' => $q['correct'],
                         'explanation' => $q['explanation'],
                         'difficulty' => $difficulty,
-                        'marks' => (int)($q['marks'] ?? 4),
+                        'marks' => (int) ($q['marks'] ?? 4),
                     ]
                 );
                 $importedCount++;
@@ -709,7 +754,7 @@ class DppController extends Controller
         foreach ($rows as $row) {
             // Flexible question text discovery
             $text = $row['question'] ?? $row['question_text'] ?? $row['text'] ?? $row['prompt'] ?? $row['q'] ?? null;
-            if (empty(trim((string)$text))) {
+            if (empty(trim((string) $text))) {
                 continue;
             }
 
@@ -719,29 +764,31 @@ class DppController extends Controller
             $optC = $row['option_c'] ?? $row['optionc'] ?? $row['c'] ?? $row['opt_c'] ?? $row['option_3'] ?? '';
             $optD = $row['option_d'] ?? $row['optiond'] ?? $row['d'] ?? $row['opt_d'] ?? $row['option_4'] ?? '';
 
-            if (trim((string)$optA) === '' || trim((string)$optB) === '' || trim((string)$optC) === '' || trim((string)$optD) === '') {
+            if (trim((string) $optA) === '' || trim((string) $optB) === '' || trim((string) $optC) === '' || trim((string) $optD) === '') {
                 continue;
             }
 
             $rawCorrect = strtoupper(trim((string) ($row['correct_option'] ?? $row['correct'] ?? $row['answer'] ?? $row['ans'] ?? '')));
             $correctMap = ['1' => 'A', '2' => 'B', '3' => 'C', '4' => 'D'];
             $correct = $correctMap[$rawCorrect] ?? $rawCorrect;
-            if (!in_array($correct, ['A', 'B', 'C', 'D'], true)) continue;
+            if (! in_array($correct, ['A', 'B', 'C', 'D'], true)) {
+                continue;
+            }
 
             $explanation = $row['explanation'] ?? $row['solution'] ?? $row['sol'] ?? $row['exp'] ?? '';
-            $marks = (int)($row['marks'] ?? $row['mark'] ?? 4);
+            $marks = (int) ($row['marks'] ?? $row['mark'] ?? 4);
             if ($marks <= 0) {
                 $marks = 4;
             }
 
             $questions[] = [
-                'text' => trim((string)$text),
-                'option_a' => trim((string)$optA),
-                'option_b' => trim((string)$optB),
-                'option_c' => trim((string)$optC),
-                'option_d' => trim((string)$optD),
+                'text' => trim((string) $text),
+                'option_a' => trim((string) $optA),
+                'option_b' => trim((string) $optB),
+                'option_c' => trim((string) $optC),
+                'option_d' => trim((string) $optD),
                 'correct' => $correct,
-                'explanation' => trim((string)$explanation),
+                'explanation' => trim((string) $explanation),
                 'marks' => $marks,
             ];
         }
@@ -771,12 +818,14 @@ class DppController extends Controller
         ]);
 
         $class = AcademicClass::findOrFail($validated['class_id']);
-        if (!$class->subjects()->whereKey($validated['subject_id'])->exists()) {
+        if (! $class->subjects()->whereKey($validated['subject_id'])->exists()) {
             return back()->withErrors(['subject_id' => 'The selected subject is not assigned to this class.'])->withInput();
         }
         $selectedSubject = AcademicSubject::findOrFail($validated['subject_id']);
-        if (Auth::user()->isTeacher() && (int) $selectedSubject->teacher_id !== (int) Auth::id()) abort(403, 'You can only add questions for subjects assigned to you.');
-        if (!empty($validated['topic_id']) && !CurriculumTopic::whereKey($validated['topic_id'])->where('subject_id', $validated['subject_id'])->exists()) {
+        if (Auth::user()->isTeacher() && (int) $selectedSubject->teacher_id !== (int) Auth::id()) {
+            abort(403, 'You can only add questions for subjects assigned to you.');
+        }
+        if (! empty($validated['topic_id']) && ! CurriculumTopic::whereKey($validated['topic_id'])->where('subject_id', $validated['subject_id'])->exists()) {
             return back()->withErrors(['topic_id' => 'The selected topic does not belong to this subject.'])->withInput();
         }
         $validated['teacher_id'] = Auth::id();
@@ -791,7 +840,9 @@ class DppController extends Controller
     public function apiQuestionBank(Request $request): JsonResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isTeacher() && !$user->isAdmin())) abort(403, 'Question bank access is restricted to faculty.');
+        if (! $user || (! $user->isTeacher() && ! $user->isAdmin())) {
+            abort(403, 'Question bank access is restricted to faculty.');
+        }
         $classId = $request->query('class_id');
         $subjectId = $request->query('subject_id');
         $search = $request->query('q');
@@ -807,7 +858,7 @@ class DppController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('question_text', 'like', "%{$search}%")
-                  ->orWhere('tags', 'like', "%{$search}%");
+                    ->orWhere('tags', 'like', "%{$search}%");
             });
         }
 
@@ -826,7 +877,7 @@ class DppController extends Controller
     public function edit(int $id): View
     {
         $user = Auth::user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403, 'Only teachers and administrators can edit DPPs.');
         }
 
@@ -835,11 +886,13 @@ class DppController extends Controller
             'subject.topics',
             'topic',
             'teacher:id,name',
-            'questions' => fn($q) => $q->orderBy('question_number'),
-            'submissions'
+            'questions' => fn ($q) => $q->orderBy('question_number'),
+            'submissions',
         ])->findOrFail($id);
         $this->authorizeManageDpp($dpp, $user);
-        if ($dpp->submissions()->exists()) abort(409, 'This assessment has student attempts and is locked. Duplicate it to create a revised version.');
+        if ($dpp->submissions()->exists()) {
+            abort(409, 'This assessment has student attempts and is locked. Duplicate it to create a revised version.');
+        }
 
         $allClasses = AcademicClass::with(['subjects.topics'])->orderBy('grade_level')->get();
         $subjects = $dpp->academicClass ? $dpp->academicClass->subjects()->orderBy('name')->get() : collect();
@@ -861,7 +914,7 @@ class DppController extends Controller
     public function update(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403, 'Only teachers and administrators can edit DPPs.');
         }
 
@@ -895,7 +948,7 @@ class DppController extends Controller
 
         $isTest = ($validated['type'] === 'test');
         $subjectId = $validated['subject_id'] ?? $dpp->subject_id;
-        if ($subjectId && !$dpp->academicClass()->first()->subjects()->whereKey($subjectId)->exists()) {
+        if ($subjectId && ! $dpp->academicClass()->first()->subjects()->whereKey($subjectId)->exists()) {
             return back()->withErrors(['subject_id' => 'The selected subject is not assigned to this class.'])->withInput();
         }
         $updatedSubject = $subjectId ? AcademicSubject::findOrFail($subjectId) : null;
@@ -903,7 +956,7 @@ class DppController extends Controller
             abort(403, 'You can only manage assessments for subjects assigned to you.');
         }
         $topicId = $validated['topic_id'] ?? $dpp->topic_id;
-        if ($topicId && !CurriculumTopic::whereKey($topicId)->where('subject_id', $subjectId)->exists()) {
+        if ($topicId && ! CurriculumTopic::whereKey($topicId)->where('subject_id', $subjectId)->exists()) {
             return back()->withErrors(['topic_id' => 'The selected topic does not belong to this subject.'])->withInput();
         }
 
@@ -913,10 +966,10 @@ class DppController extends Controller
                 'type' => $validated['type'],
                 'assigned_date' => $validated['assigned_date'],
                 'difficulty' => $validated['difficulty'],
-                'duration_minutes' => (int)$validated['duration_minutes'],
-                'is_timed' => ((int)$validated['duration_minutes'] > 0),
-                'pass_percentage' => (int)($validated['pass_percentage'] ?? ($isTest ? 50 : 40)),
-                'negative_marks' => (float)($validated['negative_marks'] ?? 0.0),
+                'duration_minutes' => (int) $validated['duration_minutes'],
+                'is_timed' => ((int) $validated['duration_minutes'] > 0),
+                'pass_percentage' => (int) ($validated['pass_percentage'] ?? ($isTest ? 50 : 40)),
+                'negative_marks' => (float) ($validated['negative_marks'] ?? 0.0),
                 'subject_id' => $validated['subject_id'] ?? $dpp->subject_id,
                 'topic_id' => $validated['topic_id'] ?? $dpp->topic_id,
             ]);
@@ -927,14 +980,18 @@ class DppController extends Controller
 
             foreach ($validated['questions'] as $order => $q) {
                 $qText = trim($q['text']);
-                if (empty($qText)) continue;
+                if (empty($qText)) {
+                    continue;
+                }
 
-                $qId = !empty($q['id']) ? (int)$q['id'] : null;
-                $marks = max(1, (int)($q['marks'] ?? 4));
+                $qId = ! empty($q['id']) ? (int) $q['id'] : null;
+                $marks = max(1, (int) ($q['marks'] ?? 4));
                 $totalMarks += $marks;
 
                 $correct = strtoupper(trim($q['correct'] ?? 'A'));
-                if (!in_array($correct, ['A', 'B', 'C', 'D'])) $correct = 'A';
+                if (! in_array($correct, ['A', 'B', 'C', 'D'])) {
+                    $correct = 'A';
+                }
 
                 $qData = [
                     'question_number' => $order + 1,
@@ -959,7 +1016,7 @@ class DppController extends Controller
             }
 
             // Remove only questions that were explicitly deleted
-            if (!empty($keptQuestionIds)) {
+            if (! empty($keptQuestionIds)) {
                 $dpp->questions()->whereNotIn('id', $keptQuestionIds)->delete();
             }
 
@@ -967,7 +1024,7 @@ class DppController extends Controller
         });
 
         return redirect()->route('dpp.show', $dpp->id)
-            ->with('success', "DPP {$dpp->dpp_number} updated successfully with " . count($validated['questions']) . " questions. Existing student attempts and scores remain preserved.");
+            ->with('success', "DPP {$dpp->dpp_number} updated successfully with ".count($validated['questions']).' questions. Existing student attempts and scores remain preserved.');
     }
 
     /**
@@ -976,20 +1033,24 @@ class DppController extends Controller
     public function destroyQuestion(int $dppId, int $questionId): JsonResponse|RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
         $dpp = DailyDpp::with('questions')->findOrFail($dppId);
         $this->authorizeManageDpp($dpp, $user);
         if ($dpp->submissions()->exists()) {
-            if (request()->wantsJson()) return response()->json(['error' => 'Questions are locked after student attempts to preserve result integrity.'], 409);
+            if (request()->wantsJson()) {
+                return response()->json(['error' => 'Questions are locked after student attempts to preserve result integrity.'], 409);
+            }
+
             return back()->with('error', 'Questions are locked after student attempts to preserve result integrity.');
         }
         if ($dpp->questions()->count() <= 1) {
             if (request()->wantsJson()) {
                 return response()->json(['error' => 'A DPP must retain at least one question.'], 422);
             }
+
             return back()->with('error', 'A DPP must retain at least one question.');
         }
 
@@ -1017,7 +1078,7 @@ class DppController extends Controller
     public function destroy(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 

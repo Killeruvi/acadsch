@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class DailyDpp extends Model
 {
@@ -56,7 +55,7 @@ class DailyDpp extends Model
 
     public function isTimed(): bool
     {
-        return (bool)$this->is_timed && $this->duration_minutes > 0;
+        return (bool) $this->is_timed && $this->duration_minutes > 0;
     }
 
     public function course(): BelongsTo

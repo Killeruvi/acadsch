@@ -7,8 +7,8 @@ use App\Models\AcademySetting;
 use App\Models\SchoolAdminAudit;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Http\StreamedResponse;
+use Illuminate\View\View;
 
 class AdministrationController extends Controller
 {
@@ -23,11 +23,11 @@ class AdministrationController extends Controller
         ];
         $auditLogs = SchoolAdminAudit::with('user:id,name')->latest()->paginate(25);
         $checks = [
-            'School name configured' => !empty($settings['institute_name']),
-            'Campus name configured' => !empty($settings['campus_name']),
-            'Academic session configured' => !empty($settings['academic_session']),
-            'Institution contact configured' => !empty($settings['institution_phone']) || !empty($settings['institution_email']),
-            'School address configured' => !empty($settings['institution_address']),
+            'School name configured' => ! empty($settings['institute_name']),
+            'Campus name configured' => ! empty($settings['campus_name']),
+            'Academic session configured' => ! empty($settings['academic_session']),
+            'Institution contact configured' => ! empty($settings['institution_phone']) || ! empty($settings['institution_email']),
+            'School address configured' => ! empty($settings['institution_address']),
         ];
 
         return view('school.administration.index', compact('counts', 'checks', 'auditLogs'));
@@ -40,8 +40,12 @@ class AdministrationController extends Controller
         abort_if($from && $to && $from->gt($to), 422, 'Start date must be before end date.');
 
         $query = SchoolAdminAudit::with('user:id,name')->orderBy('id');
-        if ($from) $query->whereDate('created_at', '>=', $from);
-        if ($to) $query->whereDate('created_at', '<=', $to);
+        if ($from) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+        if ($to) {
+            $query->whereDate('created_at', '<=', $to);
+        }
 
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
@@ -52,6 +56,6 @@ class AdministrationController extends Controller
                 }
             });
             fclose($out);
-        }, 'school-admin-audit-' . now()->format('Ymd-His') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, 'school-admin-audit-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 }

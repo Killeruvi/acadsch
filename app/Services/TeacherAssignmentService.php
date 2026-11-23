@@ -4,8 +4,9 @@ namespace App\Services;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
-use App\Models\SchoolPeriodTimetable;
+use App\Models\AcademySetting;
 use App\Models\SchoolPeriod;
+use App\Models\SchoolPeriodTimetable;
 use App\Models\SubjectMaster;
 use App\Models\TeacherAssignmentAudit;
 use App\Models\User;
@@ -38,7 +39,7 @@ class TeacherAssignmentService
             ->where('day_of_week', $dayOfWeek)
             ->where('period_number', $periodNumber)
             ->lockForUpdate()
-            ->when($ignoreSlotId, fn($q) => $q->where('id', '!=', $ignoreSlotId))
+            ->when($ignoreSlotId, fn ($q) => $q->where('id', '!=', $ignoreSlotId))
             ->where('class_id', '!=', $classId)
             ->first();
 
@@ -56,7 +57,7 @@ class TeacherAssignmentService
             ->where('day_of_week', $dayOfWeek)
             ->where('period_number', $periodNumber)
             ->lockForUpdate()
-            ->when($ignoreSlotId, fn($q) => $q->where('id', '!=', $ignoreSlotId))
+            ->when($ignoreSlotId, fn ($q) => $q->where('id', '!=', $ignoreSlotId))
             ->first();
 
         if ($classConflict) {
@@ -68,14 +69,14 @@ class TeacherAssignmentService
         }
 
         // 3. Conflict Check: Room Occupancy (if specified)
-        if (!empty($roomNumber)) {
+        if (! empty($roomNumber)) {
             $roomConflict = SchoolPeriodTimetable::with(['academicClass', 'teacher'])
                 ->whereRaw('UPPER(TRIM(room_number)) = ?', [mb_strtoupper(trim($roomNumber))])
                 ->where('day_of_week', $dayOfWeek)
                 ->where('period_number', $periodNumber)
                 ->lockForUpdate()
                 ->where('class_id', '!=', $classId)
-                ->when($ignoreSlotId, fn($q) => $q->where('id', '!=', $ignoreSlotId))
+                ->when($ignoreSlotId, fn ($q) => $q->where('id', '!=', $ignoreSlotId))
                 ->first();
 
             if ($roomConflict) {
@@ -95,32 +96,32 @@ class TeacherAssignmentService
     {
         return DB::transaction(function () use ($admin, $data, $request) {
             $class = AcademicClass::findOrFail($data['class_id']);
-            $master = !empty($data['subject_master_id']) ? SubjectMaster::findOrFail($data['subject_master_id']) : null;
-            if (!$master && !empty($data['subject_id'])) {
+            $master = ! empty($data['subject_master_id']) ? SubjectMaster::findOrFail($data['subject_master_id']) : null;
+            if (! $master && ! empty($data['subject_id'])) {
                 $existingMapping = AcademicSubject::where('class_id', $class->id)->findOrFail($data['subject_id']);
                 $master = $existingMapping->subjectMaster;
             }
-            $sessionDefaultTeacherId = $class->academic_year === \App\Models\AcademySetting::get('academic_session') ? $master?->default_teacher_id : null;
+            $sessionDefaultTeacherId = $class->academic_year === AcademySetting::get('academic_session') ? $master?->default_teacher_id : null;
             $teacherId = $data['teacher_id'] ?? $sessionDefaultTeacherId;
             $teacher = $teacherId ? User::findOrFail($teacherId) : null;
 
             if ($master && $sessionDefaultTeacherId && $teacher && (int) $sessionDefaultTeacherId !== (int) $teacher->id && empty($data['teacher_override']) && empty($data['apply_globally'])) {
                 throw ValidationException::withMessages(['teacher_id' => 'This subject has a global default teacher. Enable the explicit override to use another teacher in this class.']);
             }
-            if (!empty($data['apply_globally']) && $class->academic_year !== \App\Models\AcademySetting::get('academic_session')) {
+            if (! empty($data['apply_globally']) && $class->academic_year !== AcademySetting::get('academic_session')) {
                 throw ValidationException::withMessages(['apply_globally' => 'Global subject-teacher changes can only be made from a class in the active academic session.']);
             }
-            if (!empty($data['apply_globally']) && !$teacher) {
+            if (! empty($data['apply_globally']) && ! $teacher) {
                 throw ValidationException::withMessages(['teacher_id' => 'Choose a teacher before applying a global subject-teacher assignment.']);
             }
 
-            if ($teacher && !$teacher->isTeacher()) {
+            if ($teacher && ! $teacher->isTeacher()) {
                 throw ValidationException::withMessages([
                     'teacher_id' => "Invalid Role: '{$teacher->name}' is not a teacher account.",
                 ]);
             }
 
-            if (!empty($data['apply_globally']) && $master && $teacher) {
+            if (! empty($data['apply_globally']) && $master && $teacher) {
                 $oldDefaultTeacher = $master->default_teacher_id;
                 $master->update(['default_teacher_id' => $teacher->id]);
                 $this->logAudit(
@@ -137,7 +138,7 @@ class TeacherAssignmentService
             }
 
             // Check if existing subject ID is provided
-            if (!empty($data['subject_id'])) {
+            if (! empty($data['subject_id'])) {
                 $subject = AcademicSubject::where('class_id', $class->id)->findOrFail($data['subject_id']);
 
                 if ($teacher && (int) ($subject->teacher_id ?? 0) === (int) $teacher->id) {
@@ -145,7 +146,6 @@ class TeacherAssignmentService
                         'teacher_id' => "{$teacher->name} is already assigned to teach {$subject->name} in {$class->display_name}.",
                     ]);
                 }
-
 
                 $oldValues = [
                     'teacher_id' => $subject->teacher_id,
@@ -163,7 +163,7 @@ class TeacherAssignmentService
                     }
                     SchoolPeriodTimetable::where('subject_id', $subject->id)->update(['teacher_id' => $teacher?->id]);
                 }
-                if (!empty($data['subject_master_id'])) {
+                if (! empty($data['subject_master_id'])) {
                     $subject->subject_master_id = $data['subject_master_id'];
                 }
                 $subject->teacher_id = $teacher ? $teacher->id : null;
@@ -195,7 +195,7 @@ class TeacherAssignmentService
                         'teacher_name' => $existingSubject->teacher ? $existingSubject->teacher->name : null,
                         'subject_master_id' => $existingSubject->subject_master_id,
                     ];
-                    if (!empty($data['subject_master_id'])) {
+                    if (! empty($data['subject_master_id'])) {
                         $existingSubject->subject_master_id = $data['subject_master_id'];
                     }
                     if ((int) ($existingSubject->teacher_id ?? 0) !== (int) ($teacher?->id ?? 0)) {
@@ -208,7 +208,7 @@ class TeacherAssignmentService
                         SchoolPeriodTimetable::where('subject_id', $existingSubject->id)->update(['teacher_id' => $teacher?->id]);
                     }
                     $existingSubject->teacher_id = $teacher ? $teacher->id : null;
-                    if (!empty($data['weekly_periods'])) {
+                    if (! empty($data['weekly_periods'])) {
                         $existingSubject->weekly_periods = (int) $data['weekly_periods'];
                     }
                     $existingSubject->save();
@@ -228,21 +228,21 @@ class TeacherAssignmentService
                         'weekly_periods' => (int) $data['weekly_periods'],
                     ]);
                     $action = 'assigned_subject';
-                    $description = "Created subject '{$subject->name}' ({$subject->code}) and mapped to teacher " . ($teacher ? $teacher->name : 'Unassigned') . " for {$class->display_name}.";
+                    $description = "Created subject '{$subject->name}' ({$subject->code}) and mapped to teacher ".($teacher ? $teacher->name : 'Unassigned')." for {$class->display_name}.";
                 }
             }
 
             // Optional Timetable Period Link
             $timetableSlotId = null;
-            if (!empty($data['link_timetable']) && !$teacher) {
+            if (! empty($data['link_timetable']) && ! $teacher) {
                 throw ValidationException::withMessages(['teacher_id' => 'Assign a teacher before creating a timetable slot.']);
             }
-            if (!empty($data['link_timetable']) && !empty($data['day_of_week']) && isset($data['period_number']) && $teacher) {
+            if (! empty($data['link_timetable']) && ! empty($data['day_of_week']) && isset($data['period_number']) && $teacher) {
                 $day = $data['day_of_week'];
                 $period = (int) $data['period_number'];
                 $room = trim((string) ($data['room_number'] ?? $class->room_number ?? '')) ?: null;
                 $periodMaster = SchoolPeriod::active()->where('period_number', $period)->where('is_break', false)->first();
-                if (!$periodMaster) {
+                if (! $periodMaster) {
                     throw ValidationException::withMessages(['period_number' => 'Select an active teaching period from the period master.']);
                 }
                 $periodMaster = SchoolPeriod::whereKey($periodMaster->id)->lockForUpdate()->first();
@@ -276,7 +276,7 @@ class TeacherAssignmentService
             }
 
             // Auto-assign globally across all classes where this subject exists (Rule 16)
-            if (!empty($data['apply_globally']) && $teacher) {
+            if (! empty($data['apply_globally']) && $teacher) {
                 $baseCode = preg_replace('/-[0-9]+[A-Za-z]*$/', '', strtoupper($subject->code));
                 $otherSubjectsQuery = AcademicSubject::where('id', '!=', $subject->id)
                     ->whereHas('academicClass', fn ($query) => $query->where('academic_year', $class->academic_year));
@@ -312,7 +312,7 @@ class TeacherAssignmentService
                         );
                     }
                     $oldTeacher = $otherSub->teacher;
-                    if ($master && !$otherSub->subject_master_id) {
+                    if ($master && ! $otherSub->subject_master_id) {
                         $otherSub->subject_master_id = $master->id;
                     }
                     $otherSub->teacher_id = $teacher->id;
@@ -337,7 +337,7 @@ class TeacherAssignmentService
             }
 
             if ($master) {
-                if (!$master->default_teacher_id && $teacher && empty($data['teacher_override']) && $class->academic_year === \App\Models\AcademySetting::get('academic_session')) {
+                if (! $master->default_teacher_id && $teacher && empty($data['teacher_override']) && $class->academic_year === AcademySetting::get('academic_session')) {
                     $master->update(['default_teacher_id' => $teacher->id]);
                     $this->logAudit(
                         admin: $admin,
@@ -389,20 +389,20 @@ class TeacherAssignmentService
         return DB::transaction(function () use ($admin, $subject, $data, $request) {
             $class = $subject->academicClass;
             $master = $subject->subjectMaster;
-            $sessionDefaultTeacherId = $class->academic_year === \App\Models\AcademySetting::get('academic_session') ? $master?->default_teacher_id : null;
+            $sessionDefaultTeacherId = $class->academic_year === AcademySetting::get('academic_session') ? $master?->default_teacher_id : null;
             $newTeacherId = $data['teacher_id'] ?? $sessionDefaultTeacherId;
             $newTeacher = $newTeacherId ? User::findOrFail($newTeacherId) : null;
             if ($master && $sessionDefaultTeacherId && $newTeacher && (int) $sessionDefaultTeacherId !== (int) $newTeacher->id && empty($data['teacher_override']) && empty($data['apply_globally'])) {
                 throw ValidationException::withMessages(['teacher_id' => 'This subject has a global default teacher. Enable the explicit override to use another teacher in this class.']);
             }
-            if (!empty($data['apply_globally']) && $class->academic_year !== \App\Models\AcademySetting::get('academic_session')) {
+            if (! empty($data['apply_globally']) && $class->academic_year !== AcademySetting::get('academic_session')) {
                 throw ValidationException::withMessages(['apply_globally' => 'Global subject-teacher changes can only be made from a class in the active academic session.']);
             }
-            if (!empty($data['apply_globally']) && !$newTeacher) {
+            if (! empty($data['apply_globally']) && ! $newTeacher) {
                 throw ValidationException::withMessages(['teacher_id' => 'Choose a teacher before applying a global subject-teacher assignment.']);
             }
 
-            if ($master && !$master->default_teacher_id && $newTeacher && empty($data['teacher_override']) && $class->academic_year === \App\Models\AcademySetting::get('academic_session')) {
+            if ($master && ! $master->default_teacher_id && $newTeacher && empty($data['teacher_override']) && $class->academic_year === AcademySetting::get('academic_session')) {
                 $master->update(['default_teacher_id' => $newTeacher->id]);
                 $this->logAudit(
                     admin: $admin,
@@ -426,7 +426,7 @@ class TeacherAssignmentService
             ];
 
             // If teacher is being changed, check if new teacher has timetable conflicts on existing subject slots
-            if ($newTeacher && !$newTeacher->isTeacher()) {
+            if ($newTeacher && ! $newTeacher->isTeacher()) {
                 throw ValidationException::withMessages(['teacher_id' => 'Only teacher accounts can be assigned to subjects.']);
             }
             if (array_key_exists('teacher_id', $data) && (int) ($newTeacher?->id ?? 0) !== (int) ($subject->teacher_id ?? 0)) {
@@ -460,7 +460,7 @@ class TeacherAssignmentService
             }
             $subject->save();
 
-            if (!empty($data['apply_globally']) && $newTeacher) {
+            if (! empty($data['apply_globally']) && $newTeacher) {
                 if ($master) {
                     $oldDefaultTeacher = $master->default_teacher_id;
                     $master->update(['default_teacher_id' => $newTeacher->id]);
@@ -533,7 +533,7 @@ class TeacherAssignmentService
                 'weekly_periods' => $subject->weekly_periods,
             ];
 
-            $desc = "Updated subject assignment for {$subject->name} ({$subject->code}) in {$class->display_name}. Teacher: " . ($newTeacher ? $newTeacher->name : 'Unassigned');
+            $desc = "Updated subject assignment for {$subject->name} ({$subject->code}) in {$class->display_name}. Teacher: ".($newTeacher ? $newTeacher->name : 'Unassigned');
 
             $this->logAudit(
                 admin: $admin,
@@ -596,7 +596,7 @@ class TeacherAssignmentService
                 $subject->save();
                 // Clear teacher on timetable slots
                 SchoolPeriodTimetable::where('subject_id', $subject->id)->update(['teacher_id' => null]);
-                $desc = "Unassigned " . ($oldTeacher ? $oldTeacher->name : 'teacher') . " from subject '{$subject->name}' in {$class->display_name}.";
+                $desc = 'Unassigned '.($oldTeacher ? $oldTeacher->name : 'teacher')." from subject '{$subject->name}' in {$class->display_name}.";
                 $action = 'unassigned_teacher';
             }
 
@@ -627,7 +627,7 @@ class TeacherAssignmentService
         return DB::transaction(function () use ($admin, $class, $teacherId, $request) {
             $teacher = User::findOrFail($teacherId);
 
-            if (!$teacher->isTeacher()) {
+            if (! $teacher->isTeacher()) {
                 throw ValidationException::withMessages([
                     'teacher_id' => "Invalid Role: '{$teacher->name}' is not a teacher account.",
                 ]);
@@ -648,7 +648,7 @@ class TeacherAssignmentService
             $class->class_teacher_id = $teacher->id;
             $class->save();
 
-            $desc = "Assigned {$teacher->name} as Class Teacher for {$class->display_name}" . ($oldTeacher ? " (replacing {$oldTeacher->name})." : ".");
+            $desc = "Assigned {$teacher->name} as Class Teacher for {$class->display_name}".($oldTeacher ? " (replacing {$oldTeacher->name})." : '.');
 
             $this->logAudit(
                 admin: $admin,
@@ -677,7 +677,7 @@ class TeacherAssignmentService
     {
         DB::transaction(function () use ($admin, $class, $request) {
             $oldTeacher = $class->classTeacher;
-            if (!$oldTeacher) {
+            if (! $oldTeacher) {
                 return;
             }
 
@@ -715,28 +715,28 @@ class TeacherAssignmentService
             $class = AcademicClass::findOrFail($data['class_id']);
             $subject = AcademicSubject::where('class_id', $class->id)->findOrFail($data['subject_id']);
             $periodMaster = SchoolPeriod::active()->where('period_number', (int) $data['period_number'])->where('is_break', false)->first();
-            if (!$periodMaster) {
+            if (! $periodMaster) {
                 throw ValidationException::withMessages(['period_number' => 'Select an active teaching period.']);
             }
 
             $override = (bool) ($data['teacher_override'] ?? false);
-            $sessionDefaultTeacherId = $class->academic_year === \App\Models\AcademySetting::get('academic_session') ? $subject->subjectMaster?->default_teacher_id : null;
+            $sessionDefaultTeacherId = $class->academic_year === AcademySetting::get('academic_session') ? $subject->subjectMaster?->default_teacher_id : null;
             $defaultTeacherId = $subject->teacher_id ?? $sessionDefaultTeacherId;
             $teacherId = $data['teacher_id'] ?? $defaultTeacherId;
-            if (!$teacherId) {
+            if (! $teacherId) {
                 throw ValidationException::withMessages(['teacher_id' => 'Assign a subject teacher before scheduling this subject.']);
             }
             $teacher = User::findOrFail($teacherId);
-            if (!$teacher->isTeacher()) {
+            if (! $teacher->isTeacher()) {
                 throw ValidationException::withMessages(['teacher_id' => 'Only teacher accounts can be scheduled.']);
             }
-            if (!$defaultTeacherId && !$override) {
+            if (! $defaultTeacherId && ! $override) {
                 throw ValidationException::withMessages(['teacher_id' => 'Assign a subject master default teacher first, or explicitly enable teacher override.']);
             }
-            if ($defaultTeacherId && (int) $defaultTeacherId !== (int) $teacher->id && !$override) {
+            if ($defaultTeacherId && (int) $defaultTeacherId !== (int) $teacher->id && ! $override) {
                 throw ValidationException::withMessages(['teacher_id' => 'A different teacher is assigned to this subject. Enable the explicit override to use another teacher.']);
             }
-            if (!$subject->teacher_id && $defaultTeacherId) {
+            if (! $subject->teacher_id && $defaultTeacherId) {
                 $subject->update(['teacher_id' => $defaultTeacherId]);
             }
 
@@ -781,6 +781,7 @@ class TeacherAssignmentService
                 newValues: ['day_of_week' => $day, 'period_number' => $period, 'room_number' => $room, 'start_time' => $periodMaster->start_time, 'end_time' => $periodMaster->end_time],
                 request: $request
             );
+
             return $slot;
         }, 3);
     }

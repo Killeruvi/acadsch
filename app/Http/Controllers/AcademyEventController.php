@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademyEvent;
 use App\Models\User;
-use App\Models\UserBadge;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AcademyEventController extends Controller
 {
@@ -19,11 +20,11 @@ class AcademyEventController extends Controller
 
         $query = AcademyEvent::with('coordinator');
 
-        if ($categoryFilter !== 'all' && !empty($categoryFilter)) {
+        if ($categoryFilter !== 'all' && ! empty($categoryFilter)) {
             $query->where('category', $categoryFilter);
         }
 
-        if ($statusFilter !== 'all' && !empty($statusFilter)) {
+        if ($statusFilter !== 'all' && ! empty($statusFilter)) {
             $query->where('status', $statusFilter);
         }
 
@@ -38,7 +39,7 @@ class AcademyEventController extends Controller
         $user = Auth::user();
 
         $participants = [];
-        if (!empty($event->registered_participants)) {
+        if (! empty($event->registered_participants)) {
             $participants = User::whereIn('id', $event->registered_participants)->get();
         }
 
@@ -69,7 +70,7 @@ class AcademyEventController extends Controller
         $user = Auth::user();
         $registered = $event->registered_participants ?? [];
 
-        if (!in_array($user->id, $registered, true)) {
+        if (! in_array($user->id, $registered, true)) {
             return back()->with('info', 'You are not registered for this event.');
         }
 
@@ -79,19 +80,19 @@ class AcademyEventController extends Controller
         return back()->with('success', "You have unregistered from {$event->title}.");
     }
 
-    public function exportParticipantsCsv(AcademyEvent $event): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function exportParticipantsCsv(AcademyEvent $event): StreamedResponse
     {
         $user = Auth::user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403);
         }
 
         $participants = [];
-        if (!empty($event->registered_participants)) {
+        if (! empty($event->registered_participants)) {
             $participants = User::whereIn('id', $event->registered_participants)->get();
         }
 
-        $filename = 'event_' . \Illuminate\Support\Str::slug($event->title) . '_participants.csv';
+        $filename = 'event_'.Str::slug($event->title).'_participants.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=utf-8',
@@ -106,7 +107,7 @@ class AcademyEventController extends Controller
 
             foreach ($participants as $p) {
                 fputcsv($handle, [
-                    $p->student_id_number ?: ('PA-' . $p->id),
+                    $p->student_id_number ?: ('PA-'.$p->id),
                     $p->name,
                     $p->email,
                     $p->phone ?: 'N/A',

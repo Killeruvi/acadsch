@@ -14,8 +14,8 @@ use App\Models\DppSubmission;
 use App\Models\Enrollment;
 use App\Models\HomeworkSubmission;
 use App\Models\HomeworkTask;
-use App\Models\Submission;
 use App\Models\SchoolReportCard;
+use App\Models\Submission;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +32,7 @@ class WebAnalyticsController extends Controller
         // A teacher's reporting boundary is the union of their assigned classes,
         // subjects, timetable slots and classes for which they created learning work.
         $classIds = collect();
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $classIds = AcademicClass::query()->where('class_teacher_id', $viewer->id)->pluck('id')
                 ->merge(DB::table('academic_subjects')->where('teacher_id', $viewer->id)->pluck('class_id'))
                 ->merge(DB::table('school_period_timetables')->where('teacher_id', $viewer->id)->pluck('class_id'))
@@ -42,7 +42,7 @@ class WebAnalyticsController extends Controller
         }
 
         $studentQuery = User::query()->where('role', 'student');
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $studentQuery->where(function ($query) use ($classIds) {
                 if ($classIds->isNotEmpty()) {
                     $query->whereIn('current_class_id', $classIds)
@@ -66,26 +66,36 @@ class WebAnalyticsController extends Controller
         $attendanceRecordQuery = AttendanceRecord::query()->whereIn('student_id', $studentIds);
         $bloomQuery = BloomAssignment::query()->whereIn('student_id', $studentIds);
 
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $dppQuery->where(function ($q) use ($viewer, $classIds) {
                 $q->where('teacher_id', $viewer->id);
-                if ($classIds->isNotEmpty()) $q->orWhereIn('class_id', $classIds);
+                if ($classIds->isNotEmpty()) {
+                    $q->orWhereIn('class_id', $classIds);
+                }
             });
             $homeworkQuery->where(function ($q) use ($viewer, $classIds) {
                 $q->where('teacher_id', $viewer->id);
-                if ($classIds->isNotEmpty()) $q->orWhereIn('class_id', $classIds);
+                if ($classIds->isNotEmpty()) {
+                    $q->orWhereIn('class_id', $classIds);
+                }
             });
             $attendanceSessionQuery->where(function ($q) use ($viewer, $classIds) {
                 $q->where('teacher_id', $viewer->id);
-                if ($classIds->isNotEmpty()) $q->orWhereIn('class_id', $classIds);
+                if ($classIds->isNotEmpty()) {
+                    $q->orWhereIn('class_id', $classIds);
+                }
             });
             $attendanceRecordQuery->whereHas('session', function ($q) use ($viewer, $classIds) {
                 $q->where('teacher_id', $viewer->id);
-                if ($classIds->isNotEmpty()) $q->orWhereIn('class_id', $classIds);
+                if ($classIds->isNotEmpty()) {
+                    $q->orWhereIn('class_id', $classIds);
+                }
             });
             $bloomQuery->whereHas('lesson', function ($q) use ($viewer, $classIds) {
                 $q->where('teacher_id', $viewer->id);
-                if ($classIds->isNotEmpty()) $q->orWhereIn('class_id', $classIds);
+                if ($classIds->isNotEmpty()) {
+                    $q->orWhereIn('class_id', $classIds);
+                }
             });
         }
 
@@ -116,7 +126,9 @@ class WebAnalyticsController extends Controller
 
         // Only published report cards contribute to student-facing performance analytics.
         $reportCardQuery = SchoolReportCard::query()->where('is_published', true);
-        if (!$isAdmin) $reportCardQuery->whereIn('class_id', $classIds)->whereIn('student_id', $studentIds);
+        if (! $isAdmin) {
+            $reportCardQuery->whereIn('class_id', $classIds)->whereIn('student_id', $studentIds);
+        }
         $publishedReportCards = (clone $reportCardQuery)->count();
         $averageReportPercentage = (clone $reportCardQuery)->avg('percentage');
         $averageReportPercentage = $averageReportPercentage !== null ? round((float) $averageReportPercentage, 1) : null;
@@ -132,14 +144,18 @@ class WebAnalyticsController extends Controller
         $bloomCounts = (clone $bloomQuery)->select('bloom_level', DB::raw('count(*) as count'))->groupBy('bloom_level')->pluck('count', 'bloom_level');
         $totalBloomAssignments = (clone $bloomQuery)->count();
         foreach ($bloomCounts as $level => $count) {
-            if (isset($bloomLevels[$level])) $bloomLevels[$level]['count'] = (int) $count;
+            if (isset($bloomLevels[$level])) {
+                $bloomLevels[$level]['count'] = (int) $count;
+            }
         }
 
         $topAchievers = (clone $studentQuery)->with('batch:id,name')->withCount('dppSubmissions')
             ->orderByDesc('xp_points')->orderByDesc('streak_count')->limit(5)->get();
 
         $batchQuery = Batch::query()->with('academicClass:id,name')->withCount(['students' => fn ($q) => $q->where('role', 'student')]);
-        if (!$isAdmin) $batchQuery->whereIn('class_id', $classIds);
+        if (! $isAdmin) {
+            $batchQuery->whereIn('class_id', $classIds);
+        }
         $batches = $batchQuery->get();
         $attendanceByClass = DB::table('attendance_records')
             ->join('attendance_sessions', 'attendance_sessions.id', '=', 'attendance_records.session_id')
@@ -158,6 +174,7 @@ class WebAnalyticsController extends Controller
             $eligibleCount = max(0, $total - (int) ($counts->excused ?? 0));
             $effective = (int) ($counts->present ?? 0) + (int) ($counts->late ?? 0) + ((int) ($counts->half_day ?? 0) * 0.5);
             $rate = $eligibleCount > 0 ? round(min(100, ($effective / $eligibleCount) * 100), 1) : 0.0;
+
             return [
                 'id' => $batch->id, 'name' => $batch->name,
                 'class_name' => $batch->academicClass?->name ?? 'Class',
@@ -168,7 +185,9 @@ class WebAnalyticsController extends Controller
         });
 
         $courseQuery = Course::query();
-        if (!$isAdmin) $courseQuery->where('teacher_id', $viewer->id);
+        if (! $isAdmin) {
+            $courseQuery->where('teacher_id', $viewer->id);
+        }
         $totalCourses = (clone $courseQuery)->count();
         $courses = (clone $courseQuery)->withCount('enrollments')->withCount('assignments')->with('teacher:id,name')->get();
         $courseIds = (clone $courseQuery)->select('id');
@@ -200,6 +219,7 @@ class WebAnalyticsController extends Controller
         $studentPerformance = (clone $studentQuery)->withCount('enrollments')->orderBy('name')->limit(100)->get()
             ->map(function ($student) use ($studentPerformanceRows) {
                 $stats = $studentPerformanceRows->get($student->id);
+
                 return [
                     'id' => $student->id, 'name' => $student->name,
                     'enrollments_count' => $student->enrollments_count,

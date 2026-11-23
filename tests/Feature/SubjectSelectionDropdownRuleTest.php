@@ -15,8 +15,11 @@ class SubjectSelectionDropdownRuleTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected AcademicClass $scienceClass;
+
     protected AcademicClass $commerceClass;
 
     protected function setUp(): void

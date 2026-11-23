@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,7 +27,7 @@ class SchoolPeriodSubstitute extends Model
 
     public function setDateAttribute($value): void
     {
-        $this->attributes['date'] = \Carbon\Carbon::parse($value)->toDateString();
+        $this->attributes['date'] = Carbon::parse($value)->toDateString();
     }
 
     public function timetable(): BelongsTo

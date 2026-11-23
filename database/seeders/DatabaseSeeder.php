@@ -245,7 +245,7 @@ class DatabaseSeeder extends Seeder
         Submission::firstOrCreate(
             ['assignment_id' => $assignment1->id, 'student_id' => $student1->id],
             [
-                'content' => "Completed algorithmic benchmark tests across 10,000 to 1,000,000 array items. Demonstrated O(n log n) scaling for merge sort with minimal recursion overhead.",
+                'content' => 'Completed algorithmic benchmark tests across 10,000 to 1,000,000 array items. Demonstrated O(n log n) scaling for merge sort with minimal recursion overhead.',
                 'submitted_at' => now()->subDay(),
                 'grade' => 95.0,
                 'status' => 'graded',
@@ -258,7 +258,7 @@ class DatabaseSeeder extends Seeder
         Submission::firstOrCreate(
             ['assignment_id' => $assignment1->id, 'student_id' => $student2->id],
             [
-                'content' => "Implemented sorting benchmarks using Python and C extensions. Observed cache locality effects during in-place quicksort partitioning.",
+                'content' => 'Implemented sorting benchmarks using Python and C extensions. Observed cache locality effects during in-place quicksort partitioning.',
                 'submitted_at' => now()->subHours(12),
                 'grade' => 88.0,
                 'status' => 'graded',

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('school_period_substitutes')) {
+        if (! Schema::hasTable('school_period_substitutes')) {
             Schema::create('school_period_substitutes', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('timetable_id')->constrained('school_period_timetables')->cascadeOnDelete();

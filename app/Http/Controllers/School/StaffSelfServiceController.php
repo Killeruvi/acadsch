@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -18,6 +19,7 @@ class StaffSelfServiceController extends Controller
     {
         $user = auth()->user();
         abort_unless($user && in_array($user->role, ['teacher', 'admin'], true), 403);
+
         return $user;
     }
 
@@ -30,11 +32,12 @@ class StaffSelfServiceController extends Controller
         $documents = DB::table('staff_documents')->where('staff_id', $user->id)->latest()->get();
         $contracts = DB::table('staff_employment_contracts')->where('staff_id', $user->id)->orderByDesc('starts_on')->get();
         $declarations = DB::table('staff_tax_declarations')->where('staff_id', $user->id)->orderByDesc('financial_year')->get();
-        $activeYear = now()->month >= 4 ? now()->year . '-' . substr((string)(now()->year + 1), -2) : (now()->year - 1) . '-' . substr((string)now()->year, -2);
+        $activeYear = now()->month >= 4 ? now()->year.'-'.substr((string) (now()->year + 1), -2) : (now()->year - 1).'-'.substr((string) now()->year, -2);
         $currentDeclaration = $declarations->firstWhere('financial_year', $activeYear);
         $currentDeclarationItems = $currentDeclaration
             ? DB::table('staff_tax_declaration_items')->where('declaration_id', $currentDeclaration->id)->orderBy('id')->get()
             : collect();
+
         return view('school.staff-self-service.index', compact('user', 'payrolls', 'profile', 'documents', 'contracts', 'declarations', 'activeYear', 'currentDeclaration', 'currentDeclarationItems'));
     }
 
@@ -52,24 +55,30 @@ class StaffSelfServiceController extends Controller
         ]);
         $items = collect($data['items'] ?? [])->filter(fn ($item) => collect($item)->filter(fn ($value) => $value !== null && $value !== '')->isNotEmpty())->values();
         foreach ($items as $item) {
-            if (blank($item['section_code'] ?? null) || blank($item['description'] ?? null) || !array_key_exists('declared_amount', $item) || $item['declared_amount'] === null || $item['declared_amount'] === '') {
-                throw \Illuminate\Validation\ValidationException::withMessages(['items' => 'Each declaration line needs a section code, description and amount.']);
+            if (blank($item['section_code'] ?? null) || blank($item['description'] ?? null) || ! array_key_exists('declared_amount', $item) || $item['declared_amount'] === null || $item['declared_amount'] === '') {
+                throw ValidationException::withMessages(['items' => 'Each declaration line needs a section code, description and amount.']);
             }
         }
         $existing = DB::table('staff_tax_declarations')->where('staff_id', $user->id)->where('financial_year', $data['financial_year'])->first();
         abort_if($existing && in_array($existing->status, ['submitted', 'approved'], true), 409, 'This declaration is already submitted or approved and cannot be edited.');
         DB::transaction(function () use ($user, $data, $existing, $items) {
             $payload = ['tax_regime' => $data['tax_regime'], 'declaration_note' => $data['declaration_note'] ?? null, 'status' => 'draft', 'review_note' => null, 'reviewed_by' => null, 'reviewed_at' => null, 'updated_at' => now()];
-            if ($existing) DB::table('staff_tax_declarations')->where('id', $existing->id)->update($payload);
-            else $id = DB::table('staff_tax_declarations')->insertGetId($payload + ['staff_id' => $user->id, 'financial_year' => $data['financial_year'], 'created_at' => now()]);
+            if ($existing) {
+                DB::table('staff_tax_declarations')->where('id', $existing->id)->update($payload);
+            } else {
+                $id = DB::table('staff_tax_declarations')->insertGetId($payload + ['staff_id' => $user->id, 'financial_year' => $data['financial_year'], 'created_at' => now()]);
+            }
             $declarationId = $existing->id ?? $id;
             DB::table('staff_tax_declaration_items')->where('declaration_id', $declarationId)->delete();
-            foreach ($items as $item) DB::table('staff_tax_declaration_items')->insert([
-                'declaration_id' => $declarationId, 'section_code' => $item['section_code'],
-                'description' => $item['description'], 'declared_amount' => $item['declared_amount'],
-                'created_at' => now(), 'updated_at' => now(),
-            ]);
+            foreach ($items as $item) {
+                DB::table('staff_tax_declaration_items')->insert([
+                    'declaration_id' => $declarationId, 'section_code' => $item['section_code'],
+                    'description' => $item['description'], 'declared_amount' => $item['declared_amount'],
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
         });
+
         return back()->with('success', 'Tax declaration draft saved. It has not changed payroll tax or been filed with any authority.');
     }
 
@@ -80,6 +89,7 @@ class StaffSelfServiceController extends Controller
         abort_unless($row, 404);
         abort_if($row->status !== 'draft', 409, 'Only a draft declaration can be submitted.');
         DB::table('staff_tax_declarations')->where('id', $row->id)->update(['status' => 'submitted', 'submitted_at' => now(), 'updated_at' => now()]);
+
         return back()->with('success', 'Tax declaration submitted for HR review. Submission is not a tax return filing.');
     }
 
@@ -93,6 +103,7 @@ class StaffSelfServiceController extends Controller
             ->select('d.*', 'u.name as staff_name', 'u.email as staff_email')
             ->orderBy('d.submitted_at')->paginate(30);
         $items = DB::table('staff_tax_declaration_items')->whereIn('declaration_id', $declarations->pluck('id'))->get()->groupBy('declaration_id');
+
         return view('school.staff-self-service.review-queue', compact('declarations', 'items'));
     }
 
@@ -104,6 +115,7 @@ class StaffSelfServiceController extends Controller
         $row = DB::table('staff_tax_declarations')->where('id', $declaration)->firstOrFail();
         abort_if($row->status !== 'submitted', 409, 'Only submitted declarations can be reviewed.');
         DB::table('staff_tax_declarations')->where('id', $row->id)->update(['status' => $data['decision'], 'review_note' => $data['review_note'] ?? null, 'reviewed_by' => $actor->id, 'reviewed_at' => now(), 'updated_at' => now()]);
+
         return back()->with('success', 'Tax declaration review recorded. This does not submit a statutory return.');
     }
 
@@ -114,6 +126,7 @@ class StaffSelfServiceController extends Controller
         $table = $kind === 'document' ? 'staff_documents' : 'staff_employment_contracts';
         $row = DB::table($table)->where('id', $id)->where('staff_id', $user->id)->first();
         abort_unless($row && Storage::disk('local')->exists($row->file_path), 404);
+
         return Storage::disk('local')->download($row->file_path, $row->original_filename);
     }
 }

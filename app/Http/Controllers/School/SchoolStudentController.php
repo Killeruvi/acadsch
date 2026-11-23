@@ -4,22 +4,34 @@ namespace App\Http\Controllers\School;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
-use App\Models\ClassEnrollment;
 use App\Models\AcademySetting;
+use App\Models\Batch;
+use App\Models\ClassEnrollment;
+use App\Models\FeeInvoice;
+use App\Models\StudentAdmissionDocument;
+use App\Models\StudentTransportAssignment;
+use App\Models\TransportAuditLog;
+use App\Models\TransportRoute;
+use App\Models\TransportRouteStop;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use App\Services\SchoolBrandingService;
 use App\Services\StudentIdCardVerificationService;
-use Illuminate\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SchoolStudentController extends Controller
@@ -65,8 +77,12 @@ class SchoolStudentController extends Controller
      */
     public function index(Request $request): View
     {
-        $user = \Illuminate\Support\Facades\Auth::user();
-        if ($user && !$user->isAdmin() && !$user->isTeacher()) {
+        if ($request->routeIs('students.index') || ($request->is('students') && ! $request->is('school/students*'))) {
+            return $this->lmsIndex($request);
+        }
+
+        $user = Auth::user();
+        if ($user && ! $user->isAdmin() && ! $user->isTeacher()) {
             abort(403, 'Unauthorized. Student directory access is reserved for faculty and administrators.');
         }
         $filters = $request->validate([
@@ -99,21 +115,21 @@ class SchoolStudentController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('admission_number', 'like', "%{$search}%")
-                  ->orWhere('roll_number', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('guardian_name', 'like', "%{$search}%")
-                  ->orWhere('guardian_email', 'like', "%{$search}%")
-                  ->orWhere('guardian_phone', 'like', "%{$search}%")
-                  ->orWhere('previous_school_name', 'like', "%{$search}%")
-                  ->orWhere('previous_school_tc_number', 'like', "%{$search}%")
-                  ->orWhere('student_id_number', 'like', "%{$search}%");
+                    ->orWhere('admission_number', 'like', "%{$search}%")
+                    ->orWhere('roll_number', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('guardian_name', 'like', "%{$search}%")
+                    ->orWhere('guardian_email', 'like', "%{$search}%")
+                    ->orWhere('guardian_phone', 'like', "%{$search}%")
+                    ->orWhere('previous_school_name', 'like', "%{$search}%")
+                    ->orWhere('previous_school_tc_number', 'like', "%{$search}%")
+                    ->orWhere('student_id_number', 'like', "%{$search}%");
             });
         }
 
         $students = $query->paginate(20);
-        
+
         $classesQuery = AcademicClass::withCount(['students' => fn ($q) => $q->wherePivot('status', 'active')])->orderBy('grade_level')->orderBy('section');
         if ($teacherAssignedClassIds !== null) {
             $classesQuery->whereIn('id', $teacherAssignedClassIds);
@@ -152,18 +168,18 @@ class SchoolStudentController extends Controller
             ->orderBy('section')
             ->get()
             ->filter(function (AcademicClass $class) use ($normalizedSession) {
-                $matchingFees = $class->feeStructures->filter(fn ($fee) =>
-                    $normalizedSession !== null
+                $matchingFees = $class->feeStructures->filter(fn ($fee) => $normalizedSession !== null
                     && $this->normalizeAcademicSession($fee->academic_year) === $normalizedSession
                     && (float) $fee->amount > 0
                 )->values();
                 $class->setRelation('feeStructures', $matchingFees);
+
                 return $normalizedSession !== null
                     && $this->normalizeAcademicSession($class->academic_year) === $normalizedSession
                     && $matchingFees->isNotEmpty();
             })
             ->values();
-        $transportRoutes = \App\Models\TransportRoute::with(['stops', 'vehicles'])
+        $transportRoutes = TransportRoute::with(['stops', 'vehicles'])
             ->where('status', 'active')
             ->orderBy('route_title')
             ->get();
@@ -182,11 +198,12 @@ class SchoolStudentController extends Controller
     {
         $session = trim((string) $session);
         if (preg_match('/^(\\d{4})-(\\d{2})$/', $session, $matches)) {
-            return $matches[1] . '-' . ((int) $matches[1] + 1);
+            return $matches[1].'-'.((int) $matches[1] + 1);
         }
         if (preg_match('/^(\\d{4})-(\\d{4})$/', $session)) {
             return $session;
         }
+
         return null;
     }
 
@@ -227,7 +244,7 @@ class SchoolStudentController extends Controller
         ]);
 
         $session = $this->normalizeAcademicSession(AcademySetting::get('academic_session'));
-        if (!$session) {
+        if (! $session) {
             throw ValidationException::withMessages([
                 'class_id' => 'Configure a valid active academic session in School Settings before admitting students.',
             ]);
@@ -235,7 +252,7 @@ class SchoolStudentController extends Controller
 
         $guardianEmail = mb_strtolower(trim($validated['guardian_email']));
         $existingGuardian = User::where('email', $guardianEmail)->first();
-        if ($existingGuardian && !$existingGuardian->isParent()) {
+        if ($existingGuardian && ! $existingGuardian->isParent()) {
             throw ValidationException::withMessages([
                 'guardian_email' => 'This email already belongs to a non-parent account. Use a different guardian email or resolve the account with an administrator.',
             ]);
@@ -248,7 +265,7 @@ class SchoolStudentController extends Controller
         DB::transaction(function () use ($validated, $session, $guardianEmail, &$createdParent, &$student, &$class) {
             $sessionSetting = AcademySetting::where('key', 'academic_session')->lockForUpdate()->first();
             $lockedSession = $this->normalizeAcademicSession($sessionSetting?->value);
-            if (!$lockedSession || $lockedSession !== $session) {
+            if (! $lockedSession || $lockedSession !== $session) {
                 throw ValidationException::withMessages([
                     'class_id' => 'The active academic session changed during admission. Reload the form and try again.',
                 ]);
@@ -258,9 +275,9 @@ class SchoolStudentController extends Controller
             // cannot allocate the same roll number or exceed the configured capacity.
             $class = AcademicClass::whereKey($validated['class_id'])->lockForUpdate()->firstOrFail();
             $classSession = $this->normalizeAcademicSession($class->academic_year);
-            if (!$classSession || $classSession !== $session) {
+            if (! $classSession || $classSession !== $session) {
                 throw ValidationException::withMessages([
-                    'class_id' => 'The selected class is not configured for the active academic session (' . $session . ').',
+                    'class_id' => 'The selected class is not configured for the active academic session ('.$session.').',
                 ]);
             }
 
@@ -306,7 +323,7 @@ class SchoolStudentController extends Controller
                 : ClassEnrollment::generateNextRollNumber($class->id, null, $session);
 
             $parent = User::where('email', $guardianEmail)->lockForUpdate()->first();
-            if (!$parent) {
+            if (! $parent) {
                 $parent = User::create([
                     'name' => $validated['guardian_name'],
                     'email' => $guardianEmail,
@@ -317,7 +334,7 @@ class SchoolStudentController extends Controller
                     'is_approved' => true,
                 ]);
                 $createdParent = true;
-            } elseif (!$parent->isParent()) {
+            } elseif (! $parent->isParent()) {
                 throw ValidationException::withMessages([
                     'guardian_email' => 'This email is already registered to another account type.',
                 ]);
@@ -366,8 +383,8 @@ class SchoolStudentController extends Controller
                     ? $feeStructure->due_frequency
                     : 'manual';
 
-                \App\Models\FeeInvoice::create([
-                    'invoice_number' => 'SCH-' . now()->format('Ymd') . '-' . Str::upper(Str::random(10)),
+                FeeInvoice::create([
+                    'invoice_number' => 'SCH-'.now()->format('Ymd').'-'.Str::upper(Str::random(10)),
                     'student_id' => $student->id,
                     'title' => $feeStructure->fee_title,
                     'category' => $feeStructure->fee_type,
@@ -380,20 +397,20 @@ class SchoolStudentController extends Controller
                     'billing_type' => $frequency,
                     'billing_month' => $frequency === 'monthly' ? now()->format('Y-m') : null,
                     'due_date' => now()->addDays(15)->toDateString(),
-                    'notes' => 'Generated from fee structure #' . $feeStructure->id . ' for academic session ' . $session,
+                    'notes' => 'Generated from fee structure #'.$feeStructure->id.' for academic session '.$session,
                 ]);
             }
 
-            if (!empty($validated['transport_opt_in'])) {
-                $route = \App\Models\TransportRoute::whereKey($validated['transport_route_id'])
+            if (! empty($validated['transport_opt_in'])) {
+                $route = TransportRoute::whereKey($validated['transport_route_id'])
                     ->where('status', 'active')->lockForUpdate()->firstOrFail();
                 $stop = null;
-                if (!empty($validated['transport_stop_id'])) {
-                    $stop = \App\Models\TransportRouteStop::whereKey($validated['transport_stop_id'])
+                if (! empty($validated['transport_stop_id'])) {
+                    $stop = TransportRouteStop::whereKey($validated['transport_stop_id'])
                         ->where('route_id', $route->id)->firstOrFail();
                 }
                 $vehicleId = $validated['transport_vehicle_id'] ?? null;
-                if ($vehicleId && !$route->vehicles()->whereKey($vehicleId)->exists()) {
+                if ($vehicleId && ! $route->vehicles()->whereKey($vehicleId)->exists()) {
                     throw ValidationException::withMessages([
                         'transport_vehicle_id' => 'The selected vehicle is not assigned to the selected route.',
                     ]);
@@ -408,7 +425,7 @@ class SchoolStudentController extends Controller
                 }
                 $waiverPct = (float) ($validated['transport_waiver_percentage'] ?? 0);
                 $discountAmount = (float) ($validated['transport_discount_amount'] ?? 0);
-                if (($waiverPct > 0 || $discountAmount > 0) && !request()->user()->isAdmin()) {
+                if (($waiverPct > 0 || $discountAmount > 0) && ! request()->user()->isAdmin()) {
                     throw ValidationException::withMessages([
                         'transport_discount_amount' => 'Only an administrator may approve transport discounts.',
                     ]);
@@ -422,7 +439,7 @@ class SchoolStudentController extends Controller
                 $totalDiscount = min($baseFare, $waiverAmount + $discountAmount);
                 $effectiveFare = max(0, round($baseFare - $totalDiscount, 2));
 
-                $assignment = \App\Models\StudentTransportAssignment::create([
+                $assignment = StudentTransportAssignment::create([
                     'student_id' => $student->id,
                     'route_id' => $route->id,
                     'stop_id' => $stop?->id,
@@ -436,10 +453,10 @@ class SchoolStudentController extends Controller
                 ]);
 
                 if ($effectiveFare > 0) {
-                    \App\Models\FeeInvoice::create([
-                        'invoice_number' => 'TRN-' . now()->format('Ymd') . '-' . Str::upper(Str::random(10)),
+                    FeeInvoice::create([
+                        'invoice_number' => 'TRN-'.now()->format('Ymd').'-'.Str::upper(Str::random(10)),
                         'student_id' => $student->id,
-                        'title' => 'Transport Fee - ' . $route->route_title,
+                        'title' => 'Transport Fee - '.$route->route_title,
                         'category' => 'transport',
                         'amount' => $baseFare,
                         'discount' => $totalDiscount,
@@ -450,13 +467,13 @@ class SchoolStudentController extends Controller
                         'billing_type' => 'monthly',
                         'billing_month' => now()->format('Y-m'),
                         'due_date' => now()->addDays(15)->toDateString(),
-                        'notes' => 'Generated for transport assignment #' . $assignment->id,
+                        'notes' => 'Generated for transport assignment #'.$assignment->id,
                     ]);
                 }
 
-                \App\Models\TransportAuditLog::log(
+                TransportAuditLog::log(
                     'created', 'student_assignment', $assignment->id,
-                    'Student ' . $student->name . ' assigned to route ' . $route->route_title . ' during admission.'
+                    'Student '.$student->name.' assigned to route '.$route->route_title.' during admission.'
                 );
             }
         }, 3);
@@ -467,12 +484,12 @@ class SchoolStudentController extends Controller
             try {
                 $type = $validated['document_types'][$index] ?? 'other';
                 $extension = strtolower($file->getClientOriginalExtension() ?: 'bin');
-                $filename = (string) Str::uuid() . '.' . $extension;
-                $path = $file->storeAs('private/student-admissions/' . $student->id, $filename, 'local');
-                if (!$path) {
+                $filename = (string) Str::uuid().'.'.$extension;
+                $path = $file->storeAs('private/student-admissions/'.$student->id, $filename, 'local');
+                if (! $path) {
                     throw new \RuntimeException('Private document storage failed.');
                 }
-                \App\Models\StudentAdmissionDocument::create([
+                StudentAdmissionDocument::create([
                     'student_id' => $student->id,
                     'document_type' => $type,
                     'original_filename' => mb_substr($file->getClientOriginalName(), 0, 255),
@@ -507,15 +524,15 @@ class SchoolStudentController extends Controller
 
         $warnings = [];
         if ($documentUploadFailures) {
-            $warnings[] = 'Some documents could not be stored: ' . implode(', ', $documentUploadFailures) . '. Upload them again from the student record.';
+            $warnings[] = 'Some documents could not be stored: '.implode(', ', $documentUploadFailures).'. Upload them again from the student record.';
         }
         if ($activationFailures) {
-            $warnings[] = 'Account activation email could not be sent for: ' . implode(', ', $activationFailures) . '. Verify mail configuration and use the password-reset workflow.';
+            $warnings[] = 'Account activation email could not be sent for: '.implode(', ', $activationFailures).'. Verify mail configuration and use the password-reset workflow.';
         } else {
             $response->with('status', 'Account activation links were requested for the new student and newly created parent account.');
         }
         if ($warnings) {
-            $response->with('warning', 'Admission succeeded. ' . implode(' ', $warnings));
+            $response->with('warning', 'Admission succeeded. '.implode(' ', $warnings));
         }
 
         return $response;
@@ -526,7 +543,7 @@ class SchoolStudentController extends Controller
      */
     public function show(int $id): View
     {
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = Auth::user();
         abort_unless($user && ($user->isAdmin() || $user->isTeacher()), 403,
             'Unauthorized. Student profile access is reserved for faculty and administrators.');
 
@@ -542,12 +559,12 @@ class SchoolStudentController extends Controller
                 'activeTransportAssignment.stop',
                 'activeTransportAssignment.vehicle.driver',
             ])
-            ->findOrFail($id);
+            ->findOrFail($studentId);
 
         // This route is authenticated and role-restricted, but keep object-level
         // authorization here so future route changes cannot expose another class.
         $this->authorizeStudentScope($student, $user);
-        $admissionDocuments = \App\Models\StudentAdmissionDocument::where('student_id', $student->id)->latest()->get();
+        $admissionDocuments = StudentAdmissionDocument::where('student_id', $student->id)->latest()->get();
 
         // Attendance must be calculated from this student's own recorded sessions.
         // Counting all class sessions and comparing them with this student's records
@@ -569,7 +586,7 @@ class SchoolStudentController extends Controller
             ? round(($presentCount / $totalSessions) * 100, 1)
             : null;
 
-        $feeSummary = \App\Models\FeeInvoice::query()
+        $feeSummary = FeeInvoice::query()
             ->where('student_id', $student->id)
             ->selectRaw('COALESCE(SUM(total_due), 0) as total_invoiced')
             ->selectRaw('COALESCE(SUM(paid_amount), 0) as total_paid')
@@ -578,6 +595,10 @@ class SchoolStudentController extends Controller
         $totalInvoiced = (float) ($feeSummary->total_invoiced ?? 0);
         $totalPaid = (float) ($feeSummary->total_paid ?? 0);
         $totalOutstanding = max(0, $totalInvoiced - $totalPaid);
+
+        if (request()->routeIs('students.show') || request()->is('students/*')) {
+            return $this->lmsShow($student);
+        }
 
         return view('school.students.show', compact(
             'student', 'admissionDocuments', 'totalSessions', 'presentCount', 'absentCount', 'excusedCount',
@@ -590,15 +611,16 @@ class SchoolStudentController extends Controller
      * read-only here; they require their own audited workflows so a profile edit cannot
      * silently rewrite enrollment history or transfer a child to another guardian.
      */
-    public function downloadAdmissionDocument(Request $request, int $documentId): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function downloadAdmissionDocument(Request $request, int $documentId): StreamedResponse
     {
         $actor = $request->user();
         abort_unless($actor && ($actor->isAdmin() || $actor->isTeacher()), 403);
-        $document = \App\Models\StudentAdmissionDocument::findOrFail($documentId);
+        $document = StudentAdmissionDocument::findOrFail($documentId);
         $student = User::where('role', 'student')->findOrFail($document->student_id);
         $this->authorizeStudentScope($student, $actor);
-        abort_unless(\Illuminate\Support\Facades\Storage::disk('local')->exists($document->file_path), 404);
-        return \Illuminate\Support\Facades\Storage::disk('local')->download($document->file_path, $document->original_filename);
+        abort_unless(Storage::disk('local')->exists($document->file_path), 404);
+
+        return Storage::disk('local')->download($document->file_path, $document->original_filename);
     }
 
     public function edit(int $id): View
@@ -609,7 +631,7 @@ class SchoolStudentController extends Controller
         $student = User::query()
             ->where('role', 'student')
             ->with(['currentClass', 'parent'])
-            ->findOrFail($id);
+            ->findOrFail($studentId);
 
         $this->authorizeStudentScope($student, $actor);
         $activeEnrollment = $student->classEnrollments()
@@ -686,7 +708,7 @@ class SchoolStudentController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if (!$activeEnrollment) {
+                if (! $activeEnrollment) {
                     throw ValidationException::withMessages([
                         'roll_number' => 'The student has no active enrollment record for the current class. Resolve enrollment before editing the roll number.',
                     ]);
@@ -698,7 +720,7 @@ class SchoolStudentController extends Controller
                 $requestedRoll = (int) $validated['roll_number'];
 
                 if ($requestedRoll !== $currentEnrollmentRoll) {
-                    if (!ClassEnrollment::isRollNumberAvailable(
+                    if (! ClassEnrollment::isRollNumberAvailable(
                         (int) $lockedStudent->current_class_id,
                         $requestedRoll,
                         $lockedStudent->id
@@ -750,8 +772,9 @@ class SchoolStudentController extends Controller
     /**
      * Withdraw a student while preserving academic, attendance and financial history.
      */
-    public function destroy(Request $request, int $id): RedirectResponse
+    public function destroy(Request $request, int|User $id): RedirectResponse
     {
+        $id = $id instanceof User ? $id->id : (int) $id;
         $actor = $request->user();
         abort_unless($actor, 401);
         abort_unless($actor->isAdmin(), 403, 'Only administrators may withdraw student records.');
@@ -763,7 +786,7 @@ class SchoolStudentController extends Controller
             'effective_date' => ['required', 'date', 'before_or_equal:today'],
         ]);
 
-        if (!Hash::check($validated['admin_password'], $actor->password)) {
+        if (! Hash::check($validated['admin_password'], $actor->password)) {
             throw ValidationException::withMessages([
                 'admin_password' => 'Administrator password confirmation failed.',
             ]);
@@ -798,28 +821,28 @@ class SchoolStudentController extends Controller
                 ->where('status', 'active')
                 ->update([
                     'status' => 'withdrawn',
-                    'ended_at' => \Illuminate\Support\Carbon::parse($validated['effective_date'])->startOfDay(),
+                    'ended_at' => Carbon::parse($validated['effective_date'])->startOfDay(),
                     'ended_by' => $actor->id,
                     'transition_reason' => trim($validated['withdrawal_reason']),
                     'updated_at' => now(),
                 ]);
 
             // End transport service without deleting assignment, trip or billing history.
-            \App\Models\StudentTransportAssignment::query()
+            StudentTransportAssignment::query()
                 ->where('student_id', $student->id)
                 ->where('status', 'active')
                 ->update([
                     'status' => 'opted_out',
                     'end_date' => $validated['effective_date'],
-                    'opt_out_reason' => substr('Student withdrawn: ' . trim($validated['withdrawal_reason']), 0, 255),
+                    'opt_out_reason' => substr('Student withdrawn: '.trim($validated['withdrawal_reason']), 0, 255),
                     'updated_at' => now(),
                 ]);
 
             // Clean up uncollected future invoices so withdrawn students do not accrue false debt
-            $effectiveMonth = \Illuminate\Support\Carbon::parse($validated['effective_date'])->format('Y-m');
+            $effectiveMonth = Carbon::parse($validated['effective_date'])->format('Y-m');
 
             // Void/remove uncollected transport invoices from withdrawal month onwards
-            \App\Models\FeeInvoice::query()
+            FeeInvoice::query()
                 ->where('student_id', $student->id)
                 ->where('category', 'transport')
                 ->whereIn('status', ['unpaid', 'pending'])
@@ -828,7 +851,7 @@ class SchoolStudentController extends Controller
                 ->delete();
 
             // Void/remove uncollected tuition/general fee invoices strictly for future billing months
-            \App\Models\FeeInvoice::query()
+            FeeInvoice::query()
                 ->where('student_id', $student->id)
                 ->whereIn('status', ['unpaid', 'pending'])
                 ->where('paid_amount', '<=', 0)
@@ -870,7 +893,7 @@ class SchoolStudentController extends Controller
     public function idCard(int $id): View
     {
         $student = User::with(['currentClass', 'parent'])->where('role', 'student')->findOrFail($id);
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = Auth::user();
 
         abort_unless($user, 401);
 
@@ -901,10 +924,10 @@ class SchoolStudentController extends Controller
     /**
      * Public cryptographic verification of an issued student identity-card URL.
      */
-    public function verifyIdCard(string $hash): \Illuminate\Http\Response
+    public function verifyIdCard(string $hash): Response
     {
         // Public token contains only a record key and an HMAC; it carries no student PII.
-        if (!preg_match('/^(\d+)\.([a-f0-9]{64})$/i', $hash, $matches)) {
+        if (! preg_match('/^(\d+)\.([a-f0-9]{64})$/i', $hash, $matches)) {
             abort(404, 'Invalid or unrecognized Student Identity Verification Certificate.');
         }
 
@@ -914,7 +937,7 @@ class SchoolStudentController extends Controller
             ->find((int) $matches[1]);
 
         $verification = app(StudentIdCardVerificationService::class);
-        if (!$student || !$verification->verifies($student, $matches[2])) {
+        if (! $student || ! $verification->verifies($student, $matches[2])) {
             abort(404, 'Invalid or unrecognized Student Identity Verification Certificate.');
         }
 
@@ -925,7 +948,7 @@ class SchoolStudentController extends Controller
                 ->where('class_id', $student->current_class_id)
                 ->where('status', 'active')
                 ->exists();
-        $isActive = (bool) $student->is_approved && $hasActiveEnrollment && !$isExpired;
+        $isActive = (bool) $student->is_approved && $hasActiveEnrollment && ! $isExpired;
 
         $response = response()->view('school.students.verify-id', [
             'student' => $student,
@@ -943,4 +966,372 @@ class SchoolStudentController extends Controller
         ]);
     }
 
+    /**
+     * LMS Index view for student directory.
+     */
+    public function lmsIndex(Request $request): View
+    {
+        $actor = Auth::user();
+        if (! $actor || (! $actor->isTeacher() && ! $actor->isAdmin())) {
+            abort(403, 'Unauthorized. Student directory access is restricted to verified faculty and administrative officers.');
+        }
+
+        $allClasses = AcademicClass::orderBy('grade_level')->get();
+        $allBatches = Batch::where('is_active', true)->orderBy('name')->get();
+
+        $selectedClassId = $request->filled('class_id') ? (int) $request->query('class_id') : null;
+        $selectedBatchId = $request->filled('batch_id') ? (int) $request->query('batch_id') : null;
+        $searchTerm = trim($request->query('search', ''));
+        $statusFilter = $request->query('status', 'all');
+        $tierFilter = $request->query('tier', 'all');
+        $perPage = in_array((int) $request->query('per_page', 15), [10, 15, 25, 50, 100], true)
+            ? (int) $request->query('per_page', 15)
+            : 15;
+        $sortBy = $request->query('sort_by', 'name');
+        $sortOrder = strtolower($request->query('order', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = User::where('role', 'student')
+            ->with([
+                'batch.academicClass',
+                'classEnrollments.academicClass',
+                'feeInvoices',
+                'attendanceRecords',
+            ]);
+
+        if ($selectedClassId) {
+            $query->where(function ($q) use ($selectedClassId) {
+                $q->whereHas('classEnrollments', fn ($sub) => $sub->where('class_id', $selectedClassId))
+                    ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $selectedClassId));
+            });
+        }
+
+        if ($selectedBatchId) {
+            $query->where('batch_id', $selectedBatchId);
+        }
+
+        if (! empty($searchTerm)) {
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                    ->orWhere('email', 'like', "%{$searchTerm}%")
+                    ->orWhere('phone', 'like', "%{$searchTerm}%")
+                    ->orWhere('student_id_number', 'like', "%{$searchTerm}%")
+                    ->orWhere('guardian_name', 'like', "%{$searchTerm}%")
+                    ->orWhere('guardian_phone', 'like', "%{$searchTerm}%")
+                    ->orWhere('address', 'like', "%{$searchTerm}%")
+                    ->orWhereHas('classEnrollments', fn ($sub) => $sub->where('roll_number', 'like', "%{$searchTerm}%"));
+            });
+        }
+
+        if ($statusFilter === 'active') {
+            $query->where('is_approved', true);
+        } elseif ($statusFilter === 'pending') {
+            $query->where('is_approved', false);
+        }
+
+        if ($tierFilter !== 'all' && ! empty($tierFilter)) {
+            $query->where('academic_tier', $tierFilter);
+        }
+
+        if ($sortBy === 'roll_number') {
+            $query->leftJoin('class_enrollments', 'users.id', '=', 'class_enrollments.student_id')
+                ->orderBy('class_enrollments.roll_number', $sortOrder)
+                ->select('users.*');
+        } elseif (in_array($sortBy, ['name', 'email', 'xp_points', 'streak_count', 'created_at'], true)) {
+            $query->orderBy($sortBy, $sortOrder);
+        } else {
+            $query->orderBy('name', 'asc');
+        }
+
+        $students = $query->paginate($perPage)->withQueryString();
+
+        $classCounts = [];
+        $totalStudentsCount = User::where('role', 'student')->count();
+        foreach ($allClasses as $c) {
+            $classCounts[$c->id] = User::where('role', 'student')
+                ->where(function ($q) use ($c) {
+                    $q->whereHas('classEnrollments', fn ($sub) => $sub->where('class_id', $c->id))
+                        ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $c->id));
+                })->count();
+        }
+
+        return view('students.index', compact(
+            'students',
+            'allClasses',
+            'allBatches',
+            'selectedClassId',
+            'selectedBatchId',
+            'searchTerm',
+            'statusFilter',
+            'tierFilter',
+            'perPage',
+            'sortBy',
+            'sortOrder',
+            'classCounts',
+            'totalStudentsCount'
+        ));
+    }
+
+    /**
+     * Detailed LMS dossier view for a student.
+     */
+    public function lmsShow(User $student): View
+    {
+        $actor = Auth::user();
+        if (! $actor || (! $actor->isTeacher() && ! $actor->isAdmin())) {
+            abort(403, 'Unauthorized. Student directory access is restricted.');
+        }
+        $this->authorizeStudentScope($student, $actor);
+
+        $student->load([
+            'batch.academicClass',
+            'classEnrollments.academicClass',
+            'quizAttempts.quiz',
+            'attendanceRecords.session.academicClass',
+        ]);
+
+        $attendanceStats = AttendanceRecord::query()
+            ->where('student_id', $student->id)
+            ->selectRaw("COUNT(CASE WHEN status <> 'excused' THEN 1 END) as total_sessions")
+            ->selectRaw("COUNT(CASE WHEN status IN ('present', 'late', 'half_day') THEN 1 END) as present_count")
+            ->selectRaw("COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count")
+            ->selectRaw("COUNT(CASE WHEN status = 'excused' THEN 1 END) as excused_count")
+            ->first();
+
+        $totalAttendanceSessions = (int) ($attendanceStats->total_sessions ?? 0);
+        $presentAttendanceCount = (int) ($attendanceStats->present_count ?? 0);
+        $absentAttendanceCount = (int) ($attendanceStats->absent_count ?? 0);
+        $excusedAttendanceCount = (int) ($attendanceStats->excused_count ?? 0);
+        $attendanceRate = $totalAttendanceSessions > 0
+            ? round(($presentAttendanceCount / $totalAttendanceSessions) * 100, 1)
+            : null;
+
+        $quizAttempts = $student->quizAttempts()->with('quiz')->latest()->take(10)->get();
+        $averageQuizScore = $quizAttempts->isNotEmpty() ? round($quizAttempts->avg('score'), 1) : null;
+
+        $invoices = $student->feeInvoices()->with('payments')->latest()->limit(20)->get();
+        $feeSummary = $student->feeInvoices()
+            ->selectRaw('COALESCE(SUM(total_due), 0) as total_invoiced')
+            ->selectRaw('COALESCE(SUM(paid_amount), 0) as total_paid')
+            ->first();
+        $totalInvoiced = (float) ($feeSummary->total_invoiced ?? 0);
+        $totalPaid = (float) ($feeSummary->total_paid ?? 0);
+        $totalOutstanding = max(0, $totalInvoiced - $totalPaid);
+
+        $activeEnrollment = $student->classEnrollments()->where('status', 'active')->latest()->first();
+        $lastEnrollment = $student->classEnrollments()->latest()->first();
+
+        return view('students.show', compact(
+            'student',
+            'activeEnrollment',
+            'lastEnrollment',
+            'totalAttendanceSessions',
+            'presentAttendanceCount',
+            'absentAttendanceCount',
+            'excusedAttendanceCount',
+            'attendanceRate',
+            'quizAttempts',
+            'averageQuizScore',
+            'invoices',
+            'totalInvoiced',
+            'totalPaid',
+            'totalOutstanding'
+        ));
+    }
+
+    /**
+     * Export all matching students info to CSV for download.
+     */
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $actor = Auth::user();
+        if (! $actor || (! $actor->isTeacher() && ! $actor->isAdmin())) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $selectedClassId = $request->filled('class_id') ? (int) $request->query('class_id') : null;
+        $selectedBatchId = $request->filled('batch_id') ? (int) $request->query('batch_id') : null;
+        $searchTerm = trim($request->query('search', ''));
+
+        $query = User::where('role', 'student')
+            ->with(['batch.academicClass', 'classEnrollments.academicClass', 'feeInvoices'])
+            ->orderBy('name', 'asc');
+
+        if ($selectedClassId) {
+            $query->where(function ($q) use ($selectedClassId) {
+                $q->whereHas('classEnrollments', fn ($sub) => $sub->where('class_id', $selectedClassId))
+                    ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $selectedClassId));
+            });
+        }
+
+        if ($selectedBatchId) {
+            $query->where('batch_id', $selectedBatchId);
+        }
+
+        if (! empty($searchTerm)) {
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                    ->orWhere('email', 'like', "%{$searchTerm}%")
+                    ->orWhere('phone', 'like', "%{$searchTerm}%")
+                    ->orWhere('student_id_number', 'like', "%{$searchTerm}%")
+                    ->orWhere('guardian_name', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        $students = $query->get();
+        $filename = 'students_roster_'.now()->format('Y-m-d_His').'.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ];
+
+        return response()->stream(function () use ($students) {
+            $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            fputcsv($handle, [
+                'Student ID', 'Full Name', 'Academic Class', 'Section', 'Roll Number',
+                'Batch Name', 'Batch Shift', 'Batch Timings', 'Phone Number', 'Email Address',
+                'Date of Birth', 'Blood Group', 'Guardian Name', 'Guardian Phone', 'Guardian Email',
+                'Residential Address', 'Academic Tier', 'XP Points', 'Streak Count', 'Approval Status', 'Card Valid Until',
+            ]);
+
+            foreach ($students as $s) {
+                $enrollment = $s->classEnrollments->first();
+                $academicClass = $enrollment?->academicClass ?? $s->batch?->academicClass;
+                $rollNumber = $enrollment?->roll_number ?? 'N/A';
+
+                fputcsv($handle, [
+                    $s->student_id_number,
+                    $s->name,
+                    $academicClass?->name ?? 'Unassigned',
+                    $academicClass?->section ?? 'A',
+                    $rollNumber,
+                    $s->batch?->name ?? 'Unassigned Batch',
+                    $s->batch?->shift ?? 'N/A',
+                    $s->batch?->timing_slot ?? 'N/A',
+                    $s->phone ?? 'N/A',
+                    $s->email,
+                    $s->date_of_birth ? $s->date_of_birth->format('Y-m-d') : 'N/A',
+                    $s->blood_group ?? 'N/A',
+                    $s->guardian_name ?? 'N/A',
+                    $s->guardian_phone ?? 'N/A',
+                    $s->guardian_email ?? 'N/A',
+                    $s->address ?? 'N/A',
+                    $s->academic_tier ?? 'Junior Scholar',
+                    $s->xp_points ?? 0,
+                    $s->streak_count ?? 0,
+                    $s->is_approved ? 'Active / Approved' : 'Pending Verification',
+                    $s->card_valid_until ? $s->card_valid_until->format('Y-m-d') : 'N/A',
+                ]);
+            }
+            fclose($handle);
+        }, 200, $headers);
+    }
+
+    /**
+     * Grab all matching student info as JSON for 1-click clipboard / data export.
+     */
+    public function grabJson(Request $request): JsonResponse
+    {
+        $actor = Auth::user();
+        if (! $actor || (! $actor->isTeacher() && ! $actor->isAdmin())) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $selectedClassId = $request->filled('class_id') ? (int) $request->query('class_id') : null;
+        $selectedBatchId = $request->filled('batch_id') ? (int) $request->query('batch_id') : null;
+        $searchTerm = trim($request->query('search', ''));
+
+        $query = User::where('role', 'student')
+            ->with(['batch.academicClass', 'classEnrollments.academicClass'])
+            ->orderBy('name', 'asc');
+
+        if ($selectedClassId) {
+            $query->where(function ($q) use ($selectedClassId) {
+                $q->whereHas('classEnrollments', fn ($sub) => $sub->where('class_id', $selectedClassId))
+                    ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $selectedClassId));
+            });
+        }
+
+        if ($selectedBatchId) {
+            $query->where('batch_id', $selectedBatchId);
+        }
+
+        if (! empty($searchTerm)) {
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                    ->orWhere('email', 'like', "%{$searchTerm}%")
+                    ->orWhere('phone', 'like', "%{$searchTerm}%")
+                    ->orWhere('student_id_number', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        $students = $query->get()->map(function ($s) {
+            $enrollment = $s->classEnrollments->first();
+            $academicClass = $enrollment?->academicClass ?? $s->batch?->academicClass;
+
+            return [
+                'id' => $s->id,
+                'student_id_number' => $s->student_id_number,
+                'name' => $s->name,
+                'class' => $academicClass?->name ?? 'Unassigned',
+                'section' => $academicClass?->section ?? 'A',
+                'roll_number' => $enrollment?->roll_number ?? null,
+                'batch_name' => $s->batch?->name ?? null,
+                'batch_shift' => $s->batch?->shift ?? null,
+                'batch_timings' => $s->batch?->timing_slot ?? null,
+                'phone' => $s->phone,
+                'email' => $s->email,
+                'guardian_name' => $s->guardian_name,
+                'guardian_phone' => $s->guardian_phone,
+                'guardian_email' => $s->guardian_email,
+                'address' => $s->address,
+                'blood_group' => $s->blood_group,
+                'date_of_birth' => $s->date_of_birth?->format('Y-m-d'),
+                'academic_tier' => $s->academic_tier,
+                'xp_points' => $s->xp_points,
+                'streak_count' => $s->streak_count,
+                'is_approved' => (bool) $s->is_approved,
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'count' => $students->count(),
+            'students' => $students,
+        ]);
+    }
+
+    /**
+     * Clean, printable student roster view for physical attendance or record keeping.
+     */
+    public function rosterPrint(Request $request): View
+    {
+        $actor = Auth::user();
+        if (! $actor || (! $actor->isTeacher() && ! $actor->isAdmin())) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $selectedClassId = $request->filled('class_id') ? (int) $request->query('class_id') : null;
+        $class = $selectedClassId ? AcademicClass::find($selectedClassId) : null;
+
+        $query = User::where('role', 'student')
+            ->with(['batch.academicClass', 'classEnrollments.academicClass'])
+            ->orderBy('name', 'asc');
+
+        if ($selectedClassId) {
+            $query->where(function ($q) use ($selectedClassId) {
+                $q->whereHas('classEnrollments', fn ($sub) => $sub->where('class_id', $selectedClassId))
+                    ->orWhereHas('batch', fn ($sub) => $sub->where('class_id', $selectedClassId));
+            });
+        }
+
+        $students = $query->get();
+
+        return view('students.roster-print', compact('students', 'class', 'selectedClassId'));
+    }
 }

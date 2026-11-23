@@ -22,7 +22,7 @@ class ArenaAndEnrichmentSeeder extends Seeder
         $class8 = AcademicClass::where('grade_level', 8)->first() ?? AcademicClass::first();
         $science = AcademicSubject::where('name', 'like', '%Science%')->first() ?? AcademicSubject::first();
 
-        if (!$teacher || !$class8) {
+        if (! $teacher || ! $class8) {
             return;
         }
 
@@ -179,7 +179,7 @@ class ArenaAndEnrichmentSeeder extends Seeder
                 'category' => 'academic_excellence',
                 'citation' => 'In recognition of superlative mathematical rigor, exemplary problem formulation, and unwavering scholarly discipline throughout the term.',
                 'issued_date' => now()->subMonth(),
-                'verification_hash' => hash('sha256', 'CERT-PA-2026-0001' . $student->id),
+                'verification_hash' => hash('sha256', 'CERT-PA-2026-0001'.$student->id),
             ]);
         }
     }

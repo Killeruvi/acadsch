@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
-use App\Models\AcademySetting;
 use App\Models\Batch;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
@@ -11,6 +10,7 @@ use App\Models\SchoolFeeStructure;
 use App\Models\User;
 use App\Services\MonthlyFeeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AutomatedMonthlyFeesAndPaginationTest extends TestCase
@@ -18,9 +18,13 @@ class AutomatedMonthlyFeesAndPaginationTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $student;
+
     protected User $parent;
+
     protected AcademicClass $class9;
+
     protected Batch $batch9A;
 
     protected function setUp(): void
@@ -107,8 +111,8 @@ class AutomatedMonthlyFeesAndPaginationTest extends TestCase
 
         $this->assertNotNull($invoice);
         // Calculated total: 3000 + 500 + 300 = 3800.00
-        $this->assertEquals(3800.00, (float)$invoice->amount);
-        $this->assertEquals(3800.00, (float)$invoice->total_due);
+        $this->assertEquals(3800.00, (float) $invoice->amount);
+        $this->assertEquals(3800.00, (float) $invoice->total_due);
         $this->assertEquals('monthly_auto', $invoice->billing_type);
 
         // Verify detailed breakdown
@@ -155,7 +159,7 @@ class AutomatedMonthlyFeesAndPaginationTest extends TestCase
         $this->assertEquals('monthly_auto', $currentInvoice->billing_type);
 
         // Verify arrears carried forward in breakdown
-        $this->assertEquals(1500.00, (float)$currentInvoice->fee_breakdown['previous_arrears']);
+        $this->assertEquals(1500.00, (float) $currentInvoice->fee_breakdown['previous_arrears']);
         $this->assertStringContainsString('Carried Forward Arrears', $currentInvoice->notes);
     }
 
@@ -229,7 +233,7 @@ class AutomatedMonthlyFeesAndPaginationTest extends TestCase
             ]);
         }
 
-        \Laravel\Sanctum\Sanctum::actingAs($this->admin, ['*']);
+        Sanctum::actingAs($this->admin, ['*']);
         $res = $this->getJson('/api/v1/fees?per_page=3');
         $res->assertStatus(200);
         $res->assertJsonPath('per_page', 3);

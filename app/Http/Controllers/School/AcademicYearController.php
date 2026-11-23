@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\School;
 
 use App\Http\Controllers\Controller;
-use App\Models\AcademySetting;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
+use App\Models\AcademySetting;
+use App\Models\SchoolExamTerm;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -21,6 +22,7 @@ class AcademicYearController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor && $actor->isAdmin(), 403, 'Administrative access is required.');
+
         return $actor;
     }
 
@@ -41,6 +43,7 @@ class AcademicYearController extends Controller
                 'exams' => DB::table('school_exam_terms')->where('academic_year', $session->academic_year)->count(),
             ];
         }
+
         return view('school.academic-years.index', compact('sessions', 'activeSession', 'sessionSetup'));
     }
 
@@ -122,8 +125,8 @@ class AcademicYearController extends Controller
             }
 
             $createdTerms = 0;
-            foreach (\App\Models\SchoolExamTerm::where('academic_year', $data['source_year'])->get() as $term) {
-                $newTerm = \App\Models\SchoolExamTerm::create([
+            foreach (SchoolExamTerm::where('academic_year', $data['source_year'])->get() as $term) {
+                $newTerm = SchoolExamTerm::create([
                     'name' => $term->name, 'academic_year' => $data['target_year'],
                     'start_date' => Carbon::parse($term->start_date)->addYear()->toDateString(),
                     'end_date' => Carbon::parse($term->end_date)->addYear()->toDateString(),
@@ -131,9 +134,13 @@ class AcademicYearController extends Controller
                 ]);
                 foreach (DB::table('school_exam_schedules')->where('exam_term_id', $term->id)->get() as $schedule) {
                     $newClassId = $classMap[$schedule->class_id] ?? null;
-                    if (!$newClassId) continue;
+                    if (! $newClassId) {
+                        continue;
+                    }
                     $newSubjectId = DB::table('academic_subjects')->where('class_id', $newClassId)->where('name', DB::table('academic_subjects')->where('id', $schedule->subject_id)->value('name'))->value('id');
-                    if (!$newSubjectId) continue;
+                    if (! $newSubjectId) {
+                        continue;
+                    }
                     DB::table('school_exam_schedules')->insert([
                         'exam_term_id' => $newTerm->id, 'class_id' => $newClassId, 'subject_id' => $newSubjectId,
                         'exam_date' => Carbon::parse($schedule->exam_date)->addYear()->toDateString(), 'start_time' => $schedule->start_time,
@@ -150,6 +157,7 @@ class AcademicYearController extends Controller
                 'subjects_created' => $createdSubjects, 'fee_structures_created' => $createdFees,
                 'timetable_rows_created' => $createdTimetableRows, 'exam_terms_created' => $createdTerms,
             ]);
+
             return compact('createdClasses', 'createdSubjects', 'createdFees', 'createdTimetableRows', 'createdTerms');
         });
 
@@ -162,7 +170,7 @@ class AcademicYearController extends Controller
         $actor = $this->authorizeAdmin($request);
         $data = $request->validate(['academic_year' => ['required', 'string', 'max:20']]);
         $hasClasses = AcademicClass::query()->where('academic_year', $data['academic_year'])->exists();
-        if (!$hasClasses) {
+        if (! $hasClasses) {
             throw ValidationException::withMessages(['academic_year' => 'Create or configure classes for this session before activating it.']);
         }
 

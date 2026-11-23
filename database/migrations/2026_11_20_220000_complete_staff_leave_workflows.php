@@ -5,7 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         // Replace the original single-row-per-type constraint with effective-dated policy versions.
@@ -40,7 +41,7 @@ return new class extends Migration {
         // Preserve legacy paid-leave policy configuration under the new default category.
         $legacyPaidPolicy = DB::table('staff_leave_policies')->where('leave_type', 'paid')->first();
         $annualPolicy = DB::table('staff_leave_policies')->where('leave_type', 'annual')->exists();
-        if ($legacyPaidPolicy && !$annualPolicy) {
+        if ($legacyPaidPolicy && ! $annualPolicy) {
             DB::table('staff_leave_policies')->where('id', $legacyPaidPolicy->id)->update(['leave_type' => 'annual']);
         } elseif ($legacyPaidPolicy && $annualPolicy) {
             DB::table('staff_leave_policies')->where('id', $legacyPaidPolicy->id)->update(['is_enabled' => false]);

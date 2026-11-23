@@ -9,11 +9,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('academic_subjects') || !Schema::hasTable('subject_masters')) {
+        if (! Schema::hasTable('academic_subjects') || ! Schema::hasTable('subject_masters')) {
             return;
         }
 
-        if (!Schema::hasColumn('academic_subjects', 'subject_master_id')) {
+        if (! Schema::hasColumn('academic_subjects', 'subject_master_id')) {
             Schema::table('academic_subjects', function (Blueprint $table) {
                 $table->foreignId('subject_master_id')->nullable()->after('class_id')
                     ->constrained('subject_masters')->restrictOnDelete();
@@ -42,7 +42,7 @@ return new class extends Migration
 
             $master = $candidates->first(fn ($candidate) => strtoupper((string) $candidate->code) === $baseCode)
                 ?? $candidates->first(fn ($candidate) => strtoupper((string) $candidate->code) === strtoupper((string) $subject->code));
-            if (!$master && $candidates->count() === 1) {
+            if (! $master && $candidates->count() === 1) {
                 $master = $candidates->first();
             }
 

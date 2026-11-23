@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('payment_webhook_logs')) {
+        if (! Schema::hasTable('payment_webhook_logs')) {
             Schema::create('payment_webhook_logs', function (Blueprint $table) {
                 $table->id();
                 $table->string('gateway', 50)->default('ownpay');

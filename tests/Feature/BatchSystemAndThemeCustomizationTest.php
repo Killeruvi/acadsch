@@ -11,7 +11,6 @@ use App\Models\CurriculumNote;
 use App\Models\CurriculumTopic;
 use App\Models\CurriculumVideo;
 use App\Models\DailyDpp;
-use App\Models\DppSubmission;
 use App\Models\HomeworkTask;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,10 +23,15 @@ class BatchSystemAndThemeCustomizationTest extends TestCase
     use RefreshDatabase;
 
     protected User $student;
+
     protected User $teacher;
+
     protected AcademicClass $academicClass;
+
     protected Batch $batch;
+
     protected AcademicSubject $subject;
+
     protected CurriculumTopic $topic;
 
     protected function setUp(): void
@@ -325,7 +329,7 @@ class BatchSystemAndThemeCustomizationTest extends TestCase
     public function test_empty_state_views_for_all_five_categories_render_correctly(): void
     {
         // Create an empty topic with no videos, notes, dpps, assignments, or tests
-        $emptyTopic = \App\Models\CurriculumTopic::create([
+        $emptyTopic = CurriculumTopic::create([
             'subject_id' => $this->subject->id,
             'chapter_number' => 99,
             'title' => 'Empty Chapter For Testing',
@@ -553,7 +557,7 @@ class BatchSystemAndThemeCustomizationTest extends TestCase
 
         // Form selection elements
         $response->assertSee('Step 1: Select Class / Grade');
-        $response->assertSee('Step 2: Select Subject in ' . $this->academicClass->display_name);
+        $response->assertSee('Step 2: Select Subject in '.$this->academicClass->display_name);
         $response->assertSee('Filter by Keyword');
 
         // Sanskrit motivating slogan

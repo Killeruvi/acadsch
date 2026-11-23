@@ -20,12 +20,19 @@ class BloomsCsvImportAndTaskManagementTest extends TestCase
     use RefreshDatabase;
 
     protected User $teacher;
+
     protected User $student1;
+
     protected User $student2;
+
     protected User $student3;
+
     protected AcademicClass $class;
+
     protected AcademicSubject $subject;
+
     protected CurriculumTopic $topic;
+
     protected DailyLesson $lesson;
 
     protected function setUp(): void
@@ -154,7 +161,7 @@ class BloomsCsvImportAndTaskManagementTest extends TestCase
         // Verify prompts were loaded from CSV
         $prompts = $assignments->pluck('activity_prompt')->toArray();
         $this->assertTrue(
-            collect($prompts)->contains(fn($p) => str_contains($p, 'photoelectric'))
+            collect($prompts)->contains(fn ($p) => str_contains($p, 'photoelectric'))
         );
     }
 

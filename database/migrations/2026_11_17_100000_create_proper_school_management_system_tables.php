@@ -13,49 +13,49 @@ return new class extends Migration
     {
         // 1. Extend academic_classes with class teacher and room
         Schema::table('academic_classes', function (Blueprint $table) {
-            if (!Schema::hasColumn('academic_classes', 'class_teacher_id')) {
+            if (! Schema::hasColumn('academic_classes', 'class_teacher_id')) {
                 $table->foreignId('class_teacher_id')->nullable()->constrained('users')->nullOnDelete();
             }
-            if (!Schema::hasColumn('academic_classes', 'room_number')) {
+            if (! Schema::hasColumn('academic_classes', 'room_number')) {
                 $table->string('room_number', 50)->nullable()->default('Room 101');
             }
-            if (!Schema::hasColumn('academic_classes', 'capacity')) {
+            if (! Schema::hasColumn('academic_classes', 'capacity')) {
                 $table->integer('capacity')->nullable();
             }
         });
 
         // 2. Extend academic_subjects with assigned subject teacher and periods
         Schema::table('academic_subjects', function (Blueprint $table) {
-            if (!Schema::hasColumn('academic_subjects', 'teacher_id')) {
+            if (! Schema::hasColumn('academic_subjects', 'teacher_id')) {
                 $table->foreignId('teacher_id')->nullable()->constrained('users')->nullOnDelete();
             }
-            if (!Schema::hasColumn('academic_subjects', 'weekly_periods')) {
+            if (! Schema::hasColumn('academic_subjects', 'weekly_periods')) {
                 $table->integer('weekly_periods')->nullable();
             }
         });
 
         // 3. Extend class_enrollments with admission number and year
         Schema::table('class_enrollments', function (Blueprint $table) {
-            if (!Schema::hasColumn('class_enrollments', 'admission_number')) {
+            if (! Schema::hasColumn('class_enrollments', 'admission_number')) {
                 $table->string('admission_number', 50)->nullable();
             }
-            if (!Schema::hasColumn('class_enrollments', 'academic_year')) {
+            if (! Schema::hasColumn('class_enrollments', 'academic_year')) {
                 $table->string('academic_year', 30)->nullable()->default('2026-2027');
             }
         });
 
         // 4. Extend users with parent_id for Parent-Student linkage
         Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'parent_id')) {
+            if (! Schema::hasColumn('users', 'parent_id')) {
                 $table->foreignId('parent_id')->nullable()->constrained('users')->nullOnDelete();
             }
-            if (!Schema::hasColumn('users', 'admission_number')) {
+            if (! Schema::hasColumn('users', 'admission_number')) {
                 $table->string('admission_number', 50)->nullable();
             }
-            if (!Schema::hasColumn('users', 'current_class_id')) {
+            if (! Schema::hasColumn('users', 'current_class_id')) {
                 $table->foreignId('current_class_id')->nullable()->constrained('academic_classes')->nullOnDelete();
             }
-            if (!Schema::hasColumn('users', 'roll_number')) {
+            if (! Schema::hasColumn('users', 'roll_number')) {
                 $table->integer('roll_number')->nullable();
             }
         });

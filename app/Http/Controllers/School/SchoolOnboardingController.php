@@ -6,14 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
 use App\Models\AcademySetting;
+use App\Models\SchoolSection;
+use App\Models\SchoolStream;
+use App\Models\SubjectMaster;
 use App\Models\User;
 use App\Services\DatabaseSetupService;
+use App\Services\SchoolAcademicAuditService;
+use App\Services\SchoolBrandingService;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SchoolOnboardingController extends Controller
@@ -28,17 +35,17 @@ class SchoolOnboardingController extends Controller
         $user = Auth::user();
 
         // Only the read-only installer landing page is public before the first admin exists.
-        if ($adminCount === 0 && $allowInitialInstaller && !$user) {
+        if ($adminCount === 0 && $allowInitialInstaller && ! $user) {
             return;
         }
 
-        if (!$user) {
+        if (! $user) {
             redirect()->route('login')
                 ->with('info', 'Please sign in with your Administrator credentials to continue the installation wizard.')
                 ->throwResponse();
         }
 
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             abort(403, 'Unauthorized. School Onboarding Wizard is restricted to institutional administrators.');
         }
     }
@@ -64,33 +71,33 @@ class SchoolOnboardingController extends Controller
         // Step completion indicators
         $checklist = [
             'step1_database' => $dbStatus['connected'] && $adminCount > 0,
-            'step2_profile' => !empty($settings['institute_name']) && !empty($settings['academic_session']),
+            'step2_profile' => ! empty($settings['institute_name']) && ! empty($settings['academic_session']),
             'step3_classes' => $stats['total_classes'] > 0 && $stats['total_subjects'] > 0,
             'step4_faculty' => $stats['total_teachers'] > 0 || ($settings['onboarding_step_4_done'] ?? false) === 'true',
             'step5_students' => $stats['total_students'] > 0 || ($settings['onboarding_step_5_done'] ?? false) === 'true',
         ];
 
         $completedSteps = count(array_filter($checklist));
-        $progressPercent = (int)round(($completedSteps / 5) * 100);
+        $progressPercent = (int) round(($completedSteps / 5) * 100);
 
         // Resume step calculation
         if ($request->has('step')) {
-            $currentStep = (int)$request->query('step');
+            $currentStep = (int) $request->query('step');
         } else {
-            $savedStep = (int)($settings['onboarding_current_step'] ?? 0);
+            $savedStep = (int) ($settings['onboarding_current_step'] ?? 0);
             if ($savedStep >= 1 && $savedStep <= 6) {
                 $currentStep = $savedStep;
             } else {
                 // Determine first incomplete step
-                if (!$checklist['step1_database']) {
+                if (! $checklist['step1_database']) {
                     $currentStep = 1;
-                } elseif (!$checklist['step2_profile']) {
+                } elseif (! $checklist['step2_profile']) {
                     $currentStep = 2;
-                } elseif (!$checklist['step3_classes']) {
+                } elseif (! $checklist['step3_classes']) {
                     $currentStep = 3;
-                } elseif (!$checklist['step4_faculty']) {
+                } elseif (! $checklist['step4_faculty']) {
                     $currentStep = 4;
-                } elseif (!$checklist['step5_students']) {
+                } elseif (! $checklist['step5_students']) {
                     $currentStep = 5;
                 } else {
                     $currentStep = 6;
@@ -168,7 +175,7 @@ class SchoolOnboardingController extends Controller
                     ]);
                 });
             });
-        } catch (\Illuminate\Contracts\Cache\LockTimeoutException $e) {
+        } catch (LockTimeoutException $e) {
             return back()->withErrors(['admin_email' => 'Administrator setup is already in progress. Please retry shortly.']);
         }
 
@@ -193,9 +200,9 @@ class SchoolOnboardingController extends Controller
         $user = Auth::user();
         $adminEmail = $user ? $user->email : 'principal@primearc.edu.in';
 
-        $result = $this->databaseSetupService->wipeAndInitializeCleanSlate($adminEmail, 'password123', !$removeAdmin);
+        $result = $this->databaseSetupService->wipeAndInitializeCleanSlate($adminEmail, 'password123', ! $removeAdmin);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return redirect()->route('school.onboarding.index', ['step' => 1])
                 ->withErrors([$result['message']]);
         }
@@ -248,7 +255,7 @@ class SchoolOnboardingController extends Controller
             AcademySetting::set($key, $value);
         }
 
-        \App\Services\SchoolBrandingService::flush();
+        SchoolBrandingService::flush();
 
         AcademySetting::set('onboarding_step_2_done', 'true');
         AcademySetting::set('onboarding_current_step', '3');
@@ -266,22 +273,22 @@ class SchoolOnboardingController extends Controller
 
         $board = $request->input('board', 'cbse');
         $academicYear = AcademySetting::get('academic_session');
-        if (!$academicYear) {
+        if (! $academicYear) {
             return back()->withErrors(['academic_session' => 'Configure the active academic session before applying class presets.']);
         }
 
         $streamName = config('school.onboarding.default_stream');
         $sectionName = strtoupper((string) config('school.onboarding.default_section'));
-        $stream = \App\Models\SchoolStream::active()->where('name', $streamName)->first();
-        if (!$stream) {
+        $stream = SchoolStream::active()->where('name', $streamName)->first();
+        if (! $stream) {
             return back()->withErrors(['stream' => 'The configured onboarding stream is not available. Create or reactivate it in Stream Master.']);
         }
-        $sectionRecord = \App\Models\SchoolSection::where('stream', $stream->name)
+        $sectionRecord = SchoolSection::where('stream', $stream->name)
             ->where('name', $sectionName)->where('is_active', true)->first();
-        if (!$sectionRecord) {
+        if (! $sectionRecord) {
             return back()->withErrors(['section' => 'The configured onboarding section is not available. Create or reactivate it in Section Master.']);
         }
-        if (!$sectionRecord->capacity || (int) $sectionRecord->capacity < (int) config('school.capacity.minimum')) {
+        if (! $sectionRecord->capacity || (int) $sectionRecord->capacity < (int) config('school.capacity.minimum')) {
             return back()->withErrors(['section' => 'Configure a valid capacity for the onboarding section in Section Master.']);
         }
 
@@ -291,78 +298,84 @@ class SchoolOnboardingController extends Controller
 
         try {
             DB::transaction(function () use ($academicYear, $stream, $sectionRecord, &$createdClasses, &$createdSubjects, &$errors) {
-            foreach (config('school.grade_levels', []) as $grade) {
-                $class = AcademicClass::where('grade_level', $grade)
-                    ->where('stream', $stream->name)
-                    ->where('section', $sectionRecord->name)
-                    ->where('academic_year', $academicYear)
-                    ->lockForUpdate()->first();
-                if ($class) {
-                    if ($class->section_id && (int) $class->section_id !== (int) $sectionRecord->id) {
-                        $errors[] = "Grade {$grade}: Existing class section identity conflicts with Section Master.";
-                        continue;
-                    }
-                    if (!$class->section_id) $class->update(['section_id' => $sectionRecord->id]);
-                } else {
-                    $class = AcademicClass::create([
-                        'name' => 'Class '.$grade,
-                        'grade_level' => $grade,
-                        'stream' => $stream->name,
-                        'section' => $sectionRecord->name,
-                        'section_id' => $sectionRecord->id,
-                        'academic_year' => $academicYear,
-                        'room_number' => $sectionRecord->room_number,
-                        'capacity' => $sectionRecord->capacity,
-                    ]);
-                    $createdClasses++;
-                }
+                foreach (config('school.grade_levels', []) as $grade) {
+                    $class = AcademicClass::where('grade_level', $grade)
+                        ->where('stream', $stream->name)
+                        ->where('section', $sectionRecord->name)
+                        ->where('academic_year', $academicYear)
+                        ->lockForUpdate()->first();
+                    if ($class) {
+                        if ($class->section_id && (int) $class->section_id !== (int) $sectionRecord->id) {
+                            $errors[] = "Grade {$grade}: Existing class section identity conflicts with Section Master.";
 
-                $masters = \App\Models\SubjectMaster::getAvailableForClass($class, true);
-                if ($masters->isEmpty()) {
-                    $errors[] = "Grade {$grade}: No active subject masters are configured for {$stream->name} and this grade range.";
-                    continue;
-                }
-
-                foreach ($masters as $master) {
-                    if (!$master->default_periods || $master->default_periods < 1) {
-                        $errors[] = "Grade {$grade}: {$master->name} has no valid default weekly period load in Subject Master.";
-                        continue;
-                    }
-                    $code = $master->generateCodeForGrade($grade);
-                    $subject = AcademicSubject::where('class_id', $class->id)->where(function ($query) use ($code, $master) {
-                        $query->where('code', $code)->orWhere('subject_master_id', $master->id)->orWhereRaw('UPPER(name) = ?', [mb_strtoupper($master->name)]);
-                    })->first();
-                    if ($subject) {
-                        if (strtoupper($subject->name) !== strtoupper($master->name) || ($subject->subject_master_id && (int) $subject->subject_master_id !== (int) $master->id)) {
-                            $errors[] = "Grade {$grade}: Existing subject {$subject->name} is linked to a different subject master.";
                             continue;
                         }
-                        if (!$subject->subject_master_id) {
-                            $subject->update(['subject_master_id' => $master->id, 'teacher_id' => $subject->teacher_id ?? $master->default_teacher_id]);
+                        if (! $class->section_id) {
+                            $class->update(['section_id' => $sectionRecord->id]);
                         }
                     } else {
-                        AcademicSubject::create([
-                            'class_id' => $class->id,
-                            'subject_master_id' => $master->id,
-                            'teacher_id' => $master->default_teacher_id,
-                            'code' => $code,
-                            'name' => $master->name,
-                            'weekly_periods' => $master->default_periods,
+                        $class = AcademicClass::create([
+                            'name' => 'Class '.$grade,
+                            'grade_level' => $grade,
+                            'stream' => $stream->name,
+                            'section' => $sectionRecord->name,
+                            'section_id' => $sectionRecord->id,
+                            'academic_year' => $academicYear,
+                            'room_number' => $sectionRecord->room_number,
+                            'capacity' => $sectionRecord->capacity,
                         ]);
-                        $createdSubjects++;
+                        $createdClasses++;
+                    }
+
+                    $masters = SubjectMaster::getAvailableForClass($class, true);
+                    if ($masters->isEmpty()) {
+                        $errors[] = "Grade {$grade}: No active subject masters are configured for {$stream->name} and this grade range.";
+
+                        continue;
+                    }
+
+                    foreach ($masters as $master) {
+                        if (! $master->default_periods || $master->default_periods < 1) {
+                            $errors[] = "Grade {$grade}: {$master->name} has no valid default weekly period load in Subject Master.";
+
+                            continue;
+                        }
+                        $code = $master->generateCodeForGrade($grade);
+                        $subject = AcademicSubject::where('class_id', $class->id)->where(function ($query) use ($code, $master) {
+                            $query->where('code', $code)->orWhere('subject_master_id', $master->id)->orWhereRaw('UPPER(name) = ?', [mb_strtoupper($master->name)]);
+                        })->first();
+                        if ($subject) {
+                            if (strtoupper($subject->name) !== strtoupper($master->name) || ($subject->subject_master_id && (int) $subject->subject_master_id !== (int) $master->id)) {
+                                $errors[] = "Grade {$grade}: Existing subject {$subject->name} is linked to a different subject master.";
+
+                                continue;
+                            }
+                            if (! $subject->subject_master_id) {
+                                $subject->update(['subject_master_id' => $master->id, 'teacher_id' => $subject->teacher_id ?? $master->default_teacher_id]);
+                            }
+                        } else {
+                            AcademicSubject::create([
+                                'class_id' => $class->id,
+                                'subject_master_id' => $master->id,
+                                'teacher_id' => $master->default_teacher_id,
+                                'code' => $code,
+                                'name' => $master->name,
+                                'weekly_periods' => $master->default_periods,
+                            ]);
+                            $createdSubjects++;
+                        }
                     }
                 }
-            }
-            if ($errors) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['curriculum' => $errors]);
-            }
+                if ($errors) {
+                    throw ValidationException::withMessages(['curriculum' => $errors]);
+                }
             }, 3);
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             return back()->withErrors($exception->errors());
         }
 
         if (Auth::user()) {
-            app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'applied_k12_class_preset', 'Applied K-12 classes and curriculum from configured stream, section and subject masters.', null, ['classes_created' => $createdClasses, 'subjects_created' => $createdSubjects, 'academic_year' => $academicYear, 'stream' => $stream->name, 'section' => $sectionRecord->name], $request);
+            app(SchoolAcademicAuditService::class)->log(Auth::user(), 'applied_k12_class_preset', 'Applied K-12 classes and curriculum from configured stream, section and subject masters.', null, ['classes_created' => $createdClasses, 'subjects_created' => $createdSubjects, 'academic_year' => $academicYear, 'stream' => $stream->name, 'section' => $sectionRecord->name], $request);
         }
         AcademySetting::set('onboarding_step_3_done', 'true');
         AcademySetting::set('onboarding_current_step', '4');
@@ -379,8 +392,8 @@ class SchoolOnboardingController extends Controller
         $this->checkAdminAccess();
 
         $nextStep = min(6, $step + 1);
-        AcademySetting::set('onboarding_step_' . $step . '_done', 'true');
-        AcademySetting::set('onboarding_current_step', (string)$nextStep);
+        AcademySetting::set('onboarding_step_'.$step.'_done', 'true');
+        AcademySetting::set('onboarding_current_step', (string) $nextStep);
 
         return redirect()->route('school.onboarding.index', ['step' => $nextStep])
             ->with('info', "Step {$step} marked for later review. Resuming at Step {$nextStep}.");

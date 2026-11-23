@@ -4,10 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicHoliday;
-use App\Models\AcademyEvent;
 use App\Models\AcademyNotice;
-use App\Models\AttendanceRecord;
-use App\Models\AttendanceSession;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
 use App\Models\LibraryBook;
@@ -24,8 +21,11 @@ class InfixAdminDashboardSystemTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected User $parent;
 
     protected function setUp(): void

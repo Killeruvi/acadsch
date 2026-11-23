@@ -6,18 +6,15 @@ use App\Models\AcademicClass;
 use App\Models\AcademicHoliday;
 use App\Models\AcademicSubject;
 use App\Models\AttendanceRecord;
-use App\Models\AttendanceSession;
 use App\Models\ClassEnrollment;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
 use App\Models\SchoolExamMark;
 use App\Models\SchoolExamSchedule;
 use App\Models\SchoolExamTerm;
-use App\Models\SchoolFeeStructure;
-use App\Models\SchoolReportCard;
 use App\Models\StudentLeaveRequest;
-use App\Models\SubjectMaster;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
@@ -28,7 +25,9 @@ class SchoolERPComprehensiveSystemTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected AcademicClass $class;
 
     protected function setUp(): void
@@ -127,8 +126,8 @@ class SchoolERPComprehensiveSystemTest extends TestCase
         $response->assertRedirect();
         $invoice->refresh();
 
-        $this->assertEquals(2000.00, (float)$invoice->discount);
-        $this->assertEquals(4000.00, (float)$invoice->total_due);
+        $this->assertEquals(2000.00, (float) $invoice->discount);
+        $this->assertEquals(4000.00, (float) $invoice->total_due);
         $this->assertStringContainsString('Merit Scholarship Top Scorer', $invoice->notes);
     }
 
@@ -172,7 +171,7 @@ class SchoolERPComprehensiveSystemTest extends TestCase
         $invoice->refresh();
 
         $this->assertEquals('refunded', $payment->status);
-        $this->assertEquals(0.00, (float)$invoice->paid_amount);
+        $this->assertEquals(0.00, (float) $invoice->paid_amount);
         $this->assertEquals('unpaid', $invoice->status);
     }
 
@@ -233,9 +232,9 @@ class SchoolERPComprehensiveSystemTest extends TestCase
         $inv2->refresh();
 
         $this->assertEquals('paid', $inv1->status);
-        $this->assertEquals(3000.00, (float)$inv1->paid_amount);
+        $this->assertEquals(3000.00, (float) $inv1->paid_amount);
         $this->assertEquals('partial', $inv2->status);
-        $this->assertEquals(2000.00, (float)$inv2->paid_amount);
+        $this->assertEquals(2000.00, (float) $inv2->paid_amount);
     }
 
     public function test_auto_assign_exam_schedules_from_class_subjects(): void
@@ -347,7 +346,7 @@ class SchoolERPComprehensiveSystemTest extends TestCase
             ->first();
 
         $this->assertNotNull($mark);
-        $this->assertEquals(88.5, (float)$mark->marks_obtained);
+        $this->assertEquals(88.5, (float) $mark->marks_obtained);
         $this->assertEquals('A', $mark->letter_grade);
 
         // Test Re-evaluation flow
@@ -359,20 +358,20 @@ class SchoolERPComprehensiveSystemTest extends TestCase
         $reEvalResponse->assertRedirect();
         $mark->refresh();
 
-        $this->assertEquals(95.0, (float)$mark->marks_obtained);
+        $this->assertEquals(95.0, (float) $mark->marks_obtained);
         $this->assertEquals('A+', $mark->letter_grade);
         $this->assertStringContainsString('Totaling error corrected on page 3', $mark->teacher_remarks);
     }
 
     public function test_auto_absent_command_skips_holidays_and_excuses_leaves(): void
     {
-        \Carbon\Carbon::setTestNow('2026-11-20 18:00:00'); // Friday close-of-day
+        Carbon::setTestNow('2026-11-20 18:00:00'); // Friday close-of-day
 
         try {
             $studentOnLeave = User::factory()->create(['role' => 'student', 'current_class_id' => $this->class->id, 'is_approved' => true]);
             $unrecordedStudent = User::factory()->create(['role' => 'student', 'current_class_id' => $this->class->id, 'is_approved' => true]);
 
-            \App\Models\ClassEnrollment::create([
+            ClassEnrollment::create([
                 'student_id' => $studentOnLeave->id,
                 'class_id' => $this->class->id,
                 'academic_year' => $this->class->academic_year ?: '2026-2027',
@@ -380,7 +379,7 @@ class SchoolERPComprehensiveSystemTest extends TestCase
                 'status' => 'active',
             ]);
 
-            \App\Models\ClassEnrollment::create([
+            ClassEnrollment::create([
                 'student_id' => $unrecordedStudent->id,
                 'class_id' => $this->class->id,
                 'academic_year' => $this->class->academic_year ?: '2026-2027',
@@ -424,7 +423,7 @@ class SchoolERPComprehensiveSystemTest extends TestCase
             ]);
 
             $studentNew = User::factory()->create(['role' => 'student', 'current_class_id' => $this->class->id, 'is_approved' => true]);
-            \App\Models\ClassEnrollment::create([
+            ClassEnrollment::create([
                 'student_id' => $studentNew->id,
                 'class_id' => $this->class->id,
                 'academic_year' => $this->class->academic_year ?: '2026-2027',
@@ -434,11 +433,11 @@ class SchoolERPComprehensiveSystemTest extends TestCase
             Artisan::call('attendance:auto-absent', ['--date' => $holidayDate]);
 
             $holidayRecord = AttendanceRecord::where('student_id', $studentNew->id)
-                ->whereHas('session', fn($q) => $q->whereDate('session_date', $holidayDate))
+                ->whereHas('session', fn ($q) => $q->whereDate('session_date', $holidayDate))
                 ->first();
             $this->assertNull($holidayRecord);
         } finally {
-            \Carbon\Carbon::setTestNow();
+            Carbon::setTestNow();
         }
     }
 

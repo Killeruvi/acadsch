@@ -5,8 +5,6 @@ namespace Tests\Feature;
 use App\Models\AcademicClass;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
-use App\Models\SchoolExamTerm;
-use App\Models\SchoolReportCard;
 use App\Models\User;
 use App\Services\SchoolReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,8 +15,11 @@ class SchoolReportSystemTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $class;
 
     protected function setUp(): void

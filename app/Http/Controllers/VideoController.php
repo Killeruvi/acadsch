@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicClass;
-use App\Models\AcademicSubject;
-use App\Models\CurriculumTopic;
 use App\Models\CurriculumVideo;
 use App\Models\UserVideoProgress;
 use Illuminate\Http\JsonResponse;
@@ -43,13 +41,13 @@ class VideoController extends Controller
             'subject',
             'userProgress' => function ($q) {
                 $q->where('user_id', auth()->id());
-            }
+            },
         ])
-        ->whereHas('subject', function ($q) use ($selectedClass) {
-            if ($selectedClass) {
-                $q->where('class_id', $selectedClass->id);
-            }
-        });
+            ->whereHas('subject', function ($q) use ($selectedClass) {
+                if ($selectedClass) {
+                    $q->where('class_id', $selectedClass->id);
+                }
+            });
 
         if ($selectedSubjectId) {
             $query->where('subject_id', $selectedSubjectId);
@@ -63,7 +61,7 @@ class VideoController extends Controller
             $s = strtolower($search);
             $query->where(function ($q) use ($s) {
                 $q->whereRaw('LOWER(title) LIKE ?', ["%{$s}%"])
-                  ->orWhereRaw('LOWER(description) LIKE ?', ["%{$s}%"]);
+                    ->orWhereRaw('LOWER(description) LIKE ?', ["%{$s}%"]);
             });
         }
 
@@ -119,7 +117,7 @@ class VideoController extends Controller
             },
             'userProgress' => function ($q) {
                 $q->where('user_id', auth()->id());
-            }
+            },
         ])->findOrFail($id);
 
         $isWatched = $video->isWatchedBy(auth()->id());
@@ -147,7 +145,7 @@ class VideoController extends Controller
             ]
         );
 
-        $newStatus = !$progress->is_completed;
+        $newStatus = ! $progress->is_completed;
         $progress->update([
             'is_completed' => $newStatus,
             'last_watched_at' => now(),

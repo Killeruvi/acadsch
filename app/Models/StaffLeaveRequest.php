@@ -14,6 +14,13 @@ class StaffLeaveRequest extends Model
         return ['start_date' => 'date', 'end_date' => 'date'];
     }
 
-    public function staff(): BelongsTo { return $this->belongsTo(User::class, 'staff_id'); }
-    public function reviewer(): BelongsTo { return $this->belongsTo(User::class, 'reviewed_by'); }
+    public function staff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'staff_id');
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
 }

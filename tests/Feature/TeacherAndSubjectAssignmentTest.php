@@ -15,11 +15,17 @@ class TeacherAndSubjectAssignmentTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher1;
+
     protected User $teacher2;
+
     protected User $student;
+
     protected User $parent;
+
     protected AcademicClass $class10A;
+
     protected AcademicClass $class10B;
 
     protected function setUp(): void

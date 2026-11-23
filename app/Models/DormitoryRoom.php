@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DormitoryRoom extends Model
 {
@@ -28,7 +29,7 @@ class DormitoryRoom extends Model
         ];
     }
 
-    public function bedAssignments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function bedAssignments(): HasMany
     {
         return $this->hasMany(DormitoryBedAssignment::class, 'dormitory_room_id');
     }

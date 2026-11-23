@@ -13,6 +13,7 @@ class SpokenEnglishPdfCourseIntegrationTest extends TestCase
     use RefreshDatabase;
 
     protected User $teacher;
+
     protected Course $course;
 
     protected function setUp(): void

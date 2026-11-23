@@ -12,7 +12,7 @@ class CsvService
     public function parseCsv(string $filePath): array
     {
         $rows = [];
-        if (!file_exists($filePath) || !is_readable($filePath)) {
+        if (! file_exists($filePath) || ! is_readable($filePath)) {
             return $rows;
         }
 
@@ -47,8 +47,9 @@ class CsvService
         }
 
         $headers = fgetcsv($handle, 8192, $delimiter);
-        if (!$headers) {
+        if (! $headers) {
             fclose($handle);
+
             return $rows;
         }
 
@@ -58,7 +59,7 @@ class CsvService
         }, $headers);
 
         while (($data = fgetcsv($handle, 8192, $delimiter)) !== false) {
-            if (empty(array_filter($data, fn($v) => trim($v) !== ''))) {
+            if (empty(array_filter($data, fn ($v) => trim($v) !== ''))) {
                 continue; // Skip empty lines
             }
 
@@ -70,6 +71,7 @@ class CsvService
         }
 
         fclose($handle);
+
         return $rows;
     }
 
@@ -80,10 +82,10 @@ class CsvService
     {
         $response = new StreamedResponse(function () use ($headers, $data) {
             $handle = fopen('php://output', 'w');
-            
+
             // Output UTF-8 BOM for Excel compatibility
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
-            
+
             fputcsv($handle, $headers);
 
             foreach ($data as $row) {
@@ -94,7 +96,7 @@ class CsvService
         });
 
         $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
-        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $response->headers->set('Content-Disposition', 'attachment; filename="'.$filename.'"');
         $response->headers->set('Pragma', 'no-cache');
         $response->headers->set('Expires', '0');
 

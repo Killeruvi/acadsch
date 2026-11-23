@@ -16,6 +16,7 @@ class StudentExitController extends Controller
     {
         $user = $request->user();
         abort_unless($user && $user->isAdmin(), 403, 'Administrative access is required.');
+
         return $user;
     }
 
@@ -31,10 +32,11 @@ class StudentExitController extends Controller
         if ($request->filled('search')) {
             $term = trim((string) $request->query('search'));
             $query->where(function ($q) use ($term) {
-                $q->where('u.name', 'like', '%' . $term . '%')->orWhere('u.admission_number', 'like', '%' . $term . '%');
+                $q->where('u.name', 'like', '%'.$term.'%')->orWhere('u.admission_number', 'like', '%'.$term.'%');
             });
         }
         $records = $query->paginate(25)->withQueryString();
+
         return view('school.student-exits.index', compact('records'));
     }
 
@@ -51,7 +53,7 @@ class StudentExitController extends Controller
 
         $certificateId = DB::transaction(function () use ($withdrawalId, $actor, $data) {
             $withdrawal = DB::table('student_withdrawal_records')->where('id', $withdrawalId)->lockForUpdate()->first();
-            if (!$withdrawal || $withdrawal->re_admitted_at !== null) {
+            if (! $withdrawal || $withdrawal->re_admitted_at !== null) {
                 throw ValidationException::withMessages(['withdrawal' => 'A transfer certificate can only be issued for a currently withdrawn student.']);
             }
             $existing = DB::table('student_exit_certificates')->where('withdrawal_record_id', $withdrawalId)->first();
@@ -63,7 +65,8 @@ class StudentExitController extends Controller
                 ->where('e.student_id', $student->id)->whereIn('e.status', ['withdrawn', 'transferred', 'promoted'])
                 ->orderByDesc('e.ended_at')->orderByDesc('e.id')->select('c.display_name', 'c.name', 'e.academic_year')->first();
             $lastClass = $data['last_class_text'] ?? ($lastEnrollment->display_name ?? $lastEnrollment->name ?? '');
-            $number = 'TC-' . now()->format('Y') . '-' . strtoupper(Str::random(8));
+            $number = 'TC-'.now()->format('Y').'-'.strtoupper(Str::random(8));
+
             return DB::table('student_exit_certificates')->insertGetId([
                 'withdrawal_record_id' => $withdrawalId,
                 'student_id' => $student->id,
@@ -93,6 +96,7 @@ class StudentExitController extends Controller
             ->select('c.*', 'u.name as student_name', 'u.admission_number', 'u.date_of_birth', 'w.effective_date', 'w.reason as withdrawal_reason', 'a.name as issuer_name')
             ->first();
         abort_unless($record, 404);
+
         return view('school.student-exits.certificate', compact('record'));
     }
 }

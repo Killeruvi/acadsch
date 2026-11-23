@@ -5,15 +5,22 @@ namespace Tests\Feature;
 use App\Models\AcademicClass;
 use App\Models\AcademicHoliday;
 use App\Models\AcademicSubject;
+use App\Models\AcademyNotice;
 use App\Models\Assignment;
 use App\Models\Batch;
+use App\Models\BloomAssignment;
 use App\Models\Course;
 use App\Models\CurriculumTopic;
+use App\Models\CurriculumVideo;
 use App\Models\DailyDpp;
+use App\Models\DailyLesson;
 use App\Models\DppQuestion;
+use App\Models\FeeInvoice;
 use App\Models\HomeworkSubmission;
 use App\Models\HomeworkTask;
+use App\Models\StudentLeaveRequest;
 use App\Models\User;
+use App\Models\UserVideoProgress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -28,7 +35,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
         return User::factory()->create([
             'role' => 'teacher',
             'name' => 'Prof. Audit Expert',
-            'email' => 'teacher_' . uniqid() . '@primearc.test',
+            'email' => 'teacher_'.uniqid().'@primearc.test',
         ]);
     }
 
@@ -37,7 +44,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
         return User::factory()->create([
             'role' => 'admin',
             'name' => 'Admin Controller',
-            'email' => 'admin_' . uniqid() . '@primearc.test',
+            'email' => 'admin_'.uniqid().'@primearc.test',
         ]);
     }
 
@@ -46,7 +53,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
         return AcademicClass::firstOrCreate(
             ['grade_level' => $grade],
             [
-                'name' => 'Class ' . $grade,
+                'name' => 'Class '.$grade,
                 'section' => 'A',
                 'stream' => 'Science',
             ]
@@ -214,7 +221,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
                     'correct' => 'B',
                     'explanation' => 'ATP synthesis occurs in the mitochondria.',
                     'marks' => 4,
-                ]
+                ],
             ],
         ]);
 
@@ -438,7 +445,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
             'status' => 'not_started',
         ]);
 
-        $video = \App\Models\CurriculumVideo::create([
+        $video = CurriculumVideo::create([
             'topic_id' => $topic->id,
             'subject_id' => $subject->id,
             'title' => 'Introduction to Mirrors',
@@ -450,7 +457,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
         ]);
 
         $student = User::factory()->create(['role' => 'student']);
-        \App\Models\UserVideoProgress::create([
+        UserVideoProgress::create([
             'user_id' => $student->id,
             'video_id' => $video->id,
             'is_completed' => true,
@@ -496,7 +503,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
             'status' => 'not_started',
         ]);
 
-        $lesson = \App\Models\DailyLesson::create([
+        $lesson = DailyLesson::create([
             'class_id' => $class->id,
             'subject_id' => $subject->id,
             'topic_id' => $topic->id,
@@ -507,7 +514,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
         ]);
 
         $student = User::factory()->create(['role' => 'student']);
-        $assignment = \App\Models\BloomAssignment::create([
+        $assignment = BloomAssignment::create([
             'lesson_id' => $lesson->id,
             'student_id' => $student->id,
             'roll_number' => '101',
@@ -535,7 +542,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
         $class = $this->createAcademicClass(8);
 
-        $leave = \App\Models\StudentLeaveRequest::create([
+        $leave = StudentLeaveRequest::create([
             'student_id' => $student->id,
             'class_id' => $class->id,
             'type' => 'medical',
@@ -560,7 +567,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
         $admin = $this->createAdmin();
         $student = User::factory()->create(['role' => 'student']);
 
-        $invoice = \App\Models\FeeInvoice::create([
+        $invoice = FeeInvoice::create([
             'invoice_number' => 'INV-TEST-0001',
             'student_id' => $student->id,
             'title' => 'Annual Lab Equipment Fee',
@@ -587,7 +594,7 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
     {
         $admin = $this->createAdmin();
 
-        $notice = \App\Models\AcademyNotice::create([
+        $notice = AcademyNotice::create([
             'author_id' => $admin->id,
             'title' => 'Annual Sports Meet Announcement',
             'content' => 'Sports day will be held on Friday.',
@@ -611,6 +618,6 @@ class ComprehensiveLmsCrudAuditTest extends TestCase
         $notice->refresh();
         $this->assertEquals('Rescheduled: Annual Sports Meet & Track Gala', $notice->title);
         $this->assertEquals('urgent', $notice->priority);
-        $this->assertTrue((bool)$notice->is_pinned);
+        $this->assertTrue((bool) $notice->is_pinned);
     }
 }

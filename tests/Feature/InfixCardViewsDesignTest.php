@@ -12,8 +12,11 @@ class InfixCardViewsDesignTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $student;
+
     protected User $teacher;
+
     protected Course $course;
 
     protected function setUp(): void

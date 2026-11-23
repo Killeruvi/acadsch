@@ -7,7 +7,6 @@ use App\Models\Course;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AssignmentAttachmentSystemTest extends TestCase
@@ -18,7 +17,7 @@ class AssignmentAttachmentSystemTest extends TestCase
     {
         parent::setUp();
         // Ensure local uploads directory exists
-        if (!file_exists(public_path('uploads/assignments'))) {
+        if (! file_exists(public_path('uploads/assignments'))) {
             mkdir(public_path('uploads/assignments'), 0755, true);
         }
     }
@@ -75,8 +74,8 @@ class AssignmentAttachmentSystemTest extends TestCase
         $course->students()->attach($student->id, ['status' => 'enrolled', 'enrolled_at' => now()]);
 
         // Create assignment with sample attached file in public/uploads/assignments
-        $sampleName = 'sample_dpp_' . time() . '.pdf';
-        $fullPath = public_path('uploads/assignments/' . $sampleName);
+        $sampleName = 'sample_dpp_'.time().'.pdf';
+        $fullPath = public_path('uploads/assignments/'.$sampleName);
         file_put_contents($fullPath, '%PDF-1.4 dummy pdf content');
 
         $assignment = Assignment::create([
@@ -87,7 +86,7 @@ class AssignmentAttachmentSystemTest extends TestCase
             'due_date' => now()->addDays(5),
             'max_points' => 50,
             'target_type' => 'all_enrolled',
-            'attachment_path' => '/uploads/assignments/' . $sampleName,
+            'attachment_path' => '/uploads/assignments/'.$sampleName,
             'attachment_name' => 'Original_DPP_Title.pdf',
             'attachment_type' => 'application/pdf',
             'attachment_size' => filesize($fullPath),
@@ -114,8 +113,8 @@ class AssignmentAttachmentSystemTest extends TestCase
         $teacher = User::factory()->create(['role' => 'teacher']);
         $course = $this->createTestCourse($teacher);
 
-        $initialFile = 'old_worksheet_' . time() . '.pdf';
-        $fullPath = public_path('uploads/assignments/' . $initialFile);
+        $initialFile = 'old_worksheet_'.time().'.pdf';
+        $fullPath = public_path('uploads/assignments/'.$initialFile);
         file_put_contents($fullPath, 'old content');
 
         $assignment = Assignment::create([
@@ -124,7 +123,7 @@ class AssignmentAttachmentSystemTest extends TestCase
             'title' => 'Editable Assignment',
             'due_date' => now()->addDays(3),
             'max_points' => 100,
-            'attachment_path' => '/uploads/assignments/' . $initialFile,
+            'attachment_path' => '/uploads/assignments/'.$initialFile,
             'attachment_name' => 'Old.pdf',
             'attachment_type' => 'application/pdf',
             'attachment_size' => filesize($fullPath),

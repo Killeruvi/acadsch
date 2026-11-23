@@ -47,6 +47,7 @@ class SchoolFeePolicy
 
         if ($user->isParent()) {
             $student = $invoice->student;
+
             return $student && (
                 $student->parent_id === $user->id ||
                 $student->guardian_email === $user->email
@@ -71,6 +72,7 @@ class SchoolFeePolicy
 
         if ($user->isParent()) {
             $student = $payment->invoice->student ?? null;
+
             return $student && (
                 $student->parent_id === $user->id ||
                 $student->guardian_email === $user->email

@@ -25,7 +25,7 @@ class SanitizeInput
     {
         $input = $request->all();
 
-        if (!empty($input)) {
+        if (! empty($input)) {
             $sanitized = $this->sanitizeArray($input);
             $request->merge($sanitized);
         }

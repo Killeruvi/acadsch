@@ -4,12 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
-use App\Models\CurriculumTopic;
 use App\Models\DailyDpp;
-use App\Models\DppQuestion;
 use App\Models\DppSubmission;
-use App\Models\QuestionBank;
 use App\Models\User;
+use Database\Seeders\BloomsTaxonomySeeder;
+use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\QuestionBankSeeder;
+use Database\Seeders\SyllabusSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,19 +19,23 @@ class TimedDppAndQuestionBankTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $class8;
+
     protected AcademicSubject $scienceSubject;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->seed(\Database\Seeders\DatabaseSeeder::class);
-        $this->seed(\Database\Seeders\BloomsTaxonomySeeder::class);
-        $this->seed(\Database\Seeders\SyllabusSeeder::class);
-        $this->seed(\Database\Seeders\QuestionBankSeeder::class);
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(BloomsTaxonomySeeder::class);
+        $this->seed(SyllabusSeeder::class);
+        $this->seed(QuestionBankSeeder::class);
 
         $this->admin = User::firstOrCreate(
             ['email' => 'admin@primearc.academy'],
@@ -74,7 +79,7 @@ class TimedDppAndQuestionBankTest extends TestCase
         $this->scienceSubject->update(['teacher_id' => $this->teacher->id]);
 
         $this->class8->students()->syncWithoutDetaching([
-            $this->student->id => ['roll_number' => 88, 'status' => 'active']
+            $this->student->id => ['roll_number' => 88, 'status' => 'active'],
         ]);
     }
 
@@ -192,7 +197,7 @@ class TimedDppAndQuestionBankTest extends TestCase
         // Build answers: answer all correctly
         $answers = [];
         foreach ($test->questions as $q) {
-            $answers[(string)$q->question_number] = $q->correct_option;
+            $answers[(string) $q->question_number] = $q->correct_option;
         }
 
         $response = $this->actingAs($this->student)->post(route('dpp.submit', $test->id), [

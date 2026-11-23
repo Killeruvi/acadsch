@@ -3,17 +3,17 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
-use App\Models\ClassEnrollment;
 use App\Models\AcademySetting;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
+use App\Models\ClassEnrollment;
 use App\Models\SchoolExamTerm;
 use App\Models\SchoolReportCard;
 use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Tests\TestCase;
 
 class StudentProfileProductionReadinessTest extends TestCase
@@ -29,7 +29,7 @@ class StudentProfileProductionReadinessTest extends TestCase
     private function makeUser(string $role, string $email, array $extra = []): User
     {
         return User::create(array_merge([
-            'name' => ucfirst($role) . ' User',
+            'name' => ucfirst($role).' User',
             'email' => $email,
             'password' => Hash::make('TestPassword123!'),
             'role' => $role,
@@ -187,6 +187,7 @@ class StudentProfileProductionReadinessTest extends TestCase
         $this->assertSame($originalHash, $student->fresh()->password);
         Notification::assertSentTo($student, ResetPassword::class);
     }
+
     public function test_legacy_student_profile_does_not_show_fabricated_ids_or_perfect_attendance_for_empty_history(): void
     {
         $admin = $this->makeUser('admin', 'legacy-profile-admin@example.test');
@@ -214,7 +215,6 @@ class StudentProfileProductionReadinessTest extends TestCase
         $this->actingAs($teacher)->get(route('students.show', $student->id))->assertForbidden();
         $this->actingAs($teacher)->get(route('students.edit', $student->id))->assertForbidden();
     }
-
 
     public function test_school_student_profile_edit_cannot_change_class_admission_identity_or_parent_link(): void
     {
@@ -387,5 +387,4 @@ class StudentProfileProductionReadinessTest extends TestCase
         $response->assertRedirect(route('login'));
         $this->assertGuest();
     }
-
 }

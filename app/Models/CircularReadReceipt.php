@@ -18,8 +18,8 @@ class CircularReadReceipt extends Model
     protected function casts(): array
     {
         return [
-            'acknowledged'    => 'boolean',
-            'read_at'         => 'datetime',
+            'acknowledged' => 'boolean',
+            'read_at' => 'datetime',
             'acknowledged_at' => 'datetime',
         ];
     }

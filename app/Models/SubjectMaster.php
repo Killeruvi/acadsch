@@ -54,7 +54,7 @@ class SubjectMaster extends Model
         return $query->where('is_active', true)
             ->where(function ($q) use ($stream) {
                 $q->where('stream', $stream)
-                  ->orWhere('stream', 'All');
+                    ->orWhere('stream', 'All');
             });
     }
 
@@ -67,8 +67,8 @@ class SubjectMaster extends Model
         $classModel = is_numeric($class) ? AcademicClass::find($class) : $class;
         $stream = $classModel?->stream;
         $grade = $classModel?->grade_level;
-        if (!$classModel || !$stream || !$grade) {
-            return new Collection();
+        if (! $classModel || ! $stream || ! $grade) {
+            return new Collection;
         }
 
         $existingSubjectCodes = AcademicSubject::where('class_id', $classModel->id)
@@ -90,6 +90,7 @@ class SubjectMaster extends Model
 
             $master->grade_code = $formattedCode;
             $master->is_already_assigned = $isAssigned;
+
             return $master;
         })->when($excludeExisting, function ($collection) {
             return $collection->where('is_already_assigned', false)->values();
@@ -103,7 +104,7 @@ class SubjectMaster extends Model
     public function generateCodeForGrade(int|string|null $grade = null): string
     {
         $baseCode = strtoupper($this->code);
-        if (!$grade) {
+        if (! $grade) {
             return $baseCode;
         }
 

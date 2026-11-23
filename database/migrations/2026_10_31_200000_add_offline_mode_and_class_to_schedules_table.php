@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('schedules', function (Blueprint $table) {
-            if (!Schema::hasColumn('schedules', 'class_id')) {
+            if (! Schema::hasColumn('schedules', 'class_id')) {
                 $table->foreignId('class_id')->nullable()->after('course_id')->constrained('academic_classes')->nullOnDelete();
             }
-            if (!Schema::hasColumn('schedules', 'batch_id')) {
+            if (! Schema::hasColumn('schedules', 'batch_id')) {
                 $table->foreignId('batch_id')->nullable()->after('class_id')->constrained('batches')->nullOnDelete();
             }
-            if (!Schema::hasColumn('schedules', 'delivery_mode')) {
+            if (! Schema::hasColumn('schedules', 'delivery_mode')) {
                 $table->string('delivery_mode', 20)->default('offline')->after('title'); // 'offline', 'online'
             }
         });

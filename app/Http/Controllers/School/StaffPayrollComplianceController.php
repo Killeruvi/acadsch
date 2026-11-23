@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\School;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffPayrollComplianceController extends Controller
 {
@@ -33,6 +33,7 @@ class StaffPayrollComplianceController extends Controller
         $bankTransactions = DB::table('staff_bank_statement_transactions as t')->join('staff_bank_statement_imports as i', 'i.id', '=', 't.import_id')->whereBetween('t.transaction_date', [$statementStart, $statementEnd])->select('t.*', 'i.original_filename', 'i.account_label')->orderByDesc('t.transaction_date')->orderByDesc('t.id')->limit(250)->get();
         $payrollCandidates = DB::table('staff_payrolls as p')->join('users as u', 'u.id', '=', 'p.staff_id')->whereBetween('p.paid_on', [$statementStart, $statementEnd])->where('p.payment_status', 'paid')->where('p.approval_status', 'approved')->select('p.id', 'u.name', 'p.payroll_month', 'p.net_salary', 'p.payment_reference')->orderBy('u.name')->get();
         $remittanceCandidates = DB::table('staff_statutory_remittances')->whereBetween('paid_on', [$statementStart, $statementEnd])->where('amount_paid', '>', 0)->orderBy('rule_code')->get();
+
         return view('school.payroll.compliance', compact('month', 'totals', 'liabilities', 'reconciliation', 'remittances', 'imports', 'bankTransactions', 'payrollCandidates', 'remittanceCandidates'));
     }
 
@@ -94,6 +95,7 @@ class StaffPayrollComplianceController extends Controller
             'due_date' => $data['due_date'] ?? null, 'status' => 'pending', 'recorded_by' => Auth::id(),
             'created_at' => now(), 'updated_at' => now(),
         ]);
+
         return back()->with('success', 'Statutory remittance record created if one did not already exist.');
     }
 
@@ -122,6 +124,7 @@ class StaffPayrollComplianceController extends Controller
                 'verified_by' => Auth::id(), 'verified_at' => now(), 'updated_at' => now(),
             ]);
         }, 3);
+
         return back()->with('success', 'Remittance payment evidence recorded. Verify challan details against the government portal.');
     }
 
@@ -134,11 +137,12 @@ class StaffPayrollComplianceController extends Controller
         $query = DB::table('staff_payrolls as p')->join('users as u', 'u.id', '=', 'p.staff_id')->where('p.payroll_month', $month)
             ->select('u.id as employee_internal_id', 'u.name as employee_name', 'p.payroll_month', 'p.gross_salary', 'p.pf_wages', 'p.employee_pf', 'p.employer_pf', 'p.employer_eps', 'p.edli_contribution', 'p.pf_admin_charge', 'p.employee_esi', 'p.employer_esi', 'p.professional_tax', 'p.tds', 'p.payment_status');
         $columns = match ($code) {
-            'EPF' => ['employee_internal_id','employee_name','payroll_month','pf_wages','employee_pf','employer_pf','employer_eps','edli_contribution','pf_admin_charge','payment_status'],
-            'ESI' => ['employee_internal_id','employee_name','payroll_month','gross_salary','employee_esi','employer_esi','payment_status'],
-            'MP_PT' => ['employee_internal_id','employee_name','payroll_month','gross_salary','professional_tax','payment_status'],
-            default => ['employee_internal_id','employee_name','payroll_month','gross_salary','tds','payment_status'],
+            'EPF' => ['employee_internal_id', 'employee_name', 'payroll_month', 'pf_wages', 'employee_pf', 'employer_pf', 'employer_eps', 'edli_contribution', 'pf_admin_charge', 'payment_status'],
+            'ESI' => ['employee_internal_id', 'employee_name', 'payroll_month', 'gross_salary', 'employee_esi', 'employer_esi', 'payment_status'],
+            'MP_PT' => ['employee_internal_id', 'employee_name', 'payroll_month', 'gross_salary', 'professional_tax', 'payment_status'],
+            default => ['employee_internal_id', 'employee_name', 'payroll_month', 'gross_salary', 'tds', 'payment_status'],
         };
+
         return response()->streamDownload(function () use ($query, $columns) {
             $out = fopen('php://output', 'w');
             fputcsv($out, $columns);
@@ -147,16 +151,17 @@ class StaffPayrollComplianceController extends Controller
                     $values = [];
                     foreach ($columns as $column) {
                         $value = $row->{$column};
-                        if (is_string($value) && preg_match('/^[=+@\-\t\r]/', $value)) $value = "'" . $value;
+                        if (is_string($value) && preg_match('/^[=+@\-\t\r]/', $value)) {
+                            $value = "'".$value;
+                        }
                         $values[] = $value;
                     }
                     fputcsv($out, $values);
                 }
             });
             fclose($out);
-        }, strtolower($code) . '-internal-register-' . $month . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, strtolower($code).'-internal-register-'.$month.'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
-
 
     public function importBankStatement(Request $request)
     {
@@ -186,29 +191,48 @@ class StaffPayrollComplianceController extends Controller
             $line = 1;
             while (($row = fgetcsv($handle)) !== false) {
                 $line++;
-                if ($row === [null] || count(array_filter($row, fn ($v) => trim((string) $v) !== '')) === 0) continue;
+                if ($row === [null] || count(array_filter($row, fn ($v) => trim((string) $v) !== '')) === 0) {
+                    continue;
+                }
                 try {
                     $dateRaw = trim((string) ($row[$positions['transaction_date']] ?? ''));
-                    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateRaw)) throw new \InvalidArgumentException('Invalid date format');
+                    if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateRaw)) {
+                        throw new \InvalidArgumentException('Invalid date format');
+                    }
                     $date = Carbon::createFromFormat('!Y-m-d', $dateRaw);
-                    if (!$date || $date->format('Y-m-d') !== $dateRaw || $date->isFuture()) throw new \InvalidArgumentException('Invalid or future transaction date');
+                    if (! $date || $date->format('Y-m-d') !== $dateRaw || $date->isFuture()) {
+                        throw new \InvalidArgumentException('Invalid or future transaction date');
+                    }
                     $description = Str::limit(trim((string) ($row[$positions['description']] ?? '')), 500, '');
                     $reference = Str::limit(trim((string) ($row[$positions['reference']] ?? '')), 160, '');
                     $debitRaw = trim((string) ($row[$positions['debit']] ?? '0'));
                     $creditRaw = trim((string) ($row[$positions['credit']] ?? '0'));
-                    if (!preg_match('/^\\d{1,12}(?:\\.\\d{1,2})?$/', $debitRaw) || !preg_match('/^\\d{1,12}(?:\\.\\d{1,2})?$/', $creditRaw)) throw new \InvalidArgumentException('Invalid amount');
-                    $debit = round((float) $debitRaw, 2); $credit = round((float) $creditRaw, 2);
-                    if (($debit > 0) === ($credit > 0)) throw new \InvalidArgumentException('Exactly one of debit or credit must be positive');
-                    $dedupeReference = $reference !== '' ? $reference : ('unreferenced-row-' . $line . '-' . $fileHash);
+                    if (! preg_match('/^\\d{1,12}(?:\\.\\d{1,2})?$/', $debitRaw) || ! preg_match('/^\\d{1,12}(?:\\.\\d{1,2})?$/', $creditRaw)) {
+                        throw new \InvalidArgumentException('Invalid amount');
+                    }
+                    $debit = round((float) $debitRaw, 2);
+                    $credit = round((float) $creditRaw, 2);
+                    if (($debit > 0) === ($credit > 0)) {
+                        throw new \InvalidArgumentException('Exactly one of debit or credit must be positive');
+                    }
+                    $dedupeReference = $reference !== '' ? $reference : ('unreferenced-row-'.$line.'-'.$fileHash);
                     $fingerprint = hash('sha256', implode('|', [strtolower(trim($data['account_label'])), $date->toDateString(), $dedupeReference, number_format($debit, 2, '.', ''), number_format($credit, 2, '.', ''), $description]));
                     $inserted = DB::table('staff_bank_statement_transactions')->insertOrIgnore([
                         'import_id' => $importId, 'transaction_date' => $date->toDateString(), 'description' => $description ?: null,
                         'bank_reference' => $reference ?: null, 'debit' => $debit, 'credit' => $credit,
                         'transaction_fingerprint' => $fingerprint, 'created_at' => now(), 'updated_at' => now(),
                     ]);
-                    if ($inserted) $counts['rows']++; else $counts['duplicates']++;
-                } catch (\Throwable $e) { $counts['invalid']++; }
-                if ($line > 10001) throw new \RuntimeException('Statement exceeds the 10,000-row import limit.');
+                    if ($inserted) {
+                        $counts['rows']++;
+                    } else {
+                        $counts['duplicates']++;
+                    }
+                } catch (\Throwable $e) {
+                    $counts['invalid']++;
+                }
+                if ($line > 10001) {
+                    throw new \RuntimeException('Statement exceeds the 10,000-row import limit.');
+                }
             }
             DB::table('staff_bank_statement_imports')->where('id', $importId)->update([
                 'row_count' => $counts['rows'], 'duplicate_count' => $counts['duplicates'], 'invalid_count' => $counts['invalid'],
@@ -220,6 +244,7 @@ class StaffPayrollComplianceController extends Controller
             ]);
         }, 3);
         fclose($handle);
+
         return back()->with('success', "Statement imported: {$counts['rows']} new rows, {$counts['duplicates']} duplicates skipped, {$counts['invalid']} invalid rows skipped.");
     }
 
@@ -260,9 +285,9 @@ class StaffPayrollComplianceController extends Controller
                 'after_data' => json_encode(['match_type' => $data['match_type'], 'matched_entity_id' => $entity->id]), 'created_at' => now(),
             ]);
         }, 3);
+
         return back()->with('success', 'Bank transaction matched. This confirms a statement amount match only; it does not verify beneficiary identity or government portal filing.');
     }
-
 
     public function unmatchBankTransaction(Request $request, int $id)
     {
@@ -282,6 +307,7 @@ class StaffPayrollComplianceController extends Controller
                 'match_type' => null, 'matched_entity_id' => null, 'matched_by' => null, 'matched_at' => null, 'updated_at' => now(),
             ]);
         }, 3);
+
         return back()->with('success', 'Bank match reversed with independent administrator authorization and audit reason.');
     }
 
@@ -290,6 +316,7 @@ class StaffPayrollComplianceController extends Controller
         $row = DB::table('staff_payrolls')->where('payroll_month', $month)->selectRaw(
             'COALESCE(SUM(employee_pf + employer_pf + edli_contribution + pf_admin_charge),0) as epf, COALESCE(SUM(employee_esi + employer_esi),0) as esi, COALESCE(SUM(professional_tax),0) as mp_pt, COALESCE(SUM(tds),0) as tds'
         )->first();
+
         return ['EPF' => (float) $row->epf, 'ESI' => (float) $row->esi, 'MP_PT' => (float) $row->mp_pt, 'TDS' => (float) $row->tds];
     }
 }

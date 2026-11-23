@@ -22,6 +22,7 @@ class StudentPromotionController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor && $actor->isAdmin(), 403, 'Administrative access is required.');
+
         return $actor;
     }
 
@@ -72,6 +73,7 @@ class StudentPromotionController extends Controller
                     $student->is_fee_cleared = (float) $dues <= 0;
                     $student->is_attendance_eligible = $attendancePct !== null && $attendancePct >= $minimumAttendance;
                     $student->is_promotion_eligible = (bool) $student->is_approved;
+
                     return $student;
                 });
         }
@@ -113,11 +115,11 @@ class StudentPromotionController extends Controller
             }
 
             $studentIds = collect($validated['student_ids'])->map(fn ($id) => (int) $id)->unique()->values();
-            $policyChecker = app(\App\Http\Controllers\School\AcademicProgressionController::class);
+            $policyChecker = app(AcademicProgressionController::class);
             foreach ($studentIds as $studentId) {
                 $assessment = $policyChecker->assess($source, $studentId);
-                if (!$assessment['eligible']) {
-                    throw ValidationException::withMessages(['student_ids' => 'Promotion blocked by examination policy for student ID ' . $studentId . ': ' . $assessment['reason'] . '.']);
+                if (! $assessment['eligible']) {
+                    throw ValidationException::withMessages(['student_ids' => 'Promotion blocked by examination policy for student ID '.$studentId.': '.$assessment['reason'].'.']);
                 }
             }
             $enrollments = ClassEnrollment::query()
@@ -141,7 +143,7 @@ class StudentPromotionController extends Controller
             foreach ($studentIds as $studentId) {
                 $student = User::query()->lockForUpdate()->where('role', 'student')->find($studentId);
                 $oldEnrollment = $enrollments->get($studentId);
-                if (!$student || !$student->is_approved || (int) $student->current_class_id !== (int) $source->id || !$oldEnrollment) {
+                if (! $student || ! $student->is_approved || (int) $student->current_class_id !== (int) $source->id || ! $oldEnrollment) {
                     throw ValidationException::withMessages(['student_ids' => 'A selected student is no longer active in the source class. Refresh and try again.']);
                 }
                 $otherActiveEnrollment = ClassEnrollment::query()->where('student_id', $studentId)
@@ -175,14 +177,14 @@ class StudentPromotionController extends Controller
                 $attendancePct = round(min(100, ($presentAndLate / $classSessionCount) * 100), 1);
                 if ($attendancePct < $minimumAttendance) {
                     throw ValidationException::withMessages([
-                        'student_ids' => 'Student attendance (' . $attendancePct . '%) does not meet the minimum requirement of ' . $minimumAttendance . '%.',
+                        'student_ids' => 'Student attendance ('.$attendancePct.'%) does not meet the minimum requirement of '.$minimumAttendance.'%.',
                     ]);
                 }
 
                 $roll = $this->nextRollNumber($target->id, $targetYear);
                 $oldEnrollment->update([
                     'status' => 'promoted', 'ended_at' => now(), 'ended_by' => $actor->id,
-                    'transition_reason' => 'Promoted to ' . $target->display_name . ' for academic session ' . $targetYear,
+                    'transition_reason' => 'Promoted to '.$target->display_name.' for academic session '.$targetYear,
                 ]);
                 ClassEnrollment::create([
                     'class_id' => $target->id,
@@ -211,6 +213,7 @@ class StudentPromotionController extends Controller
                 'student_ids' => $studentIds->all(),
                 'review_note' => 'Attendance and fee balances are informational and do not automatically block academic promotion.',
             ]);
+
             return $studentIds->count();
         });
 
@@ -248,7 +251,7 @@ class StudentPromotionController extends Controller
             }
             foreach ($ids as $id) {
                 $student = User::query()->lockForUpdate()->where('role', 'student')->find($id);
-                if (!$student || !$student->is_approved || (int) $student->current_class_id !== (int) $source->id) {
+                if (! $student || ! $student->is_approved || (int) $student->current_class_id !== (int) $source->id) {
                     throw ValidationException::withMessages(['student_ids' => 'A selected student is no longer active in the source class.']);
                 }
                 $otherActiveEnrollment = ClassEnrollment::query()->where('student_id', $id)
@@ -260,7 +263,7 @@ class StudentPromotionController extends Controller
                 $roll = $this->nextRollNumber($target->id, (string) $target->academic_year);
                 $enrollments->get($id)->update([
                     'status' => 'transferred', 'ended_at' => now(), 'ended_by' => $actor->id,
-                    'transition_reason' => 'Transferred to ' . $target->display_name . ' within academic session ' . $target->academic_year,
+                    'transition_reason' => 'Transferred to '.$target->display_name.' within academic session '.$target->academic_year,
                 ]);
                 ClassEnrollment::create([
                     'class_id' => $target->id, 'student_id' => $id, 'roll_number' => $roll,
@@ -296,7 +299,7 @@ class StudentPromotionController extends Controller
             }
             $withdrawal = DB::table('student_withdrawal_records')->where('student_id', $student->id)
                 ->whereNull('re_admitted_at')->orderByDesc('effective_date')->lockForUpdate()->first();
-            if (!$withdrawal || $student->is_approved || $student->current_class_id !== null) {
+            if (! $withdrawal || $student->is_approved || $student->current_class_id !== null) {
                 throw ValidationException::withMessages(['student_id' => 'This student does not have an open withdrawal record or is already active.']);
             }
             if (ClassEnrollment::query()->where('student_id', $student->id)->where('status', 'active')->exists()) {
@@ -340,6 +343,7 @@ class StudentPromotionController extends Controller
         while (isset($taken[$roll])) {
             $roll++;
         }
+
         return $roll;
     }
 }

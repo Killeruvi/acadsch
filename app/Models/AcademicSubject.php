@@ -21,7 +21,6 @@ class AcademicSubject extends Model
         'weekly_periods',
     ];
 
-
     public function setCodeAttribute($value): void
     {
         $normalized = strtoupper(trim((string) $value));

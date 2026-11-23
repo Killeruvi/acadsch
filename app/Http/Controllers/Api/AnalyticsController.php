@@ -22,13 +22,15 @@ class AnalyticsController extends Controller
         $isAdmin = $viewer->role === 'admin';
 
         $courseQuery = Course::query();
-        if (!$isAdmin) $courseQuery->where('teacher_id', $viewer->id);
+        if (! $isAdmin) {
+            $courseQuery->where('teacher_id', $viewer->id);
+        }
         $courseIds = (clone $courseQuery)->select('id');
         $assignmentIds = Assignment::query()->whereIn('course_id', $courseIds)->select('id');
         $submissionQuery = Submission::query()->whereIn('assignment_id', $assignmentIds);
 
         $studentQuery = User::query()->where('role', 'student');
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $studentQuery->whereIn('id', Enrollment::query()->whereIn('course_id', $courseIds)->select('student_id'));
         }
 

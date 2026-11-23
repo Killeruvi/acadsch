@@ -16,15 +16,25 @@ class AdmitCardAndExamIntegrityTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $teacher1;
+
     private User $teacher2;
+
     private User $student1;
+
     private User $student2;
+
     private User $parent1;
+
     private AcademicClass $class1;
+
     private AcademicClass $class2;
+
     private SchoolExamTerm $term;
+
     private AcademicSubject $subject1;
+
     private SchoolExamSchedule $schedule1;
 
     protected function setUp(): void

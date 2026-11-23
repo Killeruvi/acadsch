@@ -9,8 +9,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('users', 'admission_number')) {
-            throw new \RuntimeException('Cannot enforce admission-number uniqueness: users.admission_number does not exist. Run the school-management migrations first.');
+        if (! Schema::hasColumn('users', 'admission_number')) {
+            throw new RuntimeException('Cannot enforce admission-number uniqueness: users.admission_number does not exist. Run the school-management migrations first.');
         }
 
         $duplicate = DB::table('users')
@@ -22,7 +22,7 @@ return new class extends Migration
             ->first();
 
         if ($duplicate) {
-            throw new \RuntimeException('Cannot add the unique admission-number index because duplicate admission numbers already exist. Resolve duplicate users.admission_number values before retrying this migration.');
+            throw new RuntimeException('Cannot add the unique admission-number index because duplicate admission numbers already exist. Resolve duplicate users.admission_number values before retrying this migration.');
         }
 
         Schema::table('users', function (Blueprint $table) {

@@ -4,16 +4,16 @@ namespace Tests\Feature;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
-use App\Models\AttendanceRecord;
-use App\Models\AttendanceSession;
-use App\Models\Course;
 use App\Models\DailyDpp;
 use App\Models\DppQuestion;
-use App\Models\DppSubmission;
 use App\Models\HomeworkSubmission;
 use App\Models\HomeworkTask;
 use App\Models\InAppNotification;
 use App\Models\User;
+use Database\Seeders\AcademicAdditionsSeeder;
+use Database\Seeders\BloomsTaxonomySeeder;
+use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\SyllabusSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,19 +22,23 @@ class AttendanceNotificationDppHomeworkTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $class8;
+
     protected AcademicSubject $scienceSubject;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->seed(\Database\Seeders\DatabaseSeeder::class);
-        $this->seed(\Database\Seeders\BloomsTaxonomySeeder::class);
-        $this->seed(\Database\Seeders\SyllabusSeeder::class);
-        $this->seed(\Database\Seeders\AcademicAdditionsSeeder::class);
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(BloomsTaxonomySeeder::class);
+        $this->seed(SyllabusSeeder::class);
+        $this->seed(AcademicAdditionsSeeder::class);
 
         $this->admin = User::firstOrCreate(
             ['email' => 'admin@primearc.academy'],
@@ -84,7 +88,7 @@ class AttendanceNotificationDppHomeworkTest extends TestCase
 
         // Ensure student is enrolled in class8
         $this->class8->students()->syncWithoutDetaching([
-            $this->student->id => ['roll_number' => 99, 'status' => 'active']
+            $this->student->id => ['roll_number' => 99, 'status' => 'active'],
         ]);
     }
 
@@ -205,7 +209,7 @@ class AttendanceNotificationDppHomeworkTest extends TestCase
 
         // Fetch or create a DPP with questions
         $dpp = DailyDpp::where('class_id', $this->class8->id)->first();
-        if (!$dpp) {
+        if (! $dpp) {
             $dpp = DailyDpp::create([
                 'class_id' => $this->class8->id,
                 'subject_id' => $this->scienceSubject->id,

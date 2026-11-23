@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
 use App\Models\Schedule;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,9 +26,9 @@ class ScheduleController extends Controller
                 $q->where('status', 'active')->whereHas('enrollments', fn ($eq) => $eq->where('student_id', $user->id)->where('status', 'enrolled'));
             });
         } elseif ($user->isParent()) {
-            $childIds = \App\Models\User::childrenOf($user)->select('id');
+            $childIds = User::childrenOf($user)->select('id');
             $query->whereHas('course', fn ($q) => $q->whereHas('enrollments', fn ($eq) => $eq->whereIn('student_id', $childIds)->where('status', 'enrolled')));
-        } elseif (!$user->isAdmin()) {
+        } elseif (! $user->isAdmin()) {
             abort(403);
         }
 
@@ -41,15 +43,15 @@ class ScheduleController extends Controller
         if ($request->has('page') || $request->has('per_page')) {
             $perPage = min(100, max(1, $request->integer('per_page', 20)));
             $schedules = $query->orderBy('day_of_week')
-                               ->orderBy('start_time')
-                               ->paginate($perPage);
+                ->orderBy('start_time')
+                ->paginate($perPage);
 
             return response()->json($schedules);
         }
 
         $schedules = $query->orderBy('day_of_week')
-                           ->orderBy('start_time')
-                           ->get();
+            ->orderBy('start_time')
+            ->get();
 
         return response()->json(['schedules' => $schedules]);
     }
@@ -71,8 +73,8 @@ class ScheduleController extends Controller
 
         $user = $request->user();
         if ($user->isTeacher()) {
-            abort_unless(\App\Models\Course::whereKey($validated['course_id'])->where('teacher_id', $user->id)->exists(), 403, 'You may only schedule courses you teach.');
-        } elseif (!$user->isAdmin()) {
+            abort_unless(Course::whereKey($validated['course_id'])->where('teacher_id', $user->id)->exists(), 403, 'You may only schedule courses you teach.');
+        } elseif (! $user->isAdmin()) {
             abort(403);
         }
 

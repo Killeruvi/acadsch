@@ -100,7 +100,7 @@ class FutureDrivenWebsiteAndPaymentGatewayTest extends TestCase
 
         // 1. Core Vision & Hero Headline
         $response->assertSee("Tomorrow's World Needs More Than Employees.", false);
-        $response->assertSee("It Needs Creators.");
+        $response->assertSee('It Needs Creators.');
         $response->assertSee("Don't just prepare students for the future.", false);
         $response->assertSee('Explore Our Vision');
         $response->assertSee('Discover Our Learning Approach');

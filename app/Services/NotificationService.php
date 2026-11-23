@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\AcademicClass;
 use App\Models\Course;
 use App\Models\InAppNotification;
+use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class NotificationService
 {
@@ -41,12 +43,13 @@ class NotificationService
                 'is_read' => false,
             ]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Notification dispatch failure', [
+            Log::warning('Notification dispatch failure', [
                 'user_id' => $userId,
                 'type' => $type,
                 'title' => $title,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -105,7 +108,7 @@ class NotificationService
                 InAppNotification::insert($records);
             }
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Bulk notification dispatch failure', [
+            Log::warning('Bulk notification dispatch failure', [
                 'count' => count($userIds),
                 'type' => $type,
                 'title' => $title,
@@ -126,7 +129,9 @@ class NotificationService
         string $icon = '🔔'
     ): void {
         $class = AcademicClass::find($classId);
-        if (!$class) return;
+        if (! $class) {
+            return;
+        }
 
         $studentIds = $class->students()->pluck('users.id')->toArray();
         self::notifyUsers($studentIds, $type, $title, $message, $actionUrl, $icon);
@@ -144,7 +149,9 @@ class NotificationService
         string $icon = '🔔'
     ): void {
         $course = Course::find($courseId);
-        if (!$course) return;
+        if (! $course) {
+            return;
+        }
 
         $studentIds = $course->enrollments()->pluck('student_id')->toArray();
         self::notifyUsers($studentIds, $type, $title, $message, $actionUrl, $icon);
@@ -160,7 +167,7 @@ class NotificationService
         string $icon = '📢',
         string $targetAudience = 'all'
     ): void {
-        $query = \App\Models\User::query();
+        $query = User::query();
         if ($targetAudience === 'students') {
             $query->where('role', 'student');
         } elseif ($targetAudience === 'teachers') {
@@ -179,7 +186,7 @@ class NotificationService
 
         // Mirror broadcast to Telegram channel / admin
         try {
-            TelegramService::sendAlert("📢 " . $title, $message);
+            TelegramService::sendAlert('📢 '.$title, $message);
         } catch (\Throwable $e) {
             // Silently continue if Telegram network is unreachable
         }
@@ -200,7 +207,7 @@ class NotificationService
         }
 
         $url = trim($url);
-        if (!str_starts_with($url, '/') || str_starts_with($url, '//') || str_contains($url, '\\')) {
+        if (! str_starts_with($url, '/') || str_starts_with($url, '//') || str_contains($url, '\\')) {
             return null;
         }
 
@@ -211,5 +218,4 @@ class NotificationService
 
         return $url;
     }
-
 }

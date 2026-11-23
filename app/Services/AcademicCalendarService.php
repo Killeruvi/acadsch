@@ -6,6 +6,7 @@ use App\Models\AcademicClass;
 use App\Models\AcademicHoliday;
 use App\Models\AcademicSubject;
 use App\Models\LessonPlan;
+use App\Models\User;
 use Carbon\Carbon;
 
 class AcademicCalendarService
@@ -94,7 +95,7 @@ class AcademicCalendarService
 
         foreach ($topics as $topic) {
             // Plan 3-4 structured lessons per topic chapter
-            $subtopics = is_array($topic->subtopics) && !empty($topic->subtopics)
+            $subtopics = is_array($topic->subtopics) && ! empty($topic->subtopics)
                 ? $topic->subtopics
                 : [
                     'Foundations, Core Principles & Notation',
@@ -134,7 +135,7 @@ class AcademicCalendarService
                     [
                         'teacher_id' => $teacherId,
                         'activity_type' => 'regular',
-                        'title' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " L{$lessonNumber}: {$subtopicTitle}",
+                        'title' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." L{$lessonNumber}: {$subtopicTitle}",
                         'subtopics' => $subtopicTitle,
                         'learning_objectives' => "Master concept fundamentals of {$subtopicTitle}. Able to formulate solutions, explain mechanisms, and clear topic DPP questions with 80%+ accuracy.",
                         'pedagogy' => $pedagogy,
@@ -143,7 +144,7 @@ class AcademicCalendarService
                         'bloom_focus' => $bloomFocus,
                         'resources_needed' => "Course textbook chapter {$topic->chapter_number}, curriculum notes PDF, scientific apparatus or calculator.",
                         'practical_lab' => $labText,
-                        'homework_assignment' => "Complete DPP practice set for {$topic->title} (Part " . ($sIdx + 1) . ") and review summary definitions.",
+                        'homework_assignment' => "Complete DPP practice set for {$topic->title} (Part ".($sIdx + 1).') and review summary definitions.',
                         'status' => $status,
                         'holiday_id' => $holidayId,
                         'holiday_note' => $holidayNote,
@@ -180,10 +181,10 @@ class AcademicCalendarService
             };
 
             $milestoneTitle = match ($milestoneType) {
-                'competition' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 🏆 Competitions Day: {$topic->title} Olympiad Sprint",
-                'project' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 🚀 Projects Day: {$topic->title} Hands-on Model",
-                'debate' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 🗣️ Debates Day: {$topic->title} Academic Discourse",
-                'symposium' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 🔬 Symposium Day: {$topic->title} Research Discovery",
+                'competition' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 🏆 Competitions Day: {$topic->title} Olympiad Sprint",
+                'project' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 🚀 Projects Day: {$topic->title} Hands-on Model",
+                'debate' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 🗣️ Debates Day: {$topic->title} Academic Discourse",
+                'symposium' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 🔬 Symposium Day: {$topic->title} Research Discovery",
             };
 
             LessonPlan::updateOrCreate(
@@ -199,13 +200,13 @@ class AcademicCalendarService
                     'title' => $milestoneTitle,
                     'subtopics' => "Milestone {$milestoneType} activity testing and applying {$topic->title}",
                     'learning_objectives' => "Mastery evaluation through {$milestoneType} for {$topic->title}",
-                    'pedagogy' => ucfirst($milestoneType) . " Workshop & Presentation",
+                    'pedagogy' => ucfirst($milestoneType).' Workshop & Presentation',
                     'planned_date' => $currentDate->toDateString(),
                     'period_slot' => $periodSlots[($lessonNumber - 1) % count($periodSlots)],
                     'bloom_focus' => 'Analyze, Evaluate & Synthesize',
-                    'resources_needed' => "Competition / Project kit and presentation rubric.",
-                    'practical_lab' => ($milestoneType === 'project' ? "Project prototyping and testing." : null),
-                    'homework_assignment' => "Document findings and reflection in chapter journal.",
+                    'resources_needed' => 'Competition / Project kit and presentation rubric.',
+                    'practical_lab' => ($milestoneType === 'project' ? 'Project prototyping and testing.' : null),
+                    'homework_assignment' => 'Document findings and reflection in chapter journal.',
                     'status' => 'planned',
                     'term' => $term,
                     'order_index' => $orderIndex++,
@@ -226,16 +227,16 @@ class AcademicCalendarService
                 [
                     'teacher_id' => $teacherId,
                     'activity_type' => 'revision',
-                    'title' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 🔄 Revision Day: {$topic->title} Mind-Map & Formula Sprint",
+                    'title' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 🔄 Revision Day: {$topic->title} Mind-Map & Formula Sprint",
                     'subtopics' => "Comprehensive synoptic revision, formula derivations, concept mapping, and flashcard recap for {$topic->title}",
-                    'learning_objectives' => "Consolidate active recall, resolve lingering doubt queries, and achieve formula fluency prior to chapter test.",
+                    'learning_objectives' => 'Consolidate active recall, resolve lingering doubt queries, and achieve formula fluency prior to chapter test.',
                     'pedagogy' => 'Active Recall Drill & Synoptic Mind-Mapping',
                     'planned_date' => $revisionDate->toDateString(),
                     'period_slot' => $periodSlots[($lessonNumber - 1) % count($periodSlots)],
                     'bloom_focus' => 'Remember, Analyze & Synthesize',
-                    'resources_needed' => "Formula cheat sheets, blank mind-map templates, flashcards, and quick-fire quiz deck.",
+                    'resources_needed' => 'Formula cheat sheets, blank mind-map templates, flashcards, and quick-fire quiz deck.',
                     'practical_lab' => null,
-                    'homework_assignment' => "Self-timed 30-minute flashcard drill and review formula derivation cheat sheet.",
+                    'homework_assignment' => 'Self-timed 30-minute flashcard drill and review formula derivation cheat sheet.',
                     'status' => 'planned',
                     'term' => $term,
                     'order_index' => $orderIndex++,
@@ -256,16 +257,16 @@ class AcademicCalendarService
                 [
                     'teacher_id' => $teacherId,
                     'activity_type' => 'test',
-                    'title' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 📝 Chapter Test Day: {$topic->title} Full Exam Mock",
+                    'title' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 📝 Chapter Test Day: {$topic->title} Full Exam Mock",
                     'subtopics' => "Timed 60-minute examination under exam conditions on {$topic->title}",
                     'learning_objectives' => "Summative mastery assessment on {$topic->title}. 85%+ target score.",
                     'pedagogy' => 'Chapter Mastery Examination & Error Analysis',
                     'planned_date' => $testDate->toDateString(),
                     'period_slot' => $periodSlots[($lessonNumber - 1) % count($periodSlots)],
                     'bloom_focus' => 'Evaluate & Formulate Under Time Pressure',
-                    'resources_needed' => "Question paper, OMR sheets, marking rubric.",
+                    'resources_needed' => 'Question paper, OMR sheets, marking rubric.',
                     'practical_lab' => null,
-                    'homework_assignment' => "Complete error analysis log for missed questions.",
+                    'homework_assignment' => 'Complete error analysis log for missed questions.',
                     'status' => 'planned',
                     'term' => $term,
                     'order_index' => $orderIndex++,
@@ -452,7 +453,7 @@ class AcademicCalendarService
             ],
         ];
 
-        $academicYear = $year . '-' . ($year + 1);
+        $academicYear = $year.'-'.($year + 1);
 
         foreach ($holidays as $h) {
             AcademicHoliday::firstOrCreate(
@@ -479,13 +480,13 @@ class AcademicCalendarService
         self::syncOfficialHolidays($startDate->year);
         self::syncOfficialHolidays($startDate->year + 1);
 
-        $subjects = $class->subjects()->with(['topics' => fn($q) => $q->orderBy('chapter_number')])->orderBy('id')->get();
+        $subjects = $class->subjects()->with(['topics' => fn ($q) => $q->orderBy('chapter_number')])->orderBy('id')->get();
         if ($subjects->isEmpty()) {
             return ['days' => 0, 'sessions' => 0, 'subjects_count' => 0];
         }
 
-        if (!$teacherId) {
-            $teacher = \App\Models\User::where('role', 'teacher')->first() ?? \App\Models\User::where('role', 'admin')->first();
+        if (! $teacherId) {
+            $teacher = User::where('role', 'teacher')->first() ?? User::where('role', 'admin')->first();
             $teacherId = $teacher?->id;
         }
 
@@ -527,7 +528,7 @@ class AcademicCalendarService
             if ($topics->isNotEmpty()) {
                 foreach ($topics as $topic) {
                     $chapterCount++;
-                    $subtopics = is_array($topic->subtopics) && !empty($topic->subtopics)
+                    $subtopics = is_array($topic->subtopics) && ! empty($topic->subtopics)
                         ? $topic->subtopics
                         : [
                             'Foundations, Core Principles & Notation',
@@ -539,7 +540,7 @@ class AcademicCalendarService
                         $catalog[] = [
                             'topic_id' => $topic->id,
                             'activity_type' => 'regular',
-                            'title' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " L{$lessonNum}: {$st}",
+                            'title' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." L{$lessonNum}: {$st}",
                             'subtopics' => $st,
                             'learning_objectives' => "Master concept fundamentals of {$st} in {$subject->name}. Formulate solutions and achieve 80%+ accuracy on DPP practice.",
                             'pedagogy' => $pedagogyRotation[($lessonNum - 1) % count($pedagogyRotation)],
@@ -563,53 +564,53 @@ class AcademicCalendarService
                         $catalog[] = [
                             'topic_id' => $topic->id,
                             'activity_type' => 'competition',
-                            'title' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 🏆 Competitions Day: {$topic->title} Olympiad & Problem Sprint",
+                            'title' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 🏆 Competitions Day: {$topic->title} Olympiad & Problem Sprint",
                             'subtopics' => "Timed Olympiad sprint, buzzer quiz rounds, and multi-step speed problem drill on {$topic->title}",
                             'learning_objectives' => "Test deep analytical problem solving under competitive exam conditions. Rank leaderboard standing on {$topic->title}.",
                             'pedagogy' => 'Competitive Olympiad Sprint & Quiz Bowl',
                             'bloom_focus' => 'Analyze, Evaluate & Rapid Problem Solving',
-                            'resources_needed' => "Competition problem booklet, countdown timer, scoring rubric, and live buzzer system.",
+                            'resources_needed' => 'Competition problem booklet, countdown timer, scoring rubric, and live buzzer system.',
                             'practical_lab' => null,
-                            'homework_assignment' => "Review Olympiad solutions and analyze errors in competition journal.",
+                            'homework_assignment' => 'Review Olympiad solutions and analyze errors in competition journal.',
                         ];
                     } elseif ($milestoneType === 'project') {
                         $catalog[] = [
                             'topic_id' => $topic->id,
                             'activity_type' => 'project',
-                            'title' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 🚀 Projects Day: {$topic->title} Hands-on Model & Capstone",
+                            'title' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 🚀 Projects Day: {$topic->title} Hands-on Model & Capstone",
                             'subtopics' => "Construct functional physical apparatus, experimental prototype, or software model based on {$topic->title}",
                             'learning_objectives' => "Apply theoretical principles of {$topic->title} to design, build, and demonstrate an authentic working project or case model.",
                             'pedagogy' => 'Project-Based Prototyping & Exhibition',
                             'bloom_focus' => 'Create, Synthesize & Construct Prototype',
-                            'resources_needed' => "STEM lab kit, fabrication supplies, project poster board, measuring apparatus.",
+                            'resources_needed' => 'STEM lab kit, fabrication supplies, project poster board, measuring apparatus.',
                             'practical_lab' => "Assemble and test functional model demonstrating {$topic->title}. Record trial logs and measurements.",
-                            'homework_assignment' => "Finalize 2-page project documentation sheet with schematic diagram.",
+                            'homework_assignment' => 'Finalize 2-page project documentation sheet with schematic diagram.',
                         ];
                     } elseif ($milestoneType === 'debate') {
                         $catalog[] = [
                             'topic_id' => $topic->id,
                             'activity_type' => 'debate',
-                            'title' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 🗣️ Debates Day: {$topic->title} Ethics, Innovation & Policy Forum",
+                            'title' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 🗣️ Debates Day: {$topic->title} Ethics, Innovation & Policy Forum",
                             'subtopics' => "Parliamentary debate motion on societal impact, emerging technology, and controversial applications of {$topic->title}",
                             'learning_objectives' => "Articulate persuasive scientific evidence, formulate rebuttal arguments, and critically evaluate real-world dilemmas of {$topic->title}.",
                             'pedagogy' => 'Parliamentary Debate & Ethical Inquiry',
                             'bloom_focus' => 'Evaluate, Critique & Formulate Arguments',
-                            'resources_needed' => "Debate briefing motion document, speaker rebuttal timer, parliamentary rules rubric.",
+                            'resources_needed' => 'Debate briefing motion document, speaker rebuttal timer, parliamentary rules rubric.',
                             'practical_lab' => null,
-                            'homework_assignment' => "Submit a 300-word written position argument defending your team stance.",
+                            'homework_assignment' => 'Submit a 300-word written position argument defending your team stance.',
                         ];
                     } else {
                         $catalog[] = [
                             'topic_id' => $topic->id,
                             'activity_type' => 'symposium',
-                            'title' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 🔬 Symposium Day: {$topic->title} Research Discovery & Viva",
+                            'title' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 🔬 Symposium Day: {$topic->title} Research Discovery & Viva",
                             'subtopics' => "Student presentations of research papers, investigative inquiries, and faculty viva voce on {$topic->title}",
-                            'learning_objectives' => "Defend research methodology, interpret scientific data figures, and synthesize comprehensive chapter insights.",
+                            'learning_objectives' => 'Defend research methodology, interpret scientific data figures, and synthesize comprehensive chapter insights.',
                             'pedagogy' => 'Academic Seminar & Peer Review Symposium',
                             'bloom_focus' => 'Synthesize, Defend & Peer Review',
-                            'resources_needed' => "Presentation slides, research summary abstracts, peer critique forms.",
-                            'practical_lab' => "Demonstrate key experimental principle to symposium audience during viva.",
-                            'homework_assignment' => "Summarize key peer feedback from symposium presentation.",
+                            'resources_needed' => 'Presentation slides, research summary abstracts, peer critique forms.',
+                            'practical_lab' => 'Demonstrate key experimental principle to symposium audience during viva.',
+                            'homework_assignment' => 'Summarize key peer feedback from symposium presentation.',
                         ];
                     }
                     $lessonNum++;
@@ -618,14 +619,14 @@ class AcademicCalendarService
                     $catalog[] = [
                         'topic_id' => $topic->id,
                         'activity_type' => 'revision',
-                        'title' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 🔄 Revision Day: {$topic->title} Mind-Map & Formula Sprint",
+                        'title' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 🔄 Revision Day: {$topic->title} Mind-Map & Formula Sprint",
                         'subtopics' => "Comprehensive synoptic revision, formula derivations, concept mapping, and flashcard recap for {$topic->title}",
-                        'learning_objectives' => "Consolidate active recall, resolve lingering doubt queries, and achieve formula fluency prior to chapter test.",
+                        'learning_objectives' => 'Consolidate active recall, resolve lingering doubt queries, and achieve formula fluency prior to chapter test.',
                         'pedagogy' => 'Active Recall Drill & Synoptic Mind-Mapping',
                         'bloom_focus' => 'Remember, Analyze & Synthesize',
-                        'resources_needed' => "Formula cheat sheets, blank mind-map templates, flashcards, and quick-fire quiz deck.",
+                        'resources_needed' => 'Formula cheat sheets, blank mind-map templates, flashcards, and quick-fire quiz deck.',
                         'practical_lab' => null,
-                        'homework_assignment' => "Self-timed 30-minute flashcard drill and review formula derivation cheat sheet.",
+                        'homework_assignment' => 'Self-timed 30-minute flashcard drill and review formula derivation cheat sheet.',
                     ];
                     $lessonNum++;
 
@@ -633,14 +634,14 @@ class AcademicCalendarService
                     $catalog[] = [
                         'topic_id' => $topic->id,
                         'activity_type' => 'test',
-                        'title' => "Ch " . str_pad((string)$topic->chapter_number, 2, '0', STR_PAD_LEFT) . " 📝 Chapter Test Day: {$topic->title} Full Exam Mock",
-                        'subtopics' => "Timed 60-minute chapter examination under exam conditions followed by self-evaluation and remedial debrief",
+                        'title' => 'Ch '.str_pad((string) $topic->chapter_number, 2, '0', STR_PAD_LEFT)." 📝 Chapter Test Day: {$topic->title} Full Exam Mock",
+                        'subtopics' => 'Timed 60-minute chapter examination under exam conditions followed by self-evaluation and remedial debrief',
                         'learning_objectives' => "Assess summative mastery across all cognitive domains of {$topic->title}. Achieve 85%+ benchmark on mixed concept questions.",
                         'pedagogy' => 'Standardized Chapter Examination & Mastery Assessment',
                         'bloom_focus' => 'Evaluate, Analyze & Formulate Under Time Pressure',
-                        'resources_needed' => "Printed question booklet, OMR answer sheets, stopwatch timer, and marking scheme.",
+                        'resources_needed' => 'Printed question booklet, OMR answer sheets, stopwatch timer, and marking scheme.',
                         'practical_lab' => null,
-                        'homework_assignment' => "Complete error analysis log: write correct solutions and explanations for all missed questions.",
+                        'homework_assignment' => 'Complete error analysis log: write correct solutions and explanations for all missed questions.',
                     ];
                     $lessonNum++;
                 }
@@ -669,13 +670,13 @@ class AcademicCalendarService
                 $catalog[] = [
                     'topic_id' => $topId,
                     'activity_type' => $activityType,
-                    'title' => "Unit " . ceil($revIndex / 5) . " {$prefix}: {$topTitle}",
+                    'title' => 'Unit '.ceil($revIndex / 5)." {$prefix}: {$topTitle}",
                     'subtopics' => "High-yield mastery, past exam papers, and analytical symposium for {$topTitle}",
-                    'learning_objectives' => "Reinforce deep cognitive recall, tackle complex multi-concept questions, and finalize annual exam readiness.",
+                    'learning_objectives' => 'Reinforce deep cognitive recall, tackle complex multi-concept questions, and finalize annual exam readiness.',
                     'pedagogy' => $pedagogyRotation[$revIndex % count($pedagogyRotation)],
                     'bloom_focus' => $bloomFocusRotation[$revIndex % count($bloomFocusRotation)],
-                    'resources_needed' => "Mock exam paper, revision study notes, past board question archives.",
-                    'practical_lab' => ($revIndex % 4 === 0 ? "Practical exam apparatus inspection & viva voce review." : null),
+                    'resources_needed' => 'Mock exam paper, revision study notes, past board question archives.',
+                    'practical_lab' => ($revIndex % 4 === 0 ? 'Practical exam apparatus inspection & viva voce review.' : null),
                     'homework_assignment' => "Timed 45-minute mock test on {$topTitle}.",
                 ];
                 $revIndex++;
@@ -687,13 +688,13 @@ class AcademicCalendarService
         // 2. Build sequential linear block queue if densityMode is 'block' (1 chapter at a time, no parallel chapters)
         $linearBlockQueue = [];
         if ($densityMode === 'block') {
-            $maxChapters = $subjects->max(fn($s) => $s->topics->count()) ?: 1;
+            $maxChapters = $subjects->max(fn ($s) => $s->topics->count()) ?: 1;
             for ($ch = 1; $ch <= $maxChapters; $ch++) {
                 foreach ($subjects as $s) {
                     $cat = $subjectCatalogs[$s->id] ?? [];
                     $topicForCh = $s->topics->firstWhere('chapter_number', $ch);
                     if ($topicForCh) {
-                        $chItems = array_values(array_filter($cat, fn($it) => $it['topic_id'] === $topicForCh->id));
+                        $chItems = array_values(array_filter($cat, fn ($it) => $it['topic_id'] === $topicForCh->id));
                         foreach ($chItems as $ci) {
                             $linearBlockQueue[] = ['subject' => $s, 'item' => $ci];
                         }
@@ -719,6 +720,7 @@ class AcademicCalendarService
             // Sundays are weekly off
             if ($currDate->isSunday()) {
                 $currDate->addDay();
+
                 continue;
             }
 
@@ -726,6 +728,7 @@ class AcademicCalendarService
             $holiday = self::getHolidayForDate($currDate);
             if ($holiday && $holiday->is_instructional_off) {
                 $currDate->addDay();
+
                 continue;
             }
 
@@ -778,13 +781,14 @@ class AcademicCalendarService
 
                 $totalSessionsCreated++;
                 $currDate->addDay();
+
                 continue;
             }
 
             // Determine which subjects are taught today based on densityMode
             $activeSubjectsForDay = match ($densityMode) {
                 'single' => [
-                    $subjects[($instructionalDay - 1) % $subjects->count()]
+                    $subjects[($instructionalDay - 1) % $subjects->count()],
                 ],
                 'double' => [
                     $subjects[((($instructionalDay - 1) * 2)) % $subjects->count()],

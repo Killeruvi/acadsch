@@ -7,11 +7,9 @@ use App\Models\AcademicSubject;
 use App\Models\CurriculumTopic;
 use App\Models\CurriculumVideo;
 use App\Models\DailyDpp;
-use App\Models\DppQuestion;
 use App\Models\HomeworkTask;
 use App\Models\TopicBloomActivity;
 use App\Models\User;
-use App\Models\UserVideoProgress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,10 +18,15 @@ class CurriculumStructuralSupportTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $class10;
+
     protected AcademicSubject $mathSubject;
+
     protected CurriculumTopic $topic;
 
     protected function setUp(): void
@@ -74,7 +77,7 @@ class CurriculumStructuralSupportTest extends TestCase
             TopicBloomActivity::create([
                 'topic_id' => $this->topic->id,
                 'bloom_level' => $i,
-                'level_name' => 'Level ' . $i,
+                'level_name' => 'Level '.$i,
                 'verb_keywords' => 'Recall, Solve, Analyze',
                 'activity_prompt' => "Bloom activity prompt for level {$i}",
                 'rubric_guide' => "Demonstrate level {$i} criteria",

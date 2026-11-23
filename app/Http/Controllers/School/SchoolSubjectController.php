@@ -4,8 +4,13 @@ namespace App\Http\Controllers\School;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicSubject;
+use App\Models\AcademySetting;
 use App\Models\SchoolStream;
 use App\Models\SubjectMaster;
+use App\Models\User;
+use App\Services\SchoolAcademicAuditService;
+use App\Services\SubjectCurriculumInheritanceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +20,7 @@ use Illuminate\View\View;
 
 class SchoolSubjectController extends Controller
 {
-    public function index(Request $request): View|\Illuminate\Http\JsonResponse
+    public function index(Request $request): View|JsonResponse
     {
         abort_unless(Auth::user() && (Auth::user()->isAdmin() || Auth::user()->isTeacher()), 403);
 
@@ -71,7 +76,7 @@ class SchoolSubjectController extends Controller
             $assignedClassesMap[$master->id] = max($masterCounts[$master->id] ?? 0, $codeCounts[$code] ?? 0, $nameCounts[$name] ?? 0);
         }
 
-        $teachers = \App\Models\User::where('role', 'teacher')->orderBy('name')->get();
+        $teachers = User::where('role', 'teacher')->orderBy('name')->get();
         $streams = SchoolStream::active()->orderBy('name')->pluck('name')->all();
         $streams[] = 'All';
         $streams = array_values(array_unique($streams));
@@ -102,18 +107,22 @@ class SchoolSubjectController extends Controller
             'default_teacher_id' => 'nullable|integer|exists:users,id',
             'description' => 'nullable|string|max:1000',
         ]);
-        if (!empty($data['default_teacher_id']) && !\App\Models\User::findOrFail($data['default_teacher_id'])->isTeacher()) {
+        if (! empty($data['default_teacher_id']) && ! User::findOrFail($data['default_teacher_id'])->isTeacher()) {
             return back()->withInput()->withErrors(['default_teacher_id' => 'Select a teacher account.']);
         }
         $data['is_active'] = true;
         [$subject, $inheritance] = DB::transaction(function () use ($data, $request) {
             $subject = SubjectMaster::create($data);
-            app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'created_subject_master', 'Created subject master '.$subject->name.' ('.$subject->code.').', null, $subject->only(['id', 'name', 'code', 'stream', 'category', 'default_periods', 'min_grade', 'max_grade', 'default_teacher_id', 'is_active']), $request);
-            $inheritance = app(\App\Services\SubjectCurriculumInheritanceService::class)->inheritMasterAcrossClasses($subject, \App\Models\AcademySetting::get('academic_session'), Auth::user(), $request);
+            app(SchoolAcademicAuditService::class)->log(Auth::user(), 'created_subject_master', 'Created subject master '.$subject->name.' ('.$subject->code.').', null, $subject->only(['id', 'name', 'code', 'stream', 'category', 'default_periods', 'min_grade', 'max_grade', 'default_teacher_id', 'is_active']), $request);
+            $inheritance = app(SubjectCurriculumInheritanceService::class)->inheritMasterAcrossClasses($subject, AcademySetting::get('academic_session'), Auth::user(), $request);
+
             return [$subject, $inheritance];
         }, 3);
         $message = 'Curriculum subject created. '.($inheritance['created'] + $inheritance['linked']).' class mappings created or linked for the active academic session.';
-        if ($inheritance['skipped']) $message .= ' Review: '.implode(' ', array_unique($inheritance['skipped']));
+        if ($inheritance['skipped']) {
+            $message .= ' Review: '.implode(' ', array_unique($inheritance['skipped']));
+        }
+
         return back()->with('success', $message);
     }
 
@@ -134,7 +143,7 @@ class SchoolSubjectController extends Controller
             'description' => 'nullable|string|max:1000',
         ]);
 
-        if (!empty($data['default_teacher_id']) && !\App\Models\User::findOrFail($data['default_teacher_id'])->isTeacher()) {
+        if (! empty($data['default_teacher_id']) && ! User::findOrFail($data['default_teacher_id'])->isTeacher()) {
             return back()->withInput()->withErrors(['default_teacher_id' => 'Select a teacher account.']);
         }
         $hasClassMappings = AcademicSubject::where('subject_master_id', $subject->id)
@@ -154,7 +163,8 @@ class SchoolSubjectController extends Controller
         }
         $oldValues = $subject->only(['name', 'code', 'stream', 'category', 'default_periods', 'min_grade', 'max_grade', 'default_teacher_id', 'description', 'is_active']);
         $subject->update($data);
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'updated_subject_master', 'Updated subject master '.$subject->name.'.', $oldValues, $subject->only(['name', 'code', 'stream', 'category', 'default_periods', 'min_grade', 'max_grade', 'default_teacher_id', 'description', 'is_active']), $request);
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'updated_subject_master', 'Updated subject master '.$subject->name.'.', $oldValues, $subject->only(['name', 'code', 'stream', 'category', 'default_periods', 'min_grade', 'max_grade', 'default_teacher_id', 'description', 'is_active']), $request);
+
         return back()->with('success', 'Curriculum subject updated.');
     }
 
@@ -164,7 +174,8 @@ class SchoolSubjectController extends Controller
         abort_unless(Auth::user()?->isAdmin(), 403);
         $subject = SubjectMaster::findOrFail($id);
         $subject->update(['is_active' => false]);
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'deactivated_subject_master', 'Deactivated subject master '.$subject->name.'.', ['is_active' => true], ['is_active' => false], request());
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'deactivated_subject_master', 'Deactivated subject master '.$subject->name.'.', ['is_active' => true], ['is_active' => false], request());
+
         return back()->with('success', 'Subject master deactivated. Existing class subject, exam and timetable records were preserved.');
     }
 
@@ -172,11 +183,12 @@ class SchoolSubjectController extends Controller
     {
         abort_unless(Auth::user()?->isAdmin(), 403);
         $subject = SubjectMaster::findOrFail($id);
-        if ($subject->stream !== 'All' && !SchoolStream::where('name', $subject->stream)->where('is_active', true)->exists()) {
+        if ($subject->stream !== 'All' && ! SchoolStream::where('name', $subject->stream)->where('is_active', true)->exists()) {
             return back()->withErrors(['stream' => 'Reactivate the subject stream before reactivating this subject.']);
         }
         $subject->update(['is_active' => true]);
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'reactivated_subject_master', 'Reactivated subject master '.$subject->name.'.', ['is_active' => false], ['is_active' => true], request());
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'reactivated_subject_master', 'Reactivated subject master '.$subject->name.'.', ['is_active' => false], ['is_active' => true], request());
+
         return back()->with('success', 'Subject master reactivated.');
     }
 }

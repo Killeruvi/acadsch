@@ -8,9 +8,7 @@ use App\Models\AttendanceSession;
 use App\Models\SchoolExamMark;
 use App\Models\SchoolExamTerm;
 use App\Models\SchoolReportCard;
-use App\Models\User;
 use App\Services\NotificationService;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class CompileReportCardsCommand extends Command
@@ -37,8 +35,9 @@ class CompileReportCardsCommand extends Command
         $termId = (int) $this->argument('exam_term_id');
         $term = SchoolExamTerm::find($termId);
 
-        if (!$term) {
+        if (! $term) {
             $this->error("Exam Term ID {$termId} not found.");
+
             return self::FAILURE;
         }
 
@@ -46,7 +45,7 @@ class CompileReportCardsCommand extends Command
         $isPublished = (bool) $this->option('publish');
         $isDryRun = (bool) $this->option('dry-run');
 
-        $this->info("Starting report card compilation for term: {$term->name}" . ($isDryRun ? " [DRY-RUN]" : ""));
+        $this->info("Starting report card compilation for term: {$term->name}".($isDryRun ? ' [DRY-RUN]' : ''));
 
         $classesQuery = AcademicClass::with(['students']);
         if ($classIdFilter) {
@@ -55,7 +54,8 @@ class CompileReportCardsCommand extends Command
 
         $classes = $classesQuery->get();
         if ($classes->isEmpty()) {
-            $this->warn("No classes found to compile.");
+            $this->warn('No classes found to compile.');
+
             return self::SUCCESS;
         }
 
@@ -115,7 +115,7 @@ class CompileReportCardsCommand extends Command
                 $daysPresent = AttendanceRecord::where('student_id', $student->id)
                     ->whereHas('session', function ($sq) use ($class, $term, $termEndDate) {
                         $sq->where('class_id', $class->id)
-                           ->whereDate('session_date', '<=', $termEndDate);
+                            ->whereDate('session_date', '<=', $termEndDate);
                         if ($term->start_date) {
                             $sq->whereDate('session_date', '>=', $term->start_date);
                         }
@@ -153,7 +153,7 @@ class CompileReportCardsCommand extends Command
                 }
                 $res['class_rank'] = $currentRank;
 
-                if (!$isDryRun) {
+                if (! $isDryRun) {
                     $card = SchoolReportCard::updateOrCreate(
                         [
                             'exam_term_id' => $term->id,
@@ -195,11 +195,12 @@ class CompileReportCardsCommand extends Command
         $this->table(
             ['Term Name', 'Classes Scanned', 'Report Cards Processed', 'Published', 'Mode'],
             [
-                [$term->name, $classes->count(), $totalCardsGenerated, $isPublished ? 'Yes' : 'No', $isDryRun ? 'DRY-RUN' : 'LIVE']
+                [$term->name, $classes->count(), $totalCardsGenerated, $isPublished ? 'Yes' : 'No', $isDryRun ? 'DRY-RUN' : 'LIVE'],
             ]
         );
 
-        $this->info("Report card compilation completed successfully.");
+        $this->info('Report card compilation completed successfully.');
+
         return self::SUCCESS;
     }
 }

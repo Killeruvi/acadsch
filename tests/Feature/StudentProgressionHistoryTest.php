@@ -16,10 +16,15 @@ class StudentProgressionHistoryTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $teacher;
+
     private User $student;
+
     private AcademicClass $classA;
+
     private AcademicClass $classB;
+
     private AcademicClass $nextYearClass;
 
     protected function setUp(): void

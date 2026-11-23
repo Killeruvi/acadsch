@@ -33,19 +33,19 @@ class SchoolReportController extends Controller
 
         // Explicit security check: non-admin requesting admin-only category or report
         if ($requestedCategory && isset(SchoolReportService::CATEGORIES[$requestedCategory])) {
-            $catAllowed = !SchoolReportService::CATEGORIES[$requestedCategory]['admin_only']
+            $catAllowed = ! SchoolReportService::CATEGORIES[$requestedCategory]['admin_only']
                 || $user->isAdmin()
                 || ($user->isCashier() && $requestedCategory === 'finance');
-            if (!$catAllowed) {
+            if (! $catAllowed) {
                 abort(403, 'Unauthorized access to institutional financial reports.');
             }
         }
         if ($requestedReportType && isset(SchoolReportService::REPORTS[$requestedReportType])) {
             $rep = SchoolReportService::REPORTS[$requestedReportType];
-            $repAllowed = !$rep['admin_only']
+            $repAllowed = ! $rep['admin_only']
                 || $user->isAdmin()
                 || ($user->isCashier() && $rep['category'] === 'finance');
-            if (!$repAllowed) {
+            if (! $repAllowed) {
                 abort(403, 'Unauthorized access to institutional financial reports.');
             }
         }
@@ -55,7 +55,7 @@ class SchoolReportController extends Controller
         $firstCatKey = array_key_first($availableCategories) ?? 'academic';
         $activeCategory = $requestedCategory ?: $firstCatKey;
 
-        if (!isset($availableCategories[$activeCategory])) {
+        if (! isset($availableCategories[$activeCategory])) {
             $activeCategory = $firstCatKey;
         }
 
@@ -64,7 +64,7 @@ class SchoolReportController extends Controller
         $firstRepKey = array_key_first($availableReports) ?? 'exam_merit_list';
         $activeReportType = $requestedReportType ?: $firstRepKey;
 
-        if (!isset($availableReports[$activeReportType])) {
+        if (! isset($availableReports[$activeReportType])) {
             $activeReportType = $firstRepKey;
         }
 
@@ -86,10 +86,10 @@ class SchoolReportController extends Controller
         $classes = AcademicClass::orderBy('grade_level')->orderBy('section')->get();
         $terms = SchoolExamTerm::orderBy('start_date', 'desc')->get();
         $gateways = [
-            'cash'   => 'Cash Counter',
-            'upi'    => 'UPI Transfer',
-            'qr'     => 'QR Code Scan',
-            'bank'   => 'Bank Transfer / NEFT',
+            'cash' => 'Cash Counter',
+            'upi' => 'UPI Transfer',
+            'qr' => 'QR Code Scan',
+            'bank' => 'Bank Transfer / NEFT',
             'cheque' => 'Cheque',
             'manual' => 'Other / Manual',
         ];
@@ -152,7 +152,7 @@ class SchoolReportController extends Controller
 
         // Selected class name if filtered
         $selectedClassName = null;
-        if (!empty($filters['class_id'])) {
+        if (! empty($filters['class_id'])) {
             $cls = AcademicClass::find($filters['class_id']);
             $selectedClassName = $cls ? $cls->name : null;
         }

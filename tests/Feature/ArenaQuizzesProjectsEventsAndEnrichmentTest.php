@@ -9,13 +9,12 @@ use App\Models\AcademyEvent;
 use App\Models\LiveQuiz;
 use App\Models\LiveQuizQuestion;
 use App\Models\ProjectSubmission;
-use App\Models\QuizAttempt;
 use App\Models\User;
-use App\Models\UserBadge;
 use App\Models\UserCertificate;
 use App\Services\BirthdayService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class ArenaQuizzesProjectsEventsAndEnrichmentTest extends TestCase
@@ -23,9 +22,13 @@ class ArenaQuizzesProjectsEventsAndEnrichmentTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $academicClass;
+
     protected AcademicSubject $subject;
 
     protected function setUp(): void
@@ -260,7 +263,7 @@ class ArenaQuizzesProjectsEventsAndEnrichmentTest extends TestCase
         $currentYear = $today->year;
         $this->assertDatabaseHas('user_badges', [
             'user_id' => $this->student->id,
-            'badge_key' => 'birthday_star_' . $currentYear,
+            'badge_key' => 'birthday_star_'.$currentYear,
         ]);
 
         // Check that celebratory in-app notification was generated
@@ -343,10 +346,10 @@ class ArenaQuizzesProjectsEventsAndEnrichmentTest extends TestCase
 
         // 2. Import CSV questions
         $csvContent = "question,option_a,option_b,option_c,option_d,correct_option,explanation,points\n"
-            . "\"What is the basic physical unit of heredity?\",\"Gene\",\"Chromosome\",\"Protein\",\"Lipid\",\"A\",\"A gene is the fundamental unit of inheritance.\",10\n"
-            . "\"Which organism was used by Mendel for genetic crosses?\",\"Drosophila\",\"Pisum sativum\",\"E. coli\",\"Neurospora\",\"B\",\"Mendel studied garden peas (Pisum sativum).\",15\n";
+            ."\"What is the basic physical unit of heredity?\",\"Gene\",\"Chromosome\",\"Protein\",\"Lipid\",\"A\",\"A gene is the fundamental unit of inheritance.\",10\n"
+            ."\"Which organism was used by Mendel for genetic crosses?\",\"Drosophila\",\"Pisum sativum\",\"E. coli\",\"Neurospora\",\"B\",\"Mendel studied garden peas (Pisum sativum).\",15\n";
 
-        $uploadedCsv = \Illuminate\Http\UploadedFile::fake()->createWithContent('quiz_questions.csv', $csvContent);
+        $uploadedCsv = UploadedFile::fake()->createWithContent('quiz_questions.csv', $csvContent);
 
         $importResponse = $this->actingAs($this->teacher)->post(route('quizzes.import-csv', $quiz->id), [
             'csv_file' => $uploadedCsv,
@@ -355,7 +358,7 @@ class ArenaQuizzesProjectsEventsAndEnrichmentTest extends TestCase
         $this->assertEquals(2, $quiz->questions()->count());
 
         // 3. Import Bulk Text questions
-        $rawText = "Q: What is the genetic material in most organisms?
+        $rawText = 'Q: What is the genetic material in most organisms?
 A) DNA
 B) RNA
 C) Carbohydrate
@@ -368,7 +371,7 @@ A) Watson and Crick
 B) Gregor Mendel
 C) Charles Darwin
 D) Louis Pasteur
-Ans: A";
+Ans: A';
 
         $textResponse = $this->actingAs($this->teacher)->post(route('quizzes.import-text', $quiz->id), [
             'raw_text' => $rawText,

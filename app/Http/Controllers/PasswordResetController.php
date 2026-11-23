@@ -8,6 +8,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
@@ -38,18 +39,20 @@ class PasswordResetController extends Controller
             'captcha' => 'nullable|string',
         ]);
 
-        $throttleKey = 'forgot-password|' . Str::lower($request->input('email')) . '|' . $request->ip();
+        $throttleKey = 'forgot-password|'.Str::lower($request->input('email')).'|'.$request->ip();
 
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
+
             return back()->withErrors([
                 'email' => "Too many reset link requests. Please wait {$seconds} seconds before trying again.",
             ])->onlyInput('email');
         }
 
         // Verify security captcha
-        if (!CaptchaService::verify($request->input('captcha'), $request->input('captcha_token'))) {
+        if (! CaptchaService::verify($request->input('captcha'), $request->input('captcha_token'))) {
             RateLimiter::hit($throttleKey, 60);
+
             return back()->withErrors([
                 'captcha' => 'Invalid or expired security verification code. Please enter the fresh code.',
             ])->onlyInput('email');
@@ -106,9 +109,10 @@ class PasswordResetController extends Controller
             'captcha' => 'nullable|string',
         ]);
 
-        $resetThrottleKey = 'password-reset|' . Str::lower($request->input('email')) . '|' . $request->ip();
+        $resetThrottleKey = 'password-reset|'.Str::lower($request->input('email')).'|'.$request->ip();
         if (RateLimiter::tooManyAttempts($resetThrottleKey, 5)) {
             $seconds = RateLimiter::availableIn($resetThrottleKey);
+
             return back()->withErrors([
                 'email' => "Too many password reset attempts. Please wait {$seconds} seconds before trying again.",
             ])->withInput($request->only('email'));
@@ -116,7 +120,7 @@ class PasswordResetController extends Controller
         RateLimiter::hit($resetThrottleKey, 900);
 
         // Verify security captcha if provided or required
-        if ($request->filled('captcha') && !CaptchaService::verify($request->input('captcha'), $request->input('captcha_token'))) {
+        if ($request->filled('captcha') && ! CaptchaService::verify($request->input('captcha'), $request->input('captcha_token'))) {
             return back()->withErrors([
                 'captcha' => 'Invalid or expired security verification code.',
             ])->withInput($request->only('email'));
@@ -136,7 +140,7 @@ class PasswordResetController extends Controller
                 // A password reset invalidates every previously issued API credential
                 // and the application's single-session marker for this account.
                 $user->tokens()->delete();
-                \Illuminate\Support\Facades\Cache::forget('user_active_session_' . $user->id);
+                Cache::forget('user_active_session_'.$user->id);
 
                 event(new PasswordReset($user));
             }
@@ -144,6 +148,7 @@ class PasswordResetController extends Controller
 
         if ($status === Password::PASSWORD_RESET) {
             RateLimiter::clear($resetThrottleKey);
+
             return redirect()->route('login')->with(
                 'success',
                 'Your password has been successfully reset! You can now log in with your new password.'

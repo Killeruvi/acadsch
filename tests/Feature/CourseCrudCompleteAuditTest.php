@@ -170,7 +170,7 @@ class CourseCrudCompleteAuditTest extends TestCase
         $this->actingAs($teacher)->post(route('schedules.toggle-cancel', $sch->id), ['reason' => 'Holiday'])
             ->assertRedirect();
         $sch->refresh();
-        $this->assertTrue((bool)$sch->is_cancelled);
+        $this->assertTrue((bool) $sch->is_cancelled);
         $this->assertEquals('Holiday', $sch->cancellation_reason);
 
         // Update
@@ -238,7 +238,7 @@ class CourseCrudCompleteAuditTest extends TestCase
 
         $submission = CourseAssessmentSubmission::where('assessment_id', $assessment->id)->where('student_id', $student->id)->first();
         $this->assertNotNull($submission);
-        $this->assertEquals(110, (int)$submission->score);
+        $this->assertEquals(110, (int) $submission->score);
 
         // 4. Delete Assessment
         $this->actingAs($teacher)->delete(route('courses.assessments.destroy', [$course->id, $assessment->id]))

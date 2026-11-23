@@ -6,11 +6,6 @@ use App\Models\AcademicClass;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\FeeInvoice;
-use App\Models\FeePayment;
-use App\Models\SchoolExamSchedule;
-use App\Models\SchoolExamTerm;
-use App\Models\SchoolSection;
-use App\Models\StudentLeaveRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -20,7 +15,9 @@ class AdminDashboardMetricsTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $student;
+
     protected User $teacher;
 
     protected function setUp(): void
@@ -56,67 +53,67 @@ class AdminDashboardMetricsTest extends TestCase
         $response->assertStatus(200);
 
         // Section 1: Today's Snapshot
-        $response->assertSee("Snapshot");
-        $response->assertSee("Attendance Today");
-        $response->assertSee("Faculty Availability");
-        $response->assertSee("Leave Requests");
+        $response->assertSee('Snapshot');
+        $response->assertSee('Attendance Today');
+        $response->assertSee('Faculty Availability');
+        $response->assertSee('Leave Requests');
 
         // Section 2: Admissions Pipeline
-        $response->assertSee("Admissions Pipeline");
-        $response->assertSee("Applications Received");
-        $response->assertSee("Under Review");
-        $response->assertSee("Conversion");
+        $response->assertSee('Admissions Pipeline');
+        $response->assertSee('Applications Received');
+        $response->assertSee('Under Review');
+        $response->assertSee('Conversion');
 
         // Section 3: Fees & Finance
-        $response->assertSee("Fees");
-        $response->assertSee("Collected Today");
-        $response->assertSee("Outstanding Dues");
-        $response->assertSee("Defaulters");
+        $response->assertSee('Fees');
+        $response->assertSee('Collected Today');
+        $response->assertSee('Outstanding Dues');
+        $response->assertSee('Defaulters');
 
         // Section 4: Academic Operations
-        $response->assertSee("Academic Operations");
-        $response->assertSee("Class Attendance Taken");
-        $response->assertSee("Examinations Readiness");
-        $response->assertSee("Curriculum Progress");
+        $response->assertSee('Academic Operations');
+        $response->assertSee('Class Attendance Taken');
+        $response->assertSee('Examinations Readiness');
+        $response->assertSee('Curriculum Progress');
 
         // Section 5: Student & Staff Overview
-        $response->assertSee("Student");
-        $response->assertSee("Staff Overview");
-        $response->assertSee("Total Enrolled Scholars");
-        $response->assertSee("Faculty");
+        $response->assertSee('Student');
+        $response->assertSee('Staff Overview');
+        $response->assertSee('Total Enrolled Scholars');
+        $response->assertSee('Faculty');
 
         // Section 6: Leave & Attendance Trends
-        $response->assertSee("Leave");
-        $response->assertSee("Attendance Trends");
-        $response->assertSee("Pending Leaves");
-        $response->assertSee("Approved This Week");
-        $response->assertSee("Weekly Attendance");
-        $response->assertSee("Chronic Absentees");
+        $response->assertSee('Leave');
+        $response->assertSee('Attendance Trends');
+        $response->assertSee('Pending Leaves');
+        $response->assertSee('Approved This Week');
+        $response->assertSee('Weekly Attendance');
+        $response->assertSee('Chronic Absentees');
 
         // Section 7: Circulars & Communication
-        $response->assertSee("Circulars");
-        $response->assertSee("Communication");
-        $response->assertSee("Published");
-        $response->assertSee("Drafts");
-        $response->assertSee("Parent Engagement");
+        $response->assertSee('Circulars');
+        $response->assertSee('Communication');
+        $response->assertSee('Published');
+        $response->assertSee('Drafts');
+        $response->assertSee('Parent Engagement');
 
         // Section 8: Alerts & Anomalies
-        $response->assertSee("Alerts");
-        $response->assertSee("Anomalies");
-        $response->assertSee("Rejected Attempts");
-        $response->assertSee("Data Inconsistencies");
+        $response->assertSee('Alerts');
+        $response->assertSee('Anomalies');
+        $response->assertSee('Rejected Attempts');
+        $response->assertSee('Data Inconsistencies');
 
         // Section 9: Quick Actions
-        $response->assertSee("Quick Actions");
-        $response->assertSee("Approve Leave");
-        $response->assertSee("Take Roll Call");
-        $response->assertSee("Publish Notice");
-        $response->assertSee("Admit Scholar");
-        $response->assertSee("Add Class");
-        $response->assertSee("Generate Fee");
+        $response->assertSee('Quick Actions');
+        $response->assertSee('Approve Leave');
+        $response->assertSee('Take Roll Call');
+        $response->assertSee('Publish Notice');
+        $response->assertSee('Admit Scholar');
+        $response->assertSee('Add Class');
+        $response->assertSee('Generate Fee');
 
         // Section 10: Recent Activity Feed
-        $response->assertSee("Recent Activity Feed");
+        $response->assertSee('Recent Activity Feed');
     }
 
     /**
@@ -127,10 +124,10 @@ class AdminDashboardMetricsTest extends TestCase
         $response = $this->actingAs($this->student)->get(route('dashboard'));
 
         $response->assertStatus(200);
-        $response->assertDontSee("Today&#039;s Snapshot", false);
-        $response->assertDontSee("Admissions Pipeline");
-        $response->assertDontSee("Academic Operations");
-        $response->assertDontSee("Alerts &amp; Anomalies", false);
+        $response->assertDontSee('Today&#039;s Snapshot', false);
+        $response->assertDontSee('Admissions Pipeline');
+        $response->assertDontSee('Academic Operations');
+        $response->assertDontSee('Alerts &amp; Anomalies', false);
     }
 
     /**
@@ -173,9 +170,9 @@ class AdminDashboardMetricsTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('dashboard'));
 
         $response->assertStatus(200);
-        $response->assertSee("Abnormal Attendance");
-        $response->assertSee("Grade 10 - Alpha");
-        $response->assertSee("1 Classes");
+        $response->assertSee('Abnormal Attendance');
+        $response->assertSee('Grade 10 - Alpha');
+        $response->assertSee('1 Classes');
     }
 
     /**
@@ -197,7 +194,7 @@ class AdminDashboardMetricsTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('dashboard'));
 
         $response->assertStatus(200);
-        $response->assertSee("Outstanding Dues");
-        $response->assertSee("4,000"); // 5000 - 1000 = 4000
+        $response->assertSee('Outstanding Dues');
+        $response->assertSee('4,000'); // 5000 - 1000 = 4000
     }
 }

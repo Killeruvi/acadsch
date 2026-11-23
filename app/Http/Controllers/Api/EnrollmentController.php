@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,7 @@ class EnrollmentController extends Controller
         if ($user->isStudent()) {
             $query->where('student_id', $user->id);
         } elseif ($user->isParent()) {
-            $childIds = \App\Models\User::childrenOf($user)->pluck('id');
+            $childIds = User::childrenOf($user)->pluck('id');
             $query->whereIn('student_id', $childIds);
         } elseif ($user->isTeacher()) {
             $query->whereHas('course', function ($courseQuery) use ($user) {
@@ -77,11 +78,11 @@ class EnrollmentController extends Controller
             abort_unless((int) $course->teacher_id === (int) $user->id, 403,
                 'Teachers may only enroll students in courses they teach.');
             abort_unless($requestedStudentId, 422, 'A student_id is required when a teacher enrolls a student.');
-            $student = \App\Models\User::whereKey($requestedStudentId)->where('role', 'student')->firstOrFail();
+            $student = User::whereKey($requestedStudentId)->where('role', 'student')->firstOrFail();
             $studentId = $student->id;
         } elseif ($user->isAdmin()) {
             abort_unless($requestedStudentId, 422, 'A student_id is required for administrator enrollment.');
-            $student = \App\Models\User::whereKey($requestedStudentId)->where('role', 'student')->firstOrFail();
+            $student = User::whereKey($requestedStudentId)->where('role', 'student')->firstOrFail();
             $studentId = $student->id;
         } else {
             abort(403, 'You are not authorized to enroll students.');

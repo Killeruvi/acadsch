@@ -15,7 +15,10 @@ return new class extends Migration
 
         // Retain leave history when a student account is offboarded; use archival/soft-delete workflows.
         Schema::table('student_leave_requests', function (Blueprint $table) {
-            try { $table->dropForeign(['student_leave_requests_student_id_foreign']); } catch (\Throwable $_) {}
+            try {
+                $table->dropForeign(['student_leave_requests_student_id_foreign']);
+            } catch (Throwable $_) {
+            }
             $table->foreign('student_id', 'student_leave_requests_student_id_foreign')
                 ->references('id')->on('users')->restrictOnDelete();
         });
@@ -24,7 +27,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('student_leave_requests', function (Blueprint $table) {
-            try { $table->dropForeign(['student_leave_requests_student_id_foreign']); } catch (\Throwable $_) {}
+            try {
+                $table->dropForeign(['student_leave_requests_student_id_foreign']);
+            } catch (Throwable $_) {
+            }
             $table->foreign('student_id', 'student_leave_requests_student_id_foreign')
                 ->references('id')->on('users')->cascadeOnDelete();
             $table->dropIndex('leave_student_status_dates_idx');

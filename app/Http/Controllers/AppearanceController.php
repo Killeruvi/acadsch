@@ -55,7 +55,7 @@ class AppearanceController extends Controller
 
         // Auto-generate a beautiful Infix gradient if not explicitly customized
         if (empty($validated['gradient'])) {
-            $validated['gradient'] = "linear-gradient(135deg, {$validated['primary_color']} 0%, " . ($validated['accent_color'] ?: $validated['primary_color']) . " 100%)";
+            $validated['gradient'] = "linear-gradient(135deg, {$validated['primary_color']} 0%, ".($validated['accent_color'] ?: $validated['primary_color']).' 100%)';
         }
 
         AppearanceService::saveCustomColors($validated);

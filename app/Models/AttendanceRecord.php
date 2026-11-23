@@ -39,6 +39,7 @@ class AttendanceRecord extends Model
         }
 
         $effectivePresence = min($eligibleSessions, $presentCount + $lateCount + ($halfDayCount * 0.5));
+
         return min(100.0, max(0.0, round(($effectivePresence / $eligibleSessions) * 100, 1)));
     }
 }

@@ -16,6 +16,7 @@ class SecurityHardeningAndCaptchaTest extends TestCase
     use RefreshDatabase;
 
     protected AcademicClass $academicClass;
+
     protected User $student;
 
     protected function setUp(): void
@@ -162,7 +163,7 @@ class SecurityHardeningAndCaptchaTest extends TestCase
         $payloads = [
             "' OR '1'='1",
             "admin' --",
-            "1; DROP TABLE users; --",
+            '1; DROP TABLE users; --',
             "' UNION SELECT 1, 'hack', 'hack', 4, 5, 6, 7, 8, 9, 10 --",
         ];
 
@@ -238,7 +239,7 @@ class SecurityHardeningAndCaptchaTest extends TestCase
 
         // Test with mixed whitespace and lowercase
         $this->assertTrue(
-            CaptchaService::verify('  ' . strtolower($code) . '  '),
+            CaptchaService::verify('  '.strtolower($code).'  '),
             'Captcha verification must accept trimmed and lowercase user input'
         );
     }

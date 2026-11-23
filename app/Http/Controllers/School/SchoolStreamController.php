@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
 use App\Models\SchoolSection;
 use App\Models\SchoolStream;
+use App\Services\SchoolAcademicAuditService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,7 +45,7 @@ class SchoolStreamController extends Controller
             return back()->withInput()->withErrors(['name' => 'A stream with this name already exists, ignoring letter case.']);
         }
         $stream = SchoolStream::create(['name' => $data['name'], 'is_active' => true]);
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'created_stream', 'Created academic stream '.$stream->name.'.', null, ['stream_id' => $stream->id, 'name' => $stream->name], $request);
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'created_stream', 'Created academic stream '.$stream->name.'.', null, ['stream_id' => $stream->id, 'name' => $stream->name], $request);
 
         return back()->with('success', 'Academic stream created.');
     }
@@ -73,7 +74,8 @@ class SchoolStreamController extends Controller
 
         $oldValues = ['name' => $stream->name, 'is_active' => $stream->is_active];
         $stream->update($data);
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'updated_stream', 'Updated academic stream '.$stream->name.'.', $oldValues, ['name' => $stream->name, 'is_active' => $stream->is_active], $request);
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'updated_stream', 'Updated academic stream '.$stream->name.'.', $oldValues, ['name' => $stream->name, 'is_active' => $stream->is_active], $request);
+
         return back()->with('success', 'Academic stream updated.');
     }
 
@@ -83,9 +85,9 @@ class SchoolStreamController extends Controller
 
         $stream = SchoolStream::findOrFail($id);
         $oldActive = $stream->is_active;
-        $stream->is_active = !$stream->is_active;
+        $stream->is_active = ! $stream->is_active;
         $stream->save();
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'toggled_stream', 'Changed activation state for stream '.$stream->name.'.', ['is_active' => $oldActive], ['is_active' => $stream->is_active], request());
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'toggled_stream', 'Changed activation state for stream '.$stream->name.'.', ['is_active' => $oldActive], ['is_active' => $stream->is_active], request());
 
         return back()->with('success', $stream->is_active ? 'Academic stream reactivated for new assignments.' : 'Academic stream deactivated. Existing classes and records are preserved.');
     }

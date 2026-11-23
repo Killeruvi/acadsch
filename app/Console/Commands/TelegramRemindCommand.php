@@ -17,16 +17,18 @@ class TelegramRemindCommand extends Command
         $details = $this->argument('details') ?: 'Automated PrimeOS reminder.';
         $url = $this->option('url');
 
-        $this->info("Dispatching Telegram reminder to default chat...");
+        $this->info('Dispatching Telegram reminder to default chat...');
 
         $sent = TelegramService::sendReminder($title, $details, $url);
 
         if ($sent) {
-            $this->info("✅ Telegram reminder successfully delivered!");
+            $this->info('✅ Telegram reminder successfully delivered!');
+
             return Command::SUCCESS;
         }
 
-        $this->error("❌ Failed to deliver Telegram reminder. Check logs for details.");
+        $this->error('❌ Failed to deliver Telegram reminder. Check logs for details.');
+
         return Command::FAILURE;
     }
 }

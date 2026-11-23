@@ -12,7 +12,9 @@ class InfixThemesAndAppearanceSystemTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $student;
+
     protected User $teacher;
 
     protected function setUp(): void

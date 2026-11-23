@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
@@ -14,6 +14,7 @@ class ProfileController extends Controller
     public function show(): View
     {
         $user = Auth::user();
+
         return view('profile.index', compact('user'));
     }
 
@@ -65,7 +66,7 @@ class ProfileController extends Controller
         if (! empty($validated['new_password'])) {
             // Rotate the current browser session after changing credentials.
             $request->session()->regenerate();
-            \Illuminate\Support\Facades\Cache::put('user_active_session_' . $user->id, $request->session()->getId(), now()->addDay());
+            Cache::put('user_active_session_'.$user->id, $request->session()->getId(), now()->addDay());
         }
 
         return back()->with('success', 'Profile information updated successfully!');

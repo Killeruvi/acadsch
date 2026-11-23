@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class FeePayment extends Model
 {
@@ -38,7 +39,7 @@ class FeePayment extends Model
     {
         static::creating(function (FeePayment $payment) {
             if (empty($payment->transaction_reference)) {
-                $payment->transaction_reference = 'TXN-' . now()->format('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(8));
+                $payment->transaction_reference = 'TXN-'.now()->format('Ymd').'-'.strtoupper(Str::random(8));
             }
         });
     }

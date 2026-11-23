@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\AcademicClass;
+use App\Models\AcademicHoliday;
 use App\Models\AcademySetting;
 use App\Models\AttendanceRejectionLog;
+use App\Models\SchoolPeriodSubstitute;
 use App\Models\SchoolPeriodTimetable;
 use App\Models\User;
 use Carbon\Carbon;
@@ -29,17 +31,19 @@ class AttendanceAccessControlService
     ): array {
         // 1. Holiday & Weekend Rules
         if ($sessionDate) {
-            if (in_array(\Carbon\Carbon::parse($sessionDate)->format('l'), config('attendance.weekend_days', []), true)) {
+            if (in_array(Carbon::parse($sessionDate)->format('l'), config('attendance.weekend_days', []), true)) {
                 $reason = 'Weekend Restriction: attendance cannot be recorded on a configured non-instructional weekend day.';
                 $this->logRejection($request, $user, $class->id, $action, $reason, $sessionDate);
+
                 return ['allowed' => false, 'reason' => $reason, 'period' => null];
             }
 
-            $holiday = \App\Models\AcademicHoliday::findHolidayForDate($sessionDate);
+            $holiday = AcademicHoliday::findHolidayForDate($sessionDate);
 
             if ($holiday) {
                 $reason = "Academic Holiday: Attendance cannot be recorded on '{$holiday->name}'. The institution is closed.";
                 $this->logRejection($request, $user, $class->id, $action, $reason, $sessionDate);
+
                 return ['allowed' => false, 'reason' => $reason, 'period' => null];
             }
         }
@@ -55,9 +59,10 @@ class AttendanceAccessControlService
         }
 
         // 3. Reject non-teachers (Parents and Students cannot mark attendance)
-        if (!$user->isTeacher()) {
-            $reason = "Access Denied: Only faculty and administrators are permitted to record attendance.";
+        if (! $user->isTeacher()) {
+            $reason = 'Access Denied: Only faculty and administrators are permitted to record attendance.';
             $this->logRejection($request, $user, $class->id, $action, $reason, $sessionDate);
+
             return [
                 'allowed' => false,
                 'reason' => $reason,
@@ -89,19 +94,20 @@ class AttendanceAccessControlService
         $hasTimetable = SchoolPeriodTimetable::where('class_id', $class->id)
             ->where(function ($q) use ($user) {
                 $q->where('teacher_id', $user->id)
-                  ->orWhereHas('subject', fn($sq) => $sq->where('teacher_id', $user->id));
+                    ->orWhereHas('subject', fn ($sq) => $sq->where('teacher_id', $user->id));
             })->exists();
 
-        $substituteTimetableIds = \App\Models\SchoolPeriodSubstitute::active()
+        $substituteTimetableIds = SchoolPeriodSubstitute::active()
             ->where('substitute_teacher_id', $user->id)
             ->where('date', $targetDate)
-            ->whereHas('timetable', fn($q) => $q->where('class_id', $class->id))
+            ->whereHas('timetable', fn ($q) => $q->where('class_id', $class->id))
             ->pluck('timetable_id');
         $isSubstitute = $substituteTimetableIds->isNotEmpty();
 
-        if (!$isClassTeacher && !$teachesSubject && !$hasTimetable && !$isSubstitute) {
+        if (! $isClassTeacher && ! $teachesSubject && ! $hasTimetable && ! $isSubstitute) {
             $reason = "Access Denied: You cannot mark attendance for {$class->display_name} as you are not assigned to this class, any of its subjects, or as an active proxy substitute.";
             $this->logRejection($request, $user, $class->id, $action, $reason, $sessionDate);
+
             return ['allowed' => false, 'reason' => $reason, 'period' => null];
         }
 
@@ -114,6 +120,7 @@ class AttendanceAccessControlService
             $targetDateStr = Carbon::parse($sessionDate)->format('d M Y');
             $reason = "Access Denied: Attendance can only be marked during your live assigned period today ({$now->format('d M Y')}). Marking retroactively or in advance for {$targetDateStr} is reserved for administrators.";
             $this->logRejection($request, $user, $class->id, $action, $reason, $sessionDate);
+
             return ['allowed' => false, 'reason' => $reason, 'period' => null];
         }
 
@@ -121,7 +128,7 @@ class AttendanceAccessControlService
         $query = SchoolPeriodTimetable::where('class_id', $class->id)
             ->where(function ($q) use ($user, $substituteTimetableIds) {
                 $q->where('teacher_id', $user->id)
-                  ->orWhereHas('subject', fn($sq) => $sq->where('teacher_id', $user->id));
+                    ->orWhereHas('subject', fn ($sq) => $sq->where('teacher_id', $user->id));
                 if ($substituteTimetableIds->isNotEmpty()) {
                     $q->orWhereIn('id', $substituteTimetableIds);
                 }
@@ -137,13 +144,14 @@ class AttendanceAccessControlService
         // Check if teacher has periods assigned on any day
         if ($allAssignedPeriods->isEmpty()) {
             $classHasTimetable = SchoolPeriodTimetable::where('class_id', $class->id)->where('is_break', false)->exists();
-            if ($isClassTeacher || !$classHasTimetable) {
+            if ($isClassTeacher || ! $classHasTimetable) {
                 // Class teacher, or assigned teacher when no class periods are configured yet, has general roll-call authority
                 return ['allowed' => true, 'reason' => null, 'period' => null];
             }
 
             $reason = "Access Denied: You have no assigned timetable periods for {$class->display_name}. Attendance can only be marked during your assigned period.";
             $this->logRejection($request, $user, $class->id, $action, $reason, $sessionDate);
+
             return ['allowed' => false, 'reason' => $reason, 'period' => null];
         }
 
@@ -154,6 +162,7 @@ class AttendanceAccessControlService
             $assignedDays = $allAssignedPeriods->pluck('day_of_week')->unique()->implode(', ');
             $reason = "Access Denied: You have no assigned periods for {$class->display_name} today ({$currentDay}). Your assigned teaching days are: {$assignedDays}.";
             $this->logRejection($request, $user, $class->id, $action, $reason, $sessionDate);
+
             return ['allowed' => false, 'reason' => $reason, 'period' => null];
         }
 
@@ -188,6 +197,7 @@ class AttendanceAccessControlService
             $s = substr($p->start_time, 0, 5);
             $e = substr($p->end_time, 0, 5);
             $title = $p->title ?: "Period {$p->period_number}";
+
             return "{$title} ({$s} - {$e})";
         })->implode(', ');
 

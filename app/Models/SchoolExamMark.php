@@ -65,15 +65,15 @@ class SchoolExamMark extends Model
             ->orderByDesc('minimum_percentage')
             ->first();
 
-        if (!$grade) {
+        if (! $grade) {
             throw new \RuntimeException('No active grading scale covers this percentage. Configure the grading master data.');
         }
 
         return $grade->grade_code;
     }
+
     public function revisions(): HasMany
     {
         return $this->hasMany(SchoolExamMarkRevision::class, 'exam_mark_id')->latest();
     }
-
 }

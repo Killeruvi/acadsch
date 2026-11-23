@@ -5,8 +5,9 @@ namespace Tests\Feature;
 use App\Models\Assignment;
 use App\Models\Course;
 use App\Models\Enrollment;
-use App\Models\Submission;
+use App\Models\FeeInvoice;
 use App\Models\User;
+use App\Services\SchoolBrandingService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -18,7 +19,7 @@ class AcademyManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        \App\Services\SchoolBrandingService::flush();
+        SchoolBrandingService::flush();
         $this->seed(DatabaseSeeder::class);
     }
 
@@ -30,12 +31,12 @@ class AcademyManagementTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'message',
-                     'token',
-                     'token_type',
-                     'user' => ['id', 'name', 'email', 'role'],
-                 ]);
+            ->assertJsonStructure([
+                'message',
+                'token',
+                'token_type',
+                'user' => ['id', 'name', 'email', 'role'],
+            ]);
     }
 
     public function test_can_retrieve_course_catalog_via_api(): void
@@ -43,14 +44,14 @@ class AcademyManagementTest extends TestCase
         $admin = User::where('role', 'admin')->first();
 
         $response = $this->actingAs($admin, 'sanctum')
-                         ->getJson('/api/v1/courses');
+            ->getJson('/api/v1/courses');
 
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'data' => [
-                         '*' => ['id', 'title', 'code', 'category', 'credits', 'enrollments_count'],
-                     ],
-                 ]);
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => ['id', 'title', 'code', 'category', 'credits', 'enrollments_count'],
+                ],
+            ]);
     }
 
     public function test_can_retrieve_single_course_details(): void
@@ -59,26 +60,26 @@ class AcademyManagementTest extends TestCase
         $course = Course::first();
 
         $response = $this->actingAs($student, 'sanctum')
-                         ->getJson("/api/v1/courses/{$course->id}");
+            ->getJson("/api/v1/courses/{$course->id}");
 
         $response->assertStatus(200)
-                 ->assertJsonPath('course.id', $course->id)
-                 ->assertJsonStructure([
-                     'course' => [
-                         'id',
-                         'title',
-                         'code',
-                         'teacher',
-                         'schedules',
-                         'assignments',
-                     ],
-                 ]);
+            ->assertJsonPath('course.id', $course->id)
+            ->assertJsonStructure([
+                'course' => [
+                    'id',
+                    'title',
+                    'code',
+                    'teacher',
+                    'schedules',
+                    'assignments',
+                ],
+            ]);
     }
 
     public function test_student_can_enroll_in_course(): void
     {
         $student = User::where('role', 'student')->first();
-        
+
         // Find or create course not yet enrolled in
         $unEnrolledCourse = Course::whereDoesntHave('enrollments', function ($q) use ($student) {
             $q->where('student_id', $student->id);
@@ -95,13 +96,13 @@ class AcademyManagementTest extends TestCase
         }
 
         $response = $this->actingAs($student, 'sanctum')
-                         ->postJson('/api/v1/enrollments', [
-                             'course_id' => $unEnrolledCourse->id,
-                         ]);
+            ->postJson('/api/v1/enrollments', [
+                'course_id' => $unEnrolledCourse->id,
+            ]);
 
         $response->assertStatus(201)
-                 ->assertJsonPath('enrollment.course_id', $unEnrolledCourse->id)
-                 ->assertJsonPath('enrollment.student_id', $student->id);
+            ->assertJsonPath('enrollment.course_id', $unEnrolledCourse->id)
+            ->assertJsonPath('enrollment.student_id', $student->id);
 
         $this->assertDatabaseHas('enrollments', [
             'course_id' => $unEnrolledCourse->id,
@@ -140,26 +141,26 @@ class AcademyManagementTest extends TestCase
 
         // Student submits
         $subResponse = $this->actingAs($student, 'sanctum')
-                            ->postJson("/api/v1/assignments/{$assignment->id}/submissions", [
-                                'content' => 'All feature tests passing with 100% assertions.',
-                                'attachment_url' => 'https://github.com/student/test-suite',
-                            ]);
+            ->postJson("/api/v1/assignments/{$assignment->id}/submissions", [
+                'content' => 'All feature tests passing with 100% assertions.',
+                'attachment_url' => 'https://github.com/student/test-suite',
+            ]);
 
         $subResponse->assertStatus(201)
-                    ->assertJsonPath('submission.status', 'submitted');
+            ->assertJsonPath('submission.status', 'submitted');
 
         $submissionId = $subResponse->json('submission.id');
 
         // Teacher grades
         $gradeResponse = $this->actingAs($teacher, 'sanctum')
-                              ->putJson("/api/v1/submissions/{$submissionId}/grade", [
-                                  'grade' => 98.5,
-                                  'feedback' => 'Flawless coverage and clean assertions.',
-                              ]);
+            ->putJson("/api/v1/submissions/{$submissionId}/grade", [
+                'grade' => 98.5,
+                'feedback' => 'Flawless coverage and clean assertions.',
+            ]);
 
         $gradeResponse->assertStatus(200)
-                      ->assertJsonPath('submission.grade', '98.50')
-                      ->assertJsonPath('submission.status', 'graded');
+            ->assertJsonPath('submission.grade', '98.50')
+            ->assertJsonPath('submission.status', 'graded');
     }
 
     public function test_analytics_overview_endpoint(): void
@@ -167,23 +168,23 @@ class AcademyManagementTest extends TestCase
         $admin = User::where('role', 'admin')->first();
 
         $response = $this->actingAs($admin, 'sanctum')
-                         ->getJson('/api/v1/analytics/overview');
+            ->getJson('/api/v1/analytics/overview');
 
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'summary' => [
-                         'total_students',
-                         'total_teachers',
-                         'total_courses',
-                         'total_enrollments',
-                         'total_assignments',
-                         'total_submissions',
-                         'average_grade_percentage',
-                     ],
-                     'courses_by_category',
-                     'top_courses_by_enrollment',
-                     'recent_submissions',
-                 ]);
+            ->assertJsonStructure([
+                'summary' => [
+                    'total_students',
+                    'total_teachers',
+                    'total_courses',
+                    'total_enrollments',
+                    'total_assignments',
+                    'total_submissions',
+                    'average_grade_percentage',
+                ],
+                'courses_by_category',
+                'top_courses_by_enrollment',
+                'recent_submissions',
+            ]);
     }
 
     public function test_web_institutional_login_and_dashboard_renders(): void
@@ -198,8 +199,8 @@ class AcademyManagementTest extends TestCase
 
         $dashResponse = $this->get('/dashboard');
         $dashResponse->assertStatus(200)
-                     ->assertSee('Dr. Rajeshwar Sharma')
-                     ->assertSee('ADMIN PORTAL');
+            ->assertSee('Dr. Rajeshwar Sharma')
+            ->assertSee('ADMIN PORTAL');
     }
 
     public function test_web_courses_page_renders(): void
@@ -208,8 +209,8 @@ class AcademyManagementTest extends TestCase
 
         $response = $this->actingAs($student)->get('/courses');
         $response->assertStatus(200)
-                 ->assertSee('Courses Catalog')
-                 ->assertSee('CS101');
+            ->assertSee('Courses Catalog')
+            ->assertSee('CS101');
     }
 
     public function test_course_creation_form_modal_has_all_fields_and_submits_successfully(): void
@@ -319,8 +320,8 @@ class AcademyManagementTest extends TestCase
 
         $response = $this->actingAs($student)->get('/schedule');
         $response->assertStatus(200)
-                 ->assertSee('Academic Timetable')
-                 ->assertSee('Monday');
+            ->assertSee('Academic Timetable')
+            ->assertSee('Monday');
     }
 
     public function test_web_profile_page_renders_and_updates(): void
@@ -329,8 +330,8 @@ class AcademyManagementTest extends TestCase
 
         $response = $this->actingAs($student)->get('/profile');
         $response->assertStatus(200)
-                 ->assertSee('Personal & Academic Information')
-                 ->assertSee($student->name);
+            ->assertSee('Personal & Academic Information')
+            ->assertSee($student->name);
 
         $updateResponse = $this->actingAs($student)->put('/profile', [
             'name' => 'Aarav K. Sharma',
@@ -353,21 +354,21 @@ class AcademyManagementTest extends TestCase
 
         $response = $this->actingAs($student)->get('/id-card');
         $response->assertStatus(200)
-                 ->assertSee('Student Identity Card')
-                 ->assertSee(strtoupper(\App\Services\SchoolBrandingService::getInstituteName()))
-                 ->assertSee($student->admission_number ?: 'Not assigned');
+            ->assertSee('Student Identity Card')
+            ->assertSee(strtoupper(SchoolBrandingService::getInstituteName()))
+            ->assertSee($student->admission_number ?: 'Not assigned');
     }
 
     public function test_student_cannot_self_pay_fees_online_and_only_cashier_can_record(): void
     {
         $student = User::where('role', 'student')->first();
         $admin = User::where('role', 'admin')->first();
-        $invoice = \App\Models\FeeInvoice::where('student_id', $student->id)
+        $invoice = FeeInvoice::where('student_id', $student->id)
             ->where('status', 'pending')
             ->first();
 
         if (! $invoice) {
-            $invoice = \App\Models\FeeInvoice::create([
+            $invoice = FeeInvoice::create([
                 'invoice_number' => 'INV-TEST-001',
                 'student_id' => $student->id,
                 'title' => 'Lab Usage Fee',

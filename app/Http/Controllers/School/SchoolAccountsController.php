@@ -9,6 +9,7 @@ use App\Models\SchoolIncome;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SchoolAccountsController extends Controller
@@ -16,7 +17,7 @@ class SchoolAccountsController extends Controller
     public function index(Request $request): View
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Only administrators may access institutional financial records.');
         }
 
@@ -27,7 +28,7 @@ class SchoolAccountsController extends Controller
         $from = $validated['from'] ?? null;
         $to = $validated['to'] ?? null;
         if ($from && $to && $to < $from) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'to' => 'The end date must be on or after the start date.',
             ]);
         }
@@ -76,7 +77,7 @@ class SchoolAccountsController extends Controller
 
     public function storeIncome(Request $request): RedirectResponse
     {
-        if (!Auth::user()->isAdmin()) {
+        if (! Auth::user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -94,12 +95,12 @@ class SchoolAccountsController extends Controller
 
         SchoolIncome::create($validated);
 
-        return redirect()->back()->with('success', "Income entry of ₹" . number_format($validated['amount'], 2) . " logged successfully!");
+        return redirect()->back()->with('success', 'Income entry of ₹'.number_format($validated['amount'], 2).' logged successfully!');
     }
 
     public function storeExpense(Request $request): RedirectResponse
     {
-        if (!Auth::user()->isAdmin()) {
+        if (! Auth::user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -118,6 +119,6 @@ class SchoolAccountsController extends Controller
 
         SchoolExpense::create($validated);
 
-        return redirect()->back()->with('success', "Expense voucher of ₹" . number_format($validated['amount'], 2) . " recorded!");
+        return redirect()->back()->with('success', 'Expense voucher of ₹'.number_format($validated['amount'], 2).' recorded!');
     }
 }

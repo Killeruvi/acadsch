@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AcademicClass extends Model
 {
@@ -47,18 +47,18 @@ class AcademicClass extends Model
     public function students(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'class_enrollments', 'class_id', 'student_id')
-                    ->withPivot(['id', 'roll_number', 'admission_number', 'academic_year', 'status'])
-                    ->wherePivot('status', 'active')
-                    ->where('users.role', 'student')
-                    ->where('users.is_approved', true)
-                    ->withTimestamps()
-                    ->orderBy('class_enrollments.roll_number');
+            ->withPivot(['id', 'roll_number', 'admission_number', 'academic_year', 'status'])
+            ->wherePivot('status', 'active')
+            ->where('users.role', 'student')
+            ->where('users.is_approved', true)
+            ->withTimestamps()
+            ->orderBy('class_enrollments.roll_number');
     }
 
     public function timetables(): HasMany
     {
         return $this->hasMany(SchoolPeriodTimetable::class, 'class_id')
-                    ->orderBy('period_number');
+            ->orderBy('period_number');
     }
 
     public function feeStructures(): HasMany
@@ -108,7 +108,7 @@ class AcademicClass extends Model
             ->orderBy('section')
             ->get()
             ->unique(function ($class) {
-                return $class->name . '-' . ($class->stream ?? $class->section);
+                return $class->name.'-'.($class->stream ?? $class->section);
             })
             ->values();
     }
@@ -127,9 +127,10 @@ class AcademicClass extends Model
     {
         $stream = $this->stream ?: $this->stream_name;
 
-        if ($stream && !in_array(strtolower($stream), ['general', 'default', 'core'])) {
-            $hasDistinctSection = $this->section && !in_array(strtolower($this->section), [strtolower($stream), 'default', '']);
-            return "{$this->name} – {$stream}" . ($hasDistinctSection ? " (Sec {$this->section})" : '');
+        if ($stream && ! in_array(strtolower($stream), ['general', 'default', 'core'])) {
+            $hasDistinctSection = $this->section && ! in_array(strtolower($this->section), [strtolower($stream), 'default', '']);
+
+            return "{$this->name} – {$stream}".($hasDistinctSection ? " (Sec {$this->section})" : '');
         }
 
         if ($this->section) {

@@ -27,10 +27,11 @@ class CertificateBadgeController extends Controller
 
     private function teacherCanAccessStudent(User $teacher, User $student): bool
     {
-        if (!$student->isStudent()) {
+        if (! $student->isStudent()) {
             return false;
         }
         $classIds = $this->assignedClassIds($teacher);
+
         return ($student->current_class_id && $classIds->contains((int) $student->current_class_id))
             || $student->classEnrollments()->where('status', 'active')->whereIn('class_id', $classIds)->exists()
             || $student->batch()->whereIn('class_id', $classIds)->exists();
@@ -58,7 +59,7 @@ class CertificateBadgeController extends Controller
             $viewUser = User::query()->where('role', 'student')->when($targetId, fn ($q) => $q->whereKey($targetId))->orderBy('name')->firstOrFail();
         } elseif ($actor->isTeacher()) {
             $targetId = $request->query('user_id');
-            if (!$targetId) {
+            if (! $targetId) {
                 $classIds = $this->assignedClassIds($actor);
                 $targetId = User::query()->where('role', 'student')->where(function ($q) use ($classIds) {
                     $q->whereIn('current_class_id', $classIds)
@@ -113,6 +114,7 @@ class CertificateBadgeController extends Controller
         abort_unless($actor, 401);
         $this->authorizeCertificateView($actor, $certificate);
         $certificate->load(['user', 'issuer']);
+
         return view('certificates.parchment', compact('certificate'));
     }
 
@@ -129,11 +131,13 @@ class CertificateBadgeController extends Controller
                 }
             })->exists();
             abort_unless($child, 403);
+
             return;
         }
         if ($actor->isTeacher()) {
             $student = User::findOrFail($certificate->user_id);
             abort_unless($this->teacherCanAccessStudent($actor, $student), 403);
+
             return;
         }
         abort(403);
@@ -145,6 +149,7 @@ class CertificateBadgeController extends Controller
         $certificate = UserCertificate::with(['user:id,name', 'issuer:id,name'])
             ->where('verification_hash', $hash)
             ->firstOrFail();
+
         return view('certificates.verify', compact('certificate'));
     }
 
@@ -167,10 +172,10 @@ class CertificateBadgeController extends Controller
         $certificate = DB::transaction(function () use ($validated, $student, $actor) {
             // Random serials avoid count()+1 race conditions under concurrent issuance.
             do {
-                $serial = 'CERT-' . now()->format('Y') . '-' . Str::upper(Str::random(10));
+                $serial = 'CERT-'.now()->format('Y').'-'.Str::upper(Str::random(10));
             } while (UserCertificate::where('certificate_number', $serial)->exists());
             do {
-                $hash = hash('sha256', Str::uuid()->toString() . Str::random(64));
+                $hash = hash('sha256', Str::uuid()->toString().Str::random(64));
             } while (UserCertificate::where('verification_hash', $hash)->exists());
 
             return UserCertificate::create([
@@ -197,7 +202,7 @@ class CertificateBadgeController extends Controller
             $student = User::findOrFail($certificate->user_id);
             abort_unless($this->teacherCanAccessStudent($actor, $student), 403, 'You may only revoke certificates for students in your assigned classes.');
         }
-        if (!$certificate->revoked_at) {
+        if (! $certificate->revoked_at) {
             $validated = $request->validate(['revocation_reason' => 'nullable|string|max:1000']);
             $certificate->forceFill([
                 'revoked_at' => now(),
@@ -205,6 +210,7 @@ class CertificateBadgeController extends Controller
                 'revocation_reason' => $validated['revocation_reason'] ?? null,
             ])->save();
         }
+
         return redirect()->route('certificates.index')->with('success', "Certificate {$certificate->certificate_number} has been revoked. Its verification record has been retained.");
     }
 }

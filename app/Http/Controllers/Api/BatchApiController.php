@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicClass;
 use App\Models\Batch;
 use App\Models\BatchChangeRequest;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -23,16 +25,16 @@ class BatchApiController extends Controller
         if ($user->isStudent()) {
             $query->whereKey($user->batch_id);
         } elseif ($user->isParent()) {
-            $batchIds = \App\Models\User::childrenOf($user)->whereNotNull('batch_id')->pluck('batch_id');
+            $batchIds = User::childrenOf($user)->whereNotNull('batch_id')->pluck('batch_id');
             $query->whereIn('id', $batchIds);
         } elseif ($user->isTeacher()) {
-            $classIds = \App\Models\AcademicClass::query()->where(function ($q) use ($user) {
+            $classIds = AcademicClass::query()->where(function ($q) use ($user) {
                 $q->where('class_teacher_id', $user->id)
                     ->orWhereHas('subjects', fn ($sq) => $sq->where('teacher_id', $user->id))
                     ->orWhereHas('timetables', fn ($tq) => $tq->where('teacher_id', $user->id));
             })->select('id');
             $query->whereIn('class_id', $classIds);
-        } elseif (!$user->isAdmin()) {
+        } elseif (! $user->isAdmin()) {
             abort(403);
         }
 
@@ -62,7 +64,7 @@ class BatchApiController extends Controller
         $isCurrentUserBatch = $user->isStudent() && (int) $user->batch_id === (int) $batch->id;
         $isChildBatch = false;
         if ($user->isParent()) {
-            $isChildBatch = \App\Models\User::childrenOf($user)
+            $isChildBatch = User::childrenOf($user)
                 ->where('batch_id', $batch->id)->exists();
         }
 
@@ -93,4 +95,3 @@ class BatchApiController extends Controller
         ]);
     }
 }
-

@@ -133,7 +133,7 @@ class DatabaseSetupService
 
             // Remove users
             if (Schema::hasTable('users')) {
-                if (!$retainAdmin) {
+                if (! $retainAdmin) {
                     User::query()->delete();
                 } else {
                     User::where('email', '!=', $adminEmail)->delete();
@@ -146,7 +146,7 @@ class DatabaseSetupService
                             'current_class_id' => null,
                             'batch_id' => null,
                         ];
-                        if (!empty($adminPassword)) {
+                        if (! empty($adminPassword)) {
                             $updateData['password'] = Hash::make($adminPassword);
                         }
                         $admin->update($updateData);
@@ -213,7 +213,7 @@ class DatabaseSetupService
 
             return [
                 'success' => true,
-                'message' => $retainAdmin 
+                'message' => $retainAdmin
                     ? 'Database successfully wiped to a clean slate. Retained 1 master administrator account.'
                     : 'Database completely wiped to absolute zero users. Ready for initial master administrator setup.',
                 'admin_email' => $retainAdmin ? $adminEmail : null,
@@ -221,9 +221,10 @@ class DatabaseSetupService
             ];
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return [
                 'success' => false,
-                'message' => 'Clean slate initialization failed: ' . $e->getMessage(),
+                'message' => 'Clean slate initialization failed: '.$e->getMessage(),
             ];
         }
     }

@@ -40,12 +40,12 @@ class SchoolBrandingService
         }
 
         $rawName = $settings['institute_name'] ?? 'PrimeOS Academy';
-        
+
         // Generate a concise 2-4 letter short code / initials if not explicitly set
         $words = preg_split('/\s+/', trim($rawName));
         $autoShort = '';
         foreach ($words as $w) {
-            if (!empty($w) && strlen($autoShort) < 3) {
+            if (! empty($w) && strlen($autoShort) < 3) {
                 $autoShort .= strtoupper($w[0]);
             }
         }
@@ -53,7 +53,7 @@ class SchoolBrandingService
             $autoShort = strtoupper(substr($rawName, 0, 3));
         }
 
-        $shortName = !empty($settings['school_short_name']) ? trim($settings['school_short_name']) : $autoShort;
+        $shortName = ! empty($settings['school_short_name']) ? trim($settings['school_short_name']) : $autoShort;
 
         static::$cached = [
             'name' => $rawName,

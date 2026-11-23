@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
-use App\Models\AcademicSubject;
+use App\Models\FeeInvoice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -13,11 +13,17 @@ class ParentPortalTabStreamFixTest extends TestCase
     use RefreshDatabase;
 
     private User $parent;
+
     private User $child1;
+
     private User $child2;
+
     private AcademicClass $class11Sci;
+
     private AcademicClass $class11Comm;
+
     private AcademicClass $class11Arts;
+
     private AcademicClass $class12Sci;
 
     protected function setUp(): void
@@ -172,7 +178,7 @@ class ParentPortalTabStreamFixTest extends TestCase
      */
     public function test_fee_invoices_load_without_relation_not_found_exception(): void
     {
-        \App\Models\FeeInvoice::create([
+        FeeInvoice::create([
             'invoice_number' => 'INV-2026-TEST',
             'student_id' => $this->child1->id,
             'title' => 'Term 1 Tuition Fee',

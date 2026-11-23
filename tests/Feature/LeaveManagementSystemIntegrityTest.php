@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
-use App\Models\AcademicHoliday;
+use App\Models\AcademicSubject;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\ClassEnrollment;
-use App\Models\SchoolExam;
 use App\Models\SchoolExamSchedule;
+use App\Models\SchoolExamTerm;
 use App\Models\StudentLeaveRequest;
 use App\Models\User;
 use Carbon\Carbon;
@@ -20,10 +20,15 @@ class LeaveManagementSystemIntegrityTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $teacher;
+
     private User $parent;
+
     private User $child1;
+
     private User $child2;
+
     private AcademicClass $class;
 
     protected function setUp(): void
@@ -152,14 +157,14 @@ class LeaveManagementSystemIntegrityTest extends TestCase
     /** 5. Exam collision notice is attached when leave coincides with scheduled exam */
     public function test_exam_schedule_notice_attached_to_leave_reason(): void
     {
-        $term = \App\Models\SchoolExamTerm::create([
+        $term = SchoolExamTerm::create([
             'name' => 'Midterm Assessment 2026',
             'start_date' => '2026-11-23',
             'end_date' => '2026-11-27',
             'academic_year' => '2026-2027',
         ]);
 
-        $subject = \App\Models\AcademicSubject::create([
+        $subject = AcademicSubject::create([
             'class_id' => $this->class->id,
             'name' => 'Mathematics',
             'code' => 'MTH-08',

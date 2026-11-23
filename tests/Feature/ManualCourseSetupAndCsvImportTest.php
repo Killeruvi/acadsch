@@ -16,7 +16,9 @@ class ManualCourseSetupAndCsvImportTest extends TestCase
     use RefreshDatabase;
 
     protected User $teacher;
+
     protected User $admin;
+
     protected Course $course;
 
     protected function setUp(): void

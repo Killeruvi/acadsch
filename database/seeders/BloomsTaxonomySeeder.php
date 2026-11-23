@@ -4,10 +4,13 @@ namespace Database\Seeders;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
+use App\Models\BloomAssignment;
 use App\Models\ClassEnrollment;
 use App\Models\CurriculumTopic;
+use App\Models\DailyLesson;
 use App\Models\TopicBloomActivity;
 use App\Models\User;
+use App\Services\BloomsAssignmentService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -158,7 +161,7 @@ class BloomsTaxonomySeeder extends Seeder
 
         // Authentic Indian student roster for Class 8
         $additionalNames = [
-            'Priyadarshini Rao', 'Arjun Nair', 'Sneha Kulkarni', 'Ishaan Malhotra', 'Meera Deshmukh', 'Kabir Singhania', 'Tanvi Reddy'
+            'Priyadarshini Rao', 'Arjun Nair', 'Sneha Kulkarni', 'Ishaan Malhotra', 'Meera Deshmukh', 'Kabir Singhania', 'Tanvi Reddy',
         ];
 
         $roll = 1;
@@ -170,14 +173,14 @@ class BloomsTaxonomySeeder extends Seeder
         }
 
         foreach ($additionalNames as $idx => $name) {
-            $email = strtolower(str_replace(' ', '.', $name)) . '@primearc.edu.in';
+            $email = strtolower(str_replace(' ', '.', $name)).'@primearc.edu.in';
             $extraStudent = User::firstOrCreate(
                 ['email' => $email],
                 [
                     'name' => $name,
                     'password' => Hash::make('password123'),
                     'role' => 'student',
-                    'student_id_number' => 'PA-STD-2026-' . str_pad((string)($roll), 2, '0', STR_PAD_LEFT),
+                    'student_id_number' => 'PA-STD-2026-'.str_pad((string) ($roll), 2, '0', STR_PAD_LEFT),
                     'card_valid_until' => now()->addYears(2),
                 ]
             );
@@ -191,7 +194,7 @@ class BloomsTaxonomySeeder extends Seeder
         // 5. Create Daily Lesson for Class 8 Photosynthesis
         $teacher = User::where('role', 'teacher')->first();
 
-        $dailyLesson = \App\Models\DailyLesson::firstOrCreate(
+        $dailyLesson = DailyLesson::firstOrCreate(
             [
                 'class_id' => $class8->id,
                 'subject_id' => $science8->id,
@@ -207,14 +210,14 @@ class BloomsTaxonomySeeder extends Seeder
         );
 
         // Distribute Bloom's assignments across the 12 students in Class 8
-        $bloomsService = new \App\Services\BloomsAssignmentService();
+        $bloomsService = new BloomsAssignmentService;
         $bloomsService->distributeAssignments($dailyLesson, 'balanced_random');
 
         // Simulate student submission for Roll 1 (e.g. Aarav Sharma)
         $roll1Enrollment = ClassEnrollment::where('class_id', $class8->id)->where('roll_number', 1)->first();
 
         if ($roll1Enrollment) {
-            $roll1Assignment = \App\Models\BloomAssignment::where('lesson_id', $dailyLesson->id)
+            $roll1Assignment = BloomAssignment::where('lesson_id', $dailyLesson->id)
                 ->where('student_id', $roll1Enrollment->student_id)
                 ->first();
 
@@ -235,7 +238,7 @@ class BloomsTaxonomySeeder extends Seeder
         $roll2Enrollment = ClassEnrollment::where('class_id', $class8->id)->where('roll_number', 2)->first();
 
         if ($roll2Enrollment) {
-            $roll2Assignment = \App\Models\BloomAssignment::where('lesson_id', $dailyLesson->id)
+            $roll2Assignment = BloomAssignment::where('lesson_id', $dailyLesson->id)
                 ->where('student_id', $roll2Enrollment->student_id)
                 ->first();
 

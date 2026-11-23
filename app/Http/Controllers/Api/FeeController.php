@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class FeeController extends Controller
 {
@@ -23,10 +26,12 @@ class FeeController extends Controller
         if ($user->isStudent()) {
             $query->where('student_id', $user->id);
         } elseif ($user->isParent()) {
-            $childIds = \App\Models\User::childrenOf($user)->select('id');
+            $childIds = User::childrenOf($user)->select('id');
             $query->whereIn('student_id', $childIds);
         } elseif ($user->isAdmin()) {
-            if ($request->filled('student_id')) $query->where('student_id', $request->query('student_id'));
+            if ($request->filled('student_id')) {
+                $query->where('student_id', $request->query('student_id'));
+            }
         } else {
             abort(403, 'You are not authorized to view fee invoices.');
         }
@@ -57,7 +62,7 @@ class FeeController extends Controller
             'payment_method' => 'required|string|in:Cash,Bank Transfer',
         ]);
 
-        $result = \Illuminate\Support\Facades\DB::transaction(function () use ($id, $validated) {
+        $result = DB::transaction(function () use ($id, $validated) {
             $invoice = FeeInvoice::whereKey($id)->lockForUpdate()->firstOrFail();
             $balance = (float) $invoice->balance;
             $payAmount = (float) $validated['amount'];
@@ -65,7 +70,7 @@ class FeeController extends Controller
                 abort(400, 'Invoice is already settled in full.');
             }
             if ($payAmount > $balance) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'amount' => ['The payment amount cannot exceed the current invoice balance.'],
                 ]);
             }
@@ -73,8 +78,8 @@ class FeeController extends Controller
             $newPaidTotal = (float) $invoice->paid_amount + $payAmount;
             $status = $newPaidTotal >= (float) $invoice->total_due ? 'paid' : 'partial';
             $txCount = FeePayment::count() + 1;
-            $txnRef = 'TXN-OFF-' . strtoupper(Str::random(8)) . '-' . $txCount;
-            $receiptNum = 'REC-' . date('Y') . '-' . str_pad((string) $txCount, 4, '0', STR_PAD_LEFT);
+            $txnRef = 'TXN-OFF-'.strtoupper(Str::random(8)).'-'.$txCount;
+            $receiptNum = 'REC-'.date('Y').'-'.str_pad((string) $txCount, 4, '0', STR_PAD_LEFT);
 
             $payment = FeePayment::create([
                 'invoice_id' => $invoice->id,
@@ -89,6 +94,7 @@ class FeeController extends Controller
             ]);
 
             $invoice->update(['paid_amount' => $newPaidTotal, 'status' => $status]);
+
             return [$payment, $invoice->fresh()];
         });
 

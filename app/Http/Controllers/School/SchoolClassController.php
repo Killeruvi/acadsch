@@ -6,15 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
 use App\Models\AcademySetting;
+use App\Models\ClassEnrollment;
 use App\Models\SchoolSection;
 use App\Models\SchoolStream;
 use App\Models\SubjectMaster;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
+use App\Services\SchoolAcademicAuditService;
+use App\Services\SubjectCurriculumInheritanceService;
+use App\Services\TeacherAssignmentService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class SchoolClassController extends Controller
 {
@@ -24,7 +31,7 @@ class SchoolClassController extends Controller
     public function index(Request $request): View
     {
         $user = Auth::user();
-        if ($user && !$user->isAdmin() && !$user->isTeacher()) {
+        if ($user && ! $user->isAdmin() && ! $user->isTeacher()) {
             abort(403, 'Unauthorized. Class management is reserved for faculty and administrators.');
         }
 
@@ -40,9 +47,9 @@ class SchoolClassController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('stream', 'like', "%{$search}%")
-                  ->orWhere('section', 'like', "%{$search}%")
-                  ->orWhere('room_number', 'like', "%{$search}%");
+                    ->orWhere('stream', 'like', "%{$search}%")
+                    ->orWhere('section', 'like', "%{$search}%")
+                    ->orWhere('room_number', 'like', "%{$search}%");
             });
         }
 
@@ -50,12 +57,12 @@ class SchoolClassController extends Controller
             $teacherId = $user->id;
             $query->where(function ($q) use ($teacherId) {
                 $q->where('class_teacher_id', $teacherId)
-                  ->orWhereHas('subjects', fn($sq) => $sq->where('teacher_id', $teacherId))
-                  ->orWhere(function ($defaultSubject) use ($teacherId) {
-                      $defaultSubject->where('academic_year', \App\Models\AcademySetting::get('academic_session'))
-                          ->whereHas('subjects.subjectMaster', fn ($sq) => $sq->where('default_teacher_id', $teacherId));
-                  })
-                  ->orWhereHas('timetables', fn($tq) => $tq->where('teacher_id', $teacherId));
+                    ->orWhereHas('subjects', fn ($sq) => $sq->where('teacher_id', $teacherId))
+                    ->orWhere(function ($defaultSubject) use ($teacherId) {
+                        $defaultSubject->where('academic_year', AcademySetting::get('academic_session'))
+                            ->whereHas('subjects.subjectMaster', fn ($sq) => $sq->where('default_teacher_id', $teacherId));
+                    })
+                    ->orWhereHas('timetables', fn ($tq) => $tq->where('teacher_id', $teacherId));
             });
         }
 
@@ -73,7 +80,7 @@ class SchoolClassController extends Controller
         $academicYears = AcademicClass::query()->whereNotNull('academic_year')->distinct()->orderByDesc('academic_year')->pluck('academic_year')->all();
         $configuredSession = AcademySetting::get('academic_session');
         $currentSession = $configuredSession;
-        if ($configuredSession && !in_array($configuredSession, $academicYears, true)) {
+        if ($configuredSession && ! in_array($configuredSession, $academicYears, true)) {
             array_unshift($academicYears, $configuredSession);
         }
 
@@ -84,7 +91,7 @@ class SchoolClassController extends Controller
 
         $stats = [
             'total_classes' => AcademicClass::count(),
-            'total_students' => \App\Models\ClassEnrollment::where('status', 'active')->count(),
+            'total_students' => ClassEnrollment::where('status', 'active')->count(),
             'total_subjects' => AcademicSubject::count(),
             'assigned_teachers' => AcademicClass::whereNotNull('class_teacher_id')->distinct('class_teacher_id')->count(),
             'total_sections' => SchoolSection::count(),
@@ -93,6 +100,7 @@ class SchoolClassController extends Controller
         $allExistingClasses = AcademicClass::select('id', 'name', 'grade_level', 'stream', 'section', 'academic_year')->get();
 
         $defaultStream = config('school.onboarding.default_stream');
+
         return view('school.classes.index', compact('classes', 'teachers', 'stats', 'search', 'reusableSections', 'allReusableSections', 'sectionsByStream', 'streams', 'tab', 'allExistingClasses', 'academicYears', 'defaultStream', 'currentSession'));
     }
 
@@ -102,7 +110,7 @@ class SchoolClassController extends Controller
     public function show(int $id): View
     {
         $user = Auth::user();
-        if ($user && !$user->isAdmin() && !$user->isTeacher()) {
+        if ($user && ! $user->isAdmin() && ! $user->isTeacher()) {
             abort(403, 'Unauthorized. Class management is reserved for faculty and administrators.');
         }
 
@@ -113,7 +121,7 @@ class SchoolClassController extends Controller
             'subjects.subjectMaster.defaultTeacher',
             'timetables.subject',
             'timetables.teacher',
-            'feeStructures'
+            'feeStructures',
         ])->withCount('students')->findOrFail($id);
 
         if ($user && $user->isTeacher()) {
@@ -121,7 +129,7 @@ class SchoolClassController extends Controller
                 || $class->subjects()->where('teacher_id', $user->id)->exists()
                 || $class->timetables()->where('teacher_id', $user->id)->exists();
 
-            if (!$isAssigned) {
+            if (! $isAssigned) {
                 abort(403, 'Unauthorized. You are not assigned to this class.');
             }
         }
@@ -161,7 +169,7 @@ class SchoolClassController extends Controller
         $academicYears = AcademicClass::query()->whereNotNull('academic_year')->distinct()->orderByDesc('academic_year')->pluck('academic_year')->all();
         $configuredSession = AcademySetting::get('academic_session');
         $currentSession = $configuredSession;
-        if ($configuredSession && !in_array($configuredSession, $academicYears, true)) {
+        if ($configuredSession && ! in_array($configuredSession, $academicYears, true)) {
             array_unshift($academicYears, $configuredSession);
         }
         $masterSubjects = SubjectMaster::getAvailableForClass($class);
@@ -174,16 +182,16 @@ class SchoolClassController extends Controller
      * No free-text section entry allowed.
      * Class = Class Grade/Name + Stream + Selected Section(s).
      */
-    public function store(Request $request): \Illuminate\Http\JsonResponse|RedirectResponse
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Only administrators can create classes.');
         }
 
         $validated = $request->validate([
-            'grade_level' => ['required', 'integer', \Illuminate\Validation\Rule::in(config('school.grade_levels', []))],
-            'stream' => ['required', 'string', 'max:50', \Illuminate\Validation\Rule::exists('school_streams', 'name')->where('is_active', true)],
+            'grade_level' => ['required', 'integer', Rule::in(config('school.grade_levels', []))],
+            'stream' => ['required', 'string', 'max:50', Rule::exists('school_streams', 'name')->where('is_active', true)],
             'name' => 'nullable|string|max:100',
             'section_ids' => 'required|array|min:1',
             'section_ids.*' => 'required|integer|distinct|exists:school_sections,id',
@@ -196,7 +204,7 @@ class SchoolClassController extends Controller
         $teacherId = $validated['class_teacher_id'] ?? null;
         if ($teacherId) {
             $teacher = User::findOrFail($teacherId);
-            if (!$teacher->isTeacher()) {
+            if (! $teacher->isTeacher()) {
                 return back()->withInput()->withErrors(['class_teacher_id' => 'Select an active teacher account.']);
             }
         }
@@ -208,11 +216,11 @@ class SchoolClassController extends Controller
             ->lockForUpdate()
             ->get();
 
-        if ($sections->count() !== count($validated['section_ids']) || $sections->contains(fn ($section) => strcasecmp($section->stream, $stream) !== 0 || !preg_match('/^[A-Z]$/i', $section->name))) {
+        if ($sections->count() !== count($validated['section_ids']) || $sections->contains(fn ($section) => strcasecmp($section->stream, $stream) !== 0 || ! preg_match('/^[A-Z]$/i', $section->name))) {
             return back()->withInput()->withErrors(['section_ids' => 'Choose active A-Z sections belonging to the selected stream.']);
         }
         $maxSectionCapacity = $sections->min('capacity');
-        if (!$maxSectionCapacity || (int) $maxSectionCapacity < (int) config('school.capacity.minimum')) {
+        if (! $maxSectionCapacity || (int) $maxSectionCapacity < (int) config('school.capacity.minimum')) {
             return back()->withInput()->withErrors(['section_ids' => 'Configure a valid capacity in every selected Section Master before creating a class.']);
         }
         if ((int) $validated['capacity'] > (int) $maxSectionCapacity) {
@@ -241,26 +249,26 @@ class SchoolClassController extends Controller
                     $classRecord = $existingClass;
                 } else {
                     $classRecord = AcademicClass::create([
-                    'name' => $className,
-                    'grade_level' => $grade,
-                    'stream' => $stream,
-                    'section' => $section->name,
-                    'section_id' => $section->id,
-                    'academic_year' => $validated['academic_year'],
-                    'class_teacher_id' => $teacherId,
-                    'room_number' => $validated['room_number'] ?? $section->room_number,
-                    'capacity' => (int) $validated['capacity'],
+                        'name' => $className,
+                        'grade_level' => $grade,
+                        'stream' => $stream,
+                        'section' => $section->name,
+                        'section_id' => $section->id,
+                        'academic_year' => $validated['academic_year'],
+                        'class_teacher_id' => $teacherId,
+                        'room_number' => $validated['room_number'] ?? $section->room_number,
+                        'capacity' => (int) $validated['capacity'],
                     ]);
                     $created[] = $classRecord;
                 }
-                $inheritance = app(\App\Services\SubjectCurriculumInheritanceService::class)->inheritForClass($classRecord, $user, $request);
+                $inheritance = app(SubjectCurriculumInheritanceService::class)->inheritForClass($classRecord, $user, $request);
                 $inheritedSubjects += $inheritance['created'] + $inheritance['linked'];
                 $inheritanceWarnings = array_merge($inheritanceWarnings, $inheritance['skipped']);
             }
         }, 3);
 
         foreach ($created as $createdClass) {
-            app(\App\Services\SchoolAcademicAuditService::class)->log(
+            app(SchoolAcademicAuditService::class)->log(
                 $user,
                 'created_academic_class',
                 'Created class '.$createdClass->display_name.' for academic year '.$createdClass->academic_year.'.',
@@ -271,8 +279,9 @@ class SchoolClassController extends Controller
             );
         }
 
-        if (!$created && $inheritedSubjects === 0) {
+        if (! $created && $inheritedSubjects === 0) {
             $message = 'No new class sections or missing subject mappings were found for the selected academic year.';
+
             return $request->wantsJson()
                 ? response()->json(['success' => false, 'message' => $message, 'errors' => ['section_ids' => [$message]]], 422)
                 : back()->withInput()->withErrors(['section_ids' => $message]);
@@ -307,14 +316,14 @@ class SchoolClassController extends Controller
     public function update(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Only administrators can modify classes.');
         }
 
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'grade_level' => ['required', 'integer', \Illuminate\Validation\Rule::in(config('school.grade_levels', []))],
-            'stream' => ['required', 'string', 'max:50', \Illuminate\Validation\Rule::exists('school_streams', 'name')->where('is_active', true)],
+            'grade_level' => ['required', 'integer', Rule::in(config('school.grade_levels', []))],
+            'stream' => ['required', 'string', 'max:50', Rule::exists('school_streams', 'name')->where('is_active', true)],
             'section_id' => 'required|integer|exists:school_sections,id',
             'academic_year' => 'required|string|max:30',
             'class_teacher_id' => 'nullable|integer|exists:users,id',
@@ -329,22 +338,22 @@ class SchoolClassController extends Controller
             $class = AcademicClass::query()->lockForUpdate()->findOrFail($id);
             $activeEnrollments = $class->enrollments()->where('status', 'active')->count();
             if ((int) $validated['capacity'] < $activeEnrollments) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'capacity' => "Capacity cannot be lower than the {$activeEnrollments} active enrollments.",
                 ]);
             }
 
             $section = SchoolSection::query()->whereKey($validated['section_id'])->where('is_active', true)->firstOrFail();
             if (strcasecmp($section->stream, $validated['stream']) !== 0) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'section_id' => 'The selected section does not belong to the selected stream.',
                 ]);
             }
-            if (!$section->capacity || (int) $section->capacity < (int) config('school.capacity.minimum')) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['section_id' => 'Configure a valid capacity in Section Master before updating this class.']);
+            if (! $section->capacity || (int) $section->capacity < (int) config('school.capacity.minimum')) {
+                throw ValidationException::withMessages(['section_id' => 'Configure a valid capacity in Section Master before updating this class.']);
             }
             if ((int) $validated['capacity'] > (int) $section->capacity) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'capacity' => 'Class capacity cannot exceed the selected section master capacity.',
                 ]);
             }
@@ -367,15 +376,15 @@ class SchoolClassController extends Controller
                 || $class->lessonPlans()->exists();
 
             if ($structuralChange && $hasAcademicDependencies) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'section_id' => 'A class with enrollment or academic history cannot be structurally changed here. Create a new class for the target academic year and use the formal student transfer/promotion workflow.',
                 ]);
             }
 
-            if (!empty($validated['class_teacher_id'])) {
+            if (! empty($validated['class_teacher_id'])) {
                 $teacher = User::findOrFail($validated['class_teacher_id']);
-                if (!$teacher->isTeacher()) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                if (! $teacher->isTeacher()) {
+                    throw ValidationException::withMessages([
                         'class_teacher_id' => 'Select an active teacher account.',
                     ]);
                 }
@@ -389,7 +398,7 @@ class SchoolClassController extends Controller
                 ->where('academic_year', $validated['academic_year'])
                 ->exists();
             if ($duplicate) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'section_id' => 'This grade, stream, section and academic-year combination already exists.',
                 ]);
             }
@@ -408,7 +417,8 @@ class SchoolClassController extends Controller
         }, 3);
 
         $updatedClass = AcademicClass::findOrFail($id);
-        app(\App\Services\SchoolAcademicAuditService::class)->log($user, 'updated_academic_class', 'Updated class '.$updatedClass->display_name.'.', $oldClassValues, $updatedClass->only(['name', 'grade_level', 'stream', 'section', 'section_id', 'academic_year', 'class_teacher_id', 'room_number', 'capacity']), $request, $updatedClass->id);
+        app(SchoolAcademicAuditService::class)->log($user, 'updated_academic_class', 'Updated class '.$updatedClass->display_name.'.', $oldClassValues, $updatedClass->only(['name', 'grade_level', 'stream', 'section', 'section_id', 'academic_year', 'class_teacher_id', 'room_number', 'capacity']), $request, $updatedClass->id);
+
         return redirect()->back()->with('success', 'Class details updated successfully.');
     }
 
@@ -418,7 +428,7 @@ class SchoolClassController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Only administrators can delete classes.');
         }
 
@@ -441,7 +451,7 @@ class SchoolClassController extends Controller
         }
 
         $name = $class->display_name;
-        app(\App\Services\SchoolAcademicAuditService::class)->log($user, 'deleted_empty_academic_class', 'Deleted empty class '.$name.'.', $class->only(['id', 'name', 'grade_level', 'stream', 'section', 'academic_year']), null, request(), $class->id);
+        app(SchoolAcademicAuditService::class)->log($user, 'deleted_empty_academic_class', 'Deleted empty class '.$name.'.', $class->only(['id', 'name', 'grade_level', 'stream', 'section', 'academic_year']), null, request(), $class->id);
         $class->delete();
 
         return redirect()->route('school.classes.index')->with('success', "Empty class {$name} deleted.");
@@ -450,7 +460,7 @@ class SchoolClassController extends Controller
     /**
      * Return JSON options from the Subject Master for dynamic dropdown selectors.
      */
-    public function masterOptions(Request $request): \Illuminate\Http\JsonResponse
+    public function masterOptions(Request $request): JsonResponse
     {
         $classId = $request->input('class_id');
         $stream = $request->input('stream');
@@ -467,7 +477,7 @@ class SchoolClassController extends Controller
                 }
                 $stream = $class->stream;
                 $masters = SubjectMaster::getAvailableForClass($class);
-                $classSubjects = $class->subjects->map(fn($s) => [
+                $classSubjects = $class->subjects->map(fn ($s) => [
                     'id' => $s->id,
                     'name' => $s->name,
                     'code' => $s->code,
@@ -501,10 +511,10 @@ class SchoolClassController extends Controller
      * Add a subject to a class using the Subject Master dropdown.
      * Prevents duplicate entries and ensures valid subject master selection.
      */
-    public function storeSubject(Request $request, int $id): \Illuminate\Http\JsonResponse|RedirectResponse
+    public function storeSubject(Request $request, int $id): JsonResponse|RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Only administrators can change a class curriculum.');
         }
 
@@ -517,13 +527,13 @@ class SchoolClassController extends Controller
         ]);
 
         $master = SubjectMaster::active()->findOrFail($validated['subject_master_id']);
-        if (!in_array($master->stream, ['All', $class->stream], true) || (int) $master->min_grade > (int) $class->grade_level || (int) $master->max_grade < (int) $class->grade_level) {
+        if (! in_array($master->stream, ['All', $class->stream], true) || (int) $master->min_grade > (int) $class->grade_level || (int) $master->max_grade < (int) $class->grade_level) {
             return back()->withInput()->withErrors(['subject_master_id' => 'This subject is not available for the selected class stream or grade range.']);
         }
 
         $teacherId = $validated['teacher_id'] ?? $master->default_teacher_id;
         $teacher = $teacherId ? User::findOrFail($teacherId) : null;
-        if ($teacher && !$teacher->isTeacher()) {
+        if ($teacher && ! $teacher->isTeacher()) {
             return back()->withInput()->withErrors(['teacher_id' => 'Select an active teacher account.']);
         }
         if ($master->default_teacher_id && $teacher && (int) $master->default_teacher_id !== (int) $teacher->id && empty($validated['teacher_override'])) {
@@ -542,7 +552,7 @@ class SchoolClassController extends Controller
         }
 
         try {
-            $subject = app(\App\Services\TeacherAssignmentService::class)->assignSubject($user, [
+            $subject = app(TeacherAssignmentService::class)->assignSubject($user, [
                 'class_id' => $class->id,
                 'subject_master_id' => $master->id,
                 'name' => $master->name,
@@ -551,13 +561,14 @@ class SchoolClassController extends Controller
                 'teacher_override' => (bool) ($validated['teacher_override'] ?? false),
                 'weekly_periods' => $validated['weekly_periods'],
             ], $request);
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             return back()->withInput()->withErrors($exception->errors());
         }
 
         if ($request->wantsJson()) {
             return response()->json(['success' => true, 'subject' => $subject->load('teacher')], 201);
         }
+
         return back()->with('success', "{$subject->name} added to {$class->display_name}.");
     }
 
@@ -579,11 +590,11 @@ class SchoolClassController extends Controller
         }
 
         try {
-            app(\App\Services\TeacherAssignmentService::class)->removeSubjectAssignment(Auth::user(), $subject, true, request());
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+            app(TeacherAssignmentService::class)->removeSubjectAssignment(Auth::user(), $subject, true, request());
+        } catch (ValidationException $exception) {
             return back()->withErrors($exception->errors());
         }
+
         return back()->with('success', "Subject '{$subject->name}' removed from the class. Its master curriculum record remains available.");
     }
-
 }

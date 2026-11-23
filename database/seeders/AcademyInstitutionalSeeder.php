@@ -42,7 +42,7 @@ class AcademyInstitutionalSeeder extends Seeder
             [
                 'author_id' => $admin->id,
                 'title' => 'Mid-Term Board Prep Examination & Admit Card Schedule (Session 2026-27)',
-                'content' => "All enrolled students from Classes 8 to 12 are hereby notified that the Mid-Term Examination starts next Monday. Admit cards and verified Privilege ID cards must be presented at the examination hall. Please verify your attendance percentage is above 75% to ensure debarment clearance.",
+                'content' => 'All enrolled students from Classes 8 to 12 are hereby notified that the Mid-Term Examination starts next Monday. Admit cards and verified Privilege ID cards must be presented at the examination hall. Please verify your attendance percentage is above 75% to ensure debarment clearance.',
                 'priority' => 'urgent',
                 'target_audience' => 'all',
                 'is_pinned' => true,
@@ -58,7 +58,7 @@ class AcademyInstitutionalSeeder extends Seeder
             [
                 'author_id' => $teacher->id,
                 'title' => 'National Science Olympiad & Inter-Academy Robotics Workshop Registration',
-                'content' => "Registration is now open for the All-Bharat Science & STEM Olympiad. Interested students can apply through the Academic Portal before Friday.",
+                'content' => 'Registration is now open for the All-Bharat Science & STEM Olympiad. Interested students can apply through the Academic Portal before Friday.',
                 'priority' => 'normal',
                 'target_audience' => 'students',
                 'is_pinned' => false,

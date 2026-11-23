@@ -12,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('school_sections')) {
+        if (! Schema::hasTable('school_sections')) {
             Schema::create('school_sections', function (Blueprint $table) {
                 $table->id();
                 $table->string('name', 30); // e.g. "A", "B", "Medical"
@@ -27,7 +27,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('academic_classes') && !Schema::hasColumn('academic_classes', 'section_id')) {
+        if (Schema::hasTable('academic_classes') && ! Schema::hasColumn('academic_classes', 'section_id')) {
             Schema::table('academic_classes', function (Blueprint $table) {
                 $table->foreignId('section_id')->nullable()->after('stream')->constrained('school_sections')->nullOnDelete();
             });
@@ -63,7 +63,7 @@ return new class extends Migration
                     ->where('name', $secName)
                     ->first();
 
-                if (!$existingSec) {
+                if (! $existingSec) {
                     $secId = DB::table('school_sections')->insertGetId([
                         'name' => $secName,
                         'stream' => $stream,

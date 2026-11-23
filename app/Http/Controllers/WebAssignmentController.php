@@ -4,13 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\Submission;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class WebAssignmentController extends Controller
 {
@@ -26,21 +29,31 @@ class WebAssignmentController extends Controller
         } elseif ($user->isStudent()) {
             $courseIds = $user->enrolledCourses()->pluck('courses.id');
             $query->where(function ($q) use ($user, $courseIds) {
-                $q->where(function ($q) use ($courseIds) { $q->where('target_type', 'all_enrolled')->whereIn('course_id', $courseIds); })
-                  ->orWhere('target_type', 'all_students')
-                  ->orWhere(function ($q) use ($user) { $q->where('target_type', 'specific_student')->where('student_id', $user->id); });
+                $q->where(function ($q) use ($courseIds) {
+                    $q->where('target_type', 'all_enrolled')->whereIn('course_id', $courseIds);
+                })
+                    ->orWhere('target_type', 'all_students')
+                    ->orWhere(function ($q) use ($user) {
+                        $q->where('target_type', 'specific_student')->where('student_id', $user->id);
+                    });
             });
             $courses = Course::whereIn('id', $courseIds)->get();
         } elseif ($user->isParent()) {
             $childIds = User::childrenOf($user)->pluck('id');
-            $courseIds = \App\Models\Enrollment::whereIn('student_id', $childIds)->pluck('course_id')->unique();
+            $courseIds = Enrollment::whereIn('student_id', $childIds)->pluck('course_id')->unique();
             $query->where(function ($q) use ($childIds, $courseIds) {
-                $q->where(function ($q) use ($courseIds) { $q->where('target_type', 'all_enrolled')->whereIn('course_id', $courseIds); })
-                  ->orWhere('target_type', 'all_students')
-                  ->orWhere(function ($q) use ($childIds) { $q->where('target_type', 'specific_student')->whereIn('student_id', $childIds); });
+                $q->where(function ($q) use ($courseIds) {
+                    $q->where('target_type', 'all_enrolled')->whereIn('course_id', $courseIds);
+                })
+                    ->orWhere('target_type', 'all_students')
+                    ->orWhere(function ($q) use ($childIds) {
+                        $q->where('target_type', 'specific_student')->whereIn('student_id', $childIds);
+                    });
             });
             $courses = collect();
-        } else { abort(403); }
+        } else {
+            abort(403);
+        }
 
         $assignments = $query->orderBy('due_date')->paginate(15)->withQueryString();
         if ($user->isStudent()) {
@@ -48,7 +61,9 @@ class WebAssignmentController extends Controller
         } elseif ($user->isParent()) {
             $childIds = User::childrenOf($user)->pluck('id');
             $mySubmissions = Submission::whereIn('student_id', $childIds)->whereIn('assignment_id', $assignments->pluck('id'))->with('student:id,name')->get()->groupBy('assignment_id')->map(fn ($items) => $items->first());
-        } else { $mySubmissions = collect(); }
+        } else {
+            $mySubmissions = collect();
+        }
         // Student/parent views must never expose the campus-wide student directory.
         $students = ($user->isAdmin() || $user->isTeacher())
             ? User::where('role', 'student')->orderBy('name')->get(['id', 'name'])
@@ -72,7 +87,9 @@ class WebAssignmentController extends Controller
         } elseif ($user->isParent()) {
             $childIds = User::childrenOf($user)->pluck('id');
             $mySubmission = $assignment->submissions()->whereIn('student_id', $childIds)->with('student:id,name')->first();
-        } else { $mySubmission = null; }
+        } else {
+            $mySubmission = null;
+        }
         $canReview = $user->isAdmin() || ($user->isTeacher() && (int) $assignment->teacher_id === (int) $user->id);
         $submissions = $canReview
             ? $assignment->submissions()->with(['student:id,name,email', 'grader:id,name'])->latest('submitted_at')->paginate(10, ['*'], 'submissions_page')->withQueryString()
@@ -84,7 +101,7 @@ class WebAssignmentController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403, 'Unauthorized. Only teachers and administrators can assign coursework.');
         }
 
@@ -99,15 +116,27 @@ class WebAssignmentController extends Controller
             'attachment' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,txt,png,jpg,jpeg,webp,zip|max:25600',
         ]);
 
-        if ($user->isTeacher() && !empty($validated['course_id']) && !Course::whereKey($validated['course_id'])->where('teacher_id', $user->id)->exists()) { abort(403, 'You may only assign work to courses you teach.'); }
-        if (($validated['target_type'] ?? $request->input('target_type', 'all_enrolled')) === 'specific_student' && !User::whereKey($validated['student_id'] ?? $request->input('student_id'))->where('role', 'student')->exists()) { abort(422, 'Select a valid student account.'); }
+        if ($user->isTeacher() && ! empty($validated['course_id']) && ! Course::whereKey($validated['course_id'])->where('teacher_id', $user->id)->exists()) {
+            abort(403, 'You may only assign work to courses you teach.');
+        }
+        if (($validated['target_type'] ?? $request->input('target_type', 'all_enrolled')) === 'specific_student' && ! User::whereKey($validated['student_id'] ?? $request->input('student_id'))->where('role', 'student')->exists()) {
+            abort(422, 'Select a valid student account.');
+        }
         $validated['target_type'] = $request->input('target_type', 'all_enrolled');
-        if ($validated['target_type'] === 'all_students' && !$user->isAdmin()) abort(403, 'Only administrators may publish campus-wide assignments.');
-        if ($validated['target_type'] === 'all_enrolled' && empty($validated['course_id'])) abort(422, 'Choose a course for an enrolled-student assignment.');
-        if ($validated['target_type'] === 'specific_student' && empty($validated['course_id']) && !$user->isAdmin()) abort(422, 'Choose the course associated with this personal assignment.');
+        if ($validated['target_type'] === 'all_students' && ! $user->isAdmin()) {
+            abort(403, 'Only administrators may publish campus-wide assignments.');
+        }
+        if ($validated['target_type'] === 'all_enrolled' && empty($validated['course_id'])) {
+            abort(422, 'Choose a course for an enrolled-student assignment.');
+        }
+        if ($validated['target_type'] === 'specific_student' && empty($validated['course_id']) && ! $user->isAdmin()) {
+            abort(422, 'Choose the course associated with this personal assignment.');
+        }
         $validated['teacher_id'] = Auth::id();
         $validated['student_id'] = ($validated['target_type'] === 'specific_student') ? $request->input('student_id') : null;
-        if ($validated['target_type'] === 'specific_student' && !empty($validated['course_id']) && !\App\Models\Enrollment::where('student_id', $validated['student_id'])->where('course_id', $validated['course_id'])->exists()) abort(422, 'The selected student is not enrolled in this course.');
+        if ($validated['target_type'] === 'specific_student' && ! empty($validated['course_id']) && ! Enrollment::where('student_id', $validated['student_id'])->where('course_id', $validated['course_id'])->exists()) {
+            abort(422, 'The selected student is not enrolled in this course.');
+        }
 
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
@@ -125,7 +154,7 @@ class WebAssignmentController extends Controller
                 $assignment->student_id,
                 'assignment',
                 "New Personal Assignment: {$assignment->title}",
-                "You have been assigned a deliverable: {$assignment->title}. Due: " . date('M d, Y', strtotime($assignment->due_date)),
+                "You have been assigned a deliverable: {$assignment->title}. Due: ".date('M d, Y', strtotime($assignment->due_date)),
                 route('assignments.show', $assignment->id),
                 '📝'
             );
@@ -136,7 +165,7 @@ class WebAssignmentController extends Controller
                     $sid,
                     'assignment',
                     "New Academy-Wide Assignment: {$assignment->title}",
-                    "A new assignment has been posted for all students: {$assignment->title}. Due: " . date('M d, Y', strtotime($assignment->due_date)),
+                    "A new assignment has been posted for all students: {$assignment->title}. Due: ".date('M d, Y', strtotime($assignment->due_date)),
                     route('assignments.show', $assignment->id),
                     '📝'
                 );
@@ -146,7 +175,7 @@ class WebAssignmentController extends Controller
                 $assignment->course_id,
                 'assignment',
                 "New Assignment: {$assignment->title}",
-                "A new assignment has been posted for your course. Due: " . date('M d, Y', strtotime($assignment->due_date)),
+                'A new assignment has been posted for your course. Due: '.date('M d, Y', strtotime($assignment->due_date)),
                 route('assignments.show', $assignment->id),
                 '📝'
             );
@@ -161,7 +190,7 @@ class WebAssignmentController extends Controller
         $assignment = Assignment::findOrFail($id);
         $user = Auth::user();
 
-        if (!$user || !$user->isStudent()) {
+        if (! $user || ! $user->isStudent()) {
             abort(403, 'Only students can submit assignments.');
         }
 
@@ -197,7 +226,7 @@ class WebAssignmentController extends Controller
     public function grade(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403, 'Unauthorized. Only teachers and administrators can evaluate assignments.');
         }
 
@@ -205,7 +234,7 @@ class WebAssignmentController extends Controller
 
         abort_unless($user->can('grade', $submission->assignment), 403);
         $validated = $request->validate([
-            'grade' => 'required|numeric|min:0|max:' . $submission->assignment->max_points,
+            'grade' => 'required|numeric|min:0|max:'.$submission->assignment->max_points,
             'feedback' => 'nullable|string',
         ]);
 
@@ -232,14 +261,14 @@ class WebAssignmentController extends Controller
     public function edit(int $id): View
     {
         $user = Auth::user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403);
         }
 
         $assignment = Assignment::findOrFail($id);
         abort_unless($user->can('update', $assignment), 403);
         $courses = $user->isAdmin() ? Course::orderBy('title')->get() : Course::where('teacher_id', $user->id)->orderBy('title')->get();
-        $students = $user->isAdmin() ? User::where('role', 'student')->orderBy('name')->get(['id', 'name']) : User::where('role', 'student')->whereIn('id', \App\Models\Enrollment::whereIn('course_id', $courses->pluck('id'))->pluck('student_id'))->orderBy('name')->get(['id', 'name']);
+        $students = $user->isAdmin() ? User::where('role', 'student')->orderBy('name')->get(['id', 'name']) : User::where('role', 'student')->whereIn('id', Enrollment::whereIn('course_id', $courses->pluck('id'))->pluck('student_id'))->orderBy('name')->get(['id', 'name']);
 
         return view('assignments.edit', compact('assignment', 'courses', 'students'));
     }
@@ -247,7 +276,7 @@ class WebAssignmentController extends Controller
     public function update(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403);
         }
 
@@ -264,21 +293,31 @@ class WebAssignmentController extends Controller
             'remove_attachment' => 'nullable|boolean',
         ]);
 
-        if ($user->isTeacher() && !empty($validated['course_id']) && !Course::whereKey($validated['course_id'])->where('teacher_id', $user->id)->exists()) { abort(403); }
-        if ($assignment->target_type === 'all_enrolled' && empty($validated['course_id'])) abort(422, 'An enrolled-student assignment must remain linked to a course.');
-        if ($assignment->target_type === 'specific_student' && !empty($validated['course_id']) && !\App\Models\Enrollment::where('student_id', $assignment->student_id)->where('course_id', $validated['course_id'])->exists()) abort(422, 'The selected student is not enrolled in this course.');
-        if ($assignment->target_type === 'all_students' && $user->isTeacher()) abort(403);
+        if ($user->isTeacher() && ! empty($validated['course_id']) && ! Course::whereKey($validated['course_id'])->where('teacher_id', $user->id)->exists()) {
+            abort(403);
+        }
+        if ($assignment->target_type === 'all_enrolled' && empty($validated['course_id'])) {
+            abort(422, 'An enrolled-student assignment must remain linked to a course.');
+        }
+        if ($assignment->target_type === 'specific_student' && ! empty($validated['course_id']) && ! Enrollment::where('student_id', $assignment->student_id)->where('course_id', $validated['course_id'])->exists()) {
+            abort(422, 'The selected student is not enrolled in this course.');
+        }
+        if ($assignment->target_type === 'all_students' && $user->isTeacher()) {
+            abort(403);
+        }
 
         if ($request->boolean('remove_attachment')) {
             if ($assignment->attachment_path) {
                 $old = ltrim($assignment->attachment_path, '/');
-                if (\Illuminate\Support\Facades\Storage::disk('local')->exists($old)) {
-                    \Illuminate\Support\Facades\Storage::disk('local')->delete($old);
-                } elseif (\Illuminate\Support\Facades\Storage::disk('public')->exists($old)) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($old);
+                if (Storage::disk('local')->exists($old)) {
+                    Storage::disk('local')->delete($old);
+                } elseif (Storage::disk('public')->exists($old)) {
+                    Storage::disk('public')->delete($old);
                 } elseif (str_starts_with($old, 'uploads/assignments/')) {
                     $legacy = public_path($old);
-                    if (is_file($legacy)) @unlink($legacy);
+                    if (is_file($legacy)) {
+                        @unlink($legacy);
+                    }
                 }
             }
             $validated['attachment_path'] = null;
@@ -290,13 +329,15 @@ class WebAssignmentController extends Controller
         if ($request->hasFile('attachment')) {
             if ($assignment->attachment_path) {
                 $old = ltrim($assignment->attachment_path, '/');
-                if (\Illuminate\Support\Facades\Storage::disk('local')->exists($old)) {
-                    \Illuminate\Support\Facades\Storage::disk('local')->delete($old);
-                } elseif (\Illuminate\Support\Facades\Storage::disk('public')->exists($old)) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($old);
+                if (Storage::disk('local')->exists($old)) {
+                    Storage::disk('local')->delete($old);
+                } elseif (Storage::disk('public')->exists($old)) {
+                    Storage::disk('public')->delete($old);
                 } elseif (str_starts_with($old, 'uploads/assignments/')) {
                     $legacy = public_path($old);
-                    if (is_file($legacy)) @unlink($legacy);
+                    if (is_file($legacy)) {
+                        @unlink($legacy);
+                    }
                 }
             }
             $file = $request->file('attachment');
@@ -313,29 +354,36 @@ class WebAssignmentController extends Controller
             ->with('success', "Assignment \"{$assignment->title}\" updated successfully.");
     }
 
-    public function downloadAttachment(int $id): \Symfony\Component\HttpFoundation\Response
+    public function downloadAttachment(int $id): Response
     {
         $assignment = Assignment::findOrFail($id);
         abort_unless(Auth::user() && Auth::user()->can('view', $assignment), 403);
-        if (!$assignment->hasAttachment()) {
+        if (! $assignment->hasAttachment()) {
             abort(404, 'No attachment associated with this assignment.');
         }
 
         $relPath = ltrim($assignment->attachment_path, '/');
-        $privateDisk = \Illuminate\Support\Facades\Storage::disk('local');
-        if ($privateDisk->exists($relPath)) return $privateDisk->download($relPath, $assignment->attachment_name ?: basename($relPath));
-        $disk = \Illuminate\Support\Facades\Storage::disk('public');
-        if ($disk->exists($relPath)) return $disk->download($relPath, $assignment->attachment_name ?: basename($relPath));
+        $privateDisk = Storage::disk('local');
+        if ($privateDisk->exists($relPath)) {
+            return $privateDisk->download($relPath, $assignment->attachment_name ?: basename($relPath));
+        }
+        $disk = Storage::disk('public');
+        if ($disk->exists($relPath)) {
+            return $disk->download($relPath, $assignment->attachment_name ?: basename($relPath));
+        }
         // Backward compatibility for legacy public/uploads/assignments records.
         $legacyPath = public_path($relPath);
-        if (!is_file($legacyPath)) abort(404, 'Attachment file not found on disk.');
+        if (! is_file($legacyPath)) {
+            abort(404, 'Attachment file not found on disk.');
+        }
+
         return response()->download($legacyPath, $assignment->attachment_name ?: basename($legacyPath));
     }
 
     public function destroy(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isTeacher() && !$user->isAdmin()) {
+        if (! $user->isTeacher() && ! $user->isAdmin()) {
             abort(403);
         }
 
@@ -344,8 +392,17 @@ class WebAssignmentController extends Controller
         $title = $assignment->title;
         if ($assignment->attachment_path) {
             $storedPath = ltrim($assignment->attachment_path, '/');
-            foreach (['local', 'public'] as $diskName) if (\Illuminate\Support\Facades\Storage::disk($diskName)->exists($storedPath)) \Illuminate\Support\Facades\Storage::disk($diskName)->delete($storedPath);
-            if (str_starts_with($storedPath, 'uploads/assignments/')) { $legacy = public_path($storedPath); if (is_file($legacy)) @unlink($legacy); }
+            foreach (['local', 'public'] as $diskName) {
+                if (Storage::disk($diskName)->exists($storedPath)) {
+                    Storage::disk($diskName)->delete($storedPath);
+                }
+            }
+            if (str_starts_with($storedPath, 'uploads/assignments/')) {
+                $legacy = public_path($storedPath);
+                if (is_file($legacy)) {
+                    @unlink($legacy);
+                }
+            }
         }
         $fromCourseId = $request->input('course_id') ?: $request->input('from_course');
 

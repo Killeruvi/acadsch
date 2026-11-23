@@ -16,14 +16,23 @@ class TimetableAndPeriodMasterIntegrityTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $teacher1;
+
     private User $teacher2;
+
     private User $student;
+
     private AcademicClass $class10A;
+
     private AcademicClass $class10B;
+
     private AcademicSubject $math10A;
+
     private AcademicSubject $sci10B;
+
     private SchoolPeriod $period1;
+
     private SchoolPeriod $period2;
 
     protected function setUp(): void

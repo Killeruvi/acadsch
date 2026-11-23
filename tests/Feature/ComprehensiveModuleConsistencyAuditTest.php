@@ -4,15 +4,16 @@ namespace Tests\Feature;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
+use App\Models\AcademyNotice;
 use App\Models\ClassEnrollment;
+use App\Models\CurriculumTopic;
 use App\Models\DailyDpp;
 use App\Models\DailyLesson;
 use App\Models\FeeInvoice;
-use App\Models\HomeworkTask;
 use App\Models\HomeworkSubmission;
+use App\Models\HomeworkTask;
 use App\Models\LiveQuiz;
 use App\Models\LiveQuizQuestion;
-use App\Models\QuizAttempt;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -150,7 +151,7 @@ class ComprehensiveModuleConsistencyAuditTest extends TestCase
 
         $class = AcademicClass::create(['name' => 'Grade 10-A', 'grade_level' => 10, 'academic_year' => '2026-2027']);
         $subject = AcademicSubject::create(['class_id' => $class->id, 'name' => 'Science', 'code' => 'SCI-10']);
-        $topic = \App\Models\CurriculumTopic::create([
+        $topic = CurriculumTopic::create([
             'subject_id' => $subject->id,
             'chapter_number' => 1,
             'title' => 'Photosynthesis',
@@ -293,7 +294,7 @@ class ComprehensiveModuleConsistencyAuditTest extends TestCase
         ]);
 
         // Create circulars: 1 for parents, 1 for teachers only
-        \App\Models\AcademyNotice::create([
+        AcademyNotice::create([
             'author_id' => $parent->id,
             'title' => 'Parent Teacher Conference',
             'content' => 'Scheduled for next Friday.',
@@ -302,7 +303,7 @@ class ComprehensiveModuleConsistencyAuditTest extends TestCase
             'published_at' => now(),
         ]);
 
-        \App\Models\AcademyNotice::create([
+        AcademyNotice::create([
             'author_id' => $parent->id,
             'title' => 'Confidential Faculty Meeting',
             'content' => 'Strictly internal staff agenda.',

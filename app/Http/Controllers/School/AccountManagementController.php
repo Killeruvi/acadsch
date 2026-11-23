@@ -18,7 +18,7 @@ class AccountManagementController extends Controller
     protected function checkAdmin(): void
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Unauthorized. Account management and security resets are restricted to administrative authority.');
         }
     }
@@ -32,7 +32,7 @@ class AccountManagementController extends Controller
         $this->checkAdmin();
 
         $targetUser = User::findOrFail($id);
-        if (!is_string($targetUser->email) || trim($targetUser->email) === '') {
+        if (! is_string($targetUser->email) || trim($targetUser->email) === '') {
             return redirect()->back()->withErrors([
                 'account_reset' => 'This account has no email address. Add and verify an email address before requesting a password reset.',
             ]);
@@ -47,7 +47,7 @@ class AccountManagementController extends Controller
             'result' => $status,
         ]);
 
-        if (!$sent) {
+        if (! $sent) {
             $message = $status === Password::RESET_THROTTLED
                 ? 'A reset link was requested recently. Wait before requesting another one.'
                 : 'The reset link could not be sent. Check mail configuration and try again.';

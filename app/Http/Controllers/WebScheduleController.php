@@ -75,7 +75,7 @@ class WebScheduleController extends Controller
 
         // Class filter
         $classFilter = $request->query('class_id');
-        if (!empty($classFilter) && is_numeric($classFilter)) {
+        if (! empty($classFilter) && is_numeric($classFilter)) {
             $query->where('class_id', (int) $classFilter);
         }
 
@@ -129,7 +129,7 @@ class WebScheduleController extends Controller
                 'end_time' => substr($sch->end_time, 0, 5),
                 'class_name' => $sch->academicClass?->name ?? null,
                 'batch_name' => $sch->batch?->name ?? null,
-                'is_cancelled' => (bool)$sch->is_cancelled,
+                'is_cancelled' => (bool) $sch->is_cancelled,
                 'cancellation_reason' => $sch->cancellation_reason,
             ];
         });
@@ -155,7 +155,7 @@ class WebScheduleController extends Controller
     public function toggleCancel(Request $request, Schedule $schedule): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isAdmin() && !$user->isTeacher()) {
+        if (! $user->isAdmin() && ! $user->isTeacher()) {
             abort(403);
         }
 
@@ -164,6 +164,7 @@ class WebScheduleController extends Controller
                 'is_cancelled' => false,
                 'cancellation_reason' => null,
             ]);
+
             return back()->with('success', "Class schedule slot for {$schedule->day_of_week} has been restored.");
         }
 
@@ -203,13 +204,14 @@ class WebScheduleController extends Controller
         Schedule::create($validated);
 
         $label = $validated['delivery_mode'] === 'offline' ? 'Offline classroom' : 'Online';
+
         return back()->with('success', "{$label} schedule slot added successfully!");
     }
 
     public function update(Request $request, Schedule $schedule): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 
@@ -232,7 +234,7 @@ class WebScheduleController extends Controller
     public function destroy(Request $request, Schedule $schedule): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || (!$user->isAdmin() && !$user->isTeacher())) {
+        if (! $user || (! $user->isAdmin() && ! $user->isTeacher())) {
             abort(403);
         }
 

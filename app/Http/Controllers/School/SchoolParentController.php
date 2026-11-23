@@ -9,6 +9,7 @@ use App\Models\AttendanceSession;
 use App\Models\FeeInvoice;
 use App\Models\SchoolPeriodTimetable;
 use App\Models\SchoolReportCard;
+use App\Models\StudentLeaveRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -139,7 +140,7 @@ class SchoolParentController extends Controller
             ];
 
             // Leaves Portal Data
-            $allLeaves = \App\Models\StudentLeaveRequest::where('student_id', $activeChild->id)
+            $allLeaves = StudentLeaveRequest::where('student_id', $activeChild->id)
                 ->with('reviewer:id,name')
                 ->latest()
                 ->get();
@@ -154,7 +155,7 @@ class SchoolParentController extends Controller
         }
 
         // Recent school circulars (scoped to parents)
-        $notices = \App\Models\AcademyNotice::whereNotNull('published_at')
+        $notices = AcademyNotice::whereNotNull('published_at')
             ->whereIn('target_audience', ['all', 'parents'])
             ->latest('published_at')
             ->take(5)

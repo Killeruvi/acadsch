@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
-use App\Models\AcademyNotice;
 use App\Models\AcademySetting;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
@@ -15,6 +14,11 @@ use App\Models\DppSubmission;
 use App\Models\FeeInvoice;
 use App\Models\StudentLeaveRequest;
 use App\Models\User;
+use Database\Seeders\AcademyInstitutionalSeeder;
+use Database\Seeders\BloomsTaxonomySeeder;
+use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\QuestionBankSeeder;
+use Database\Seeders\SyllabusSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,21 +27,26 @@ class RealAcademyAdvancedFeaturesTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected User $student2;
+
     protected AcademicClass $class8;
+
     protected AcademicSubject $scienceSubject;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->seed(\Database\Seeders\DatabaseSeeder::class);
-        $this->seed(\Database\Seeders\BloomsTaxonomySeeder::class);
-        $this->seed(\Database\Seeders\SyllabusSeeder::class);
-        $this->seed(\Database\Seeders\QuestionBankSeeder::class);
-        $this->seed(\Database\Seeders\AcademyInstitutionalSeeder::class);
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(BloomsTaxonomySeeder::class);
+        $this->seed(SyllabusSeeder::class);
+        $this->seed(QuestionBankSeeder::class);
+        $this->seed(AcademyInstitutionalSeeder::class);
 
         $this->admin = User::firstOrCreate(
             ['email' => 'admin@primearc.academy'],
@@ -332,7 +341,7 @@ class RealAcademyAdvancedFeaturesTest extends TestCase
     public function test_attendance_identifies_defaulters_below_75_percent(): void
     {
         $testStudent = $this->class8->students()->first();
-        if (!$testStudent) {
+        if (! $testStudent) {
             $maxRoll = $this->class8->enrollments()->max('roll_number') ?? 0;
             $this->class8->enrollments()->create([
                 'student_id' => $this->student->id,

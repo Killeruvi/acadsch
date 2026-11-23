@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -19,7 +20,7 @@ return new class extends Migration
     {
         // This rollback intentionally does not fabricate replacement phone
         // numbers. If null phone values exist, resolve them before rolling back.
-        if (\Illuminate\Support\Facades\DB::table('users')->whereNull('phone')->exists()) {
+        if (DB::table('users')->whereNull('phone')->exists()) {
             throw new RuntimeException(
                 'Cannot make users.phone required while null values exist. Resolve missing phone numbers before rollback.'
             );

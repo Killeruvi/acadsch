@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\AcademicClass;
 use App\Models\BloomAssignment;
 use App\Models\DailyLesson;
 use App\Models\TopicBloomActivity;
@@ -17,16 +16,29 @@ class BloomsAssignmentService
     {
         if (is_numeric($raw)) {
             $val = (int) $raw;
+
             return max(1, min(6, $val));
         }
 
         $str = strtolower(trim((string) $raw));
-        if (str_contains($str, '1') || str_contains($str, 'rememb')) return 1;
-        if (str_contains($str, '2') || str_contains($str, 'underst')) return 2;
-        if (str_contains($str, '3') || str_contains($str, 'appl')) return 3;
-        if (str_contains($str, '4') || str_contains($str, 'analy')) return 4;
-        if (str_contains($str, '5') || str_contains($str, 'evaluat')) return 5;
-        if (str_contains($str, '6') || str_contains($str, 'creat')) return 6;
+        if (str_contains($str, '1') || str_contains($str, 'rememb')) {
+            return 1;
+        }
+        if (str_contains($str, '2') || str_contains($str, 'underst')) {
+            return 2;
+        }
+        if (str_contains($str, '3') || str_contains($str, 'appl')) {
+            return 3;
+        }
+        if (str_contains($str, '4') || str_contains($str, 'analy')) {
+            return 4;
+        }
+        if (str_contains($str, '5') || str_contains($str, 'evaluat')) {
+            return 5;
+        }
+        if (str_contains($str, '6') || str_contains($str, 'creat')) {
+            return 6;
+        }
 
         return 1;
     }
@@ -34,9 +46,8 @@ class BloomsAssignmentService
     /**
      * Generate and distribute Bloom's assignments to students by roll number.
      *
-     * @param DailyLesson $lesson
-     * @param string $mode 'balanced_random' | 'uniform_level' | 'roll_range'
-     * @param int|null $targetLevel (Used if uniform_level is chosen)
+     * @param  string  $mode  'balanced_random' | 'uniform_level' | 'roll_range'
+     * @param  int|null  $targetLevel  (Used if uniform_level is chosen)
      * @return Collection<BloomAssignment>
      */
     public function distributeAssignments(DailyLesson $lesson, string $mode = 'balanced_random', ?int $targetLevel = null): Collection
@@ -84,10 +95,10 @@ class BloomsAssignmentService
             }
         } elseif ($mode === 'roll_range') {
             // Mode B: Sequential Range distribution (Roll 1-2 Level 1, 3-4 Level 2...)
-            $chunkSize = max(1, (int)ceil($studentCount / 6));
+            $chunkSize = max(1, (int) ceil($studentCount / 6));
 
             foreach ($enrollments as $index => $enrollment) {
-                $level = min(6, (int)floor($index / $chunkSize) + 1);
+                $level = min(6, (int) floor($index / $chunkSize) + 1);
                 $activity = $this->resolveActivity($activities, $level, $lesson);
 
                 $assignment = BloomAssignment::create([
@@ -137,10 +148,8 @@ class BloomsAssignmentService
     /**
      * Import custom tasks from parsed CSV rows and randomly assign them across class students.
      *
-     * @param DailyLesson $lesson
-     * @param array $taskRows Parsed associative CSV rows
-     * @param string $mode 'random' | 'sequential'
-     * @param bool $clearExisting
+     * @param  array  $taskRows  Parsed associative CSV rows
+     * @param  string  $mode  'random' | 'sequential'
      * @return Collection<BloomAssignment>
      */
     public function importAndAssignTasks(
@@ -175,10 +184,10 @@ class BloomsAssignmentService
                 continue;
             }
 
-            $levelName = !empty($row['level_name']) ? trim($row['level_name']) : $meta['name'];
+            $levelName = ! empty($row['level_name']) ? trim($row['level_name']) : $meta['name'];
             $rubric = $row['rubric_guide'] ?? ($row['rubric'] ?? ($row['rubric_hint'] ?? null));
-            $dueDate = !empty($row['due_date']) ? date('Y-m-d', strtotime($row['due_date'])) : null;
-            $targetedRoll = !empty($row['roll_number']) ? (int)$row['roll_number'] : null;
+            $dueDate = ! empty($row['due_date']) ? date('Y-m-d', strtotime($row['due_date'])) : null;
+            $targetedRoll = ! empty($row['roll_number']) ? (int) $row['roll_number'] : null;
 
             $cleanedTasks[] = [
                 'bloom_level' => $level,
@@ -213,7 +222,7 @@ class BloomsAssignmentService
             }
 
             // Otherwise, pick task randomly (cycling if fewer tasks than students)
-            if (!$matchedTask) {
+            if (! $matchedTask) {
                 $matchedTask = $cleanedTasks[$idx % $taskCount];
             }
 
@@ -255,7 +264,7 @@ class BloomsAssignmentService
         }
 
         // Extract tasks data
-        $tasksData = $assignments->map(fn($a) => [
+        $tasksData = $assignments->map(fn ($a) => [
             'bloom_level' => $a->bloom_level,
             'level_name' => $a->level_name,
             'activity_prompt' => $a->activity_prompt,
@@ -300,7 +309,7 @@ class BloomsAssignmentService
 
         // Choose a different random level (1 to 6)
         $currentLevel = $assignment->bloom_level;
-        $otherLevels = array_values(array_filter([1, 2, 3, 4, 5, 6], fn($l) => $l !== $currentLevel));
+        $otherLevels = array_values(array_filter([1, 2, 3, 4, 5, 6], fn ($l) => $l !== $currentLevel));
         $newLevel = $otherLevels[array_rand($otherLevels)];
 
         $activity = $this->resolveActivity($activities, $newLevel, $lesson);
@@ -338,9 +347,9 @@ class BloomsAssignmentService
 
         // Generic fallback prompt based on level verbs and lesson topic
         $topicTitle = $lesson->topic->title;
-        $subtopic = $lesson->subtopic ? " ({$lesson->subtopic})" : "";
+        $subtopic = $lesson->subtopic ? " ({$lesson->subtopic})" : '';
 
-        $fallbackPrompt = match($level) {
+        $fallbackPrompt = match ($level) {
             1 => "Level 1 (Remember): Define the key terms and list the core facts regarding {$topicTitle}{$subtopic}.",
             2 => "Level 2 (Understand): In your own words, summarize the primary concepts of {$topicTitle}{$subtopic}.",
             3 => "Level 3 (Apply): Apply the concepts of {$topicTitle}{$subtopic} to solve a real-world scenario or design a working test.",

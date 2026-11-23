@@ -4,16 +4,19 @@ namespace App\Services;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
+use App\Models\AcademySetting;
 use App\Models\ClassEnrollment;
+use App\Models\FeeInvoice;
+use App\Models\SchoolFeeStructure;
 use App\Models\SchoolSection;
 use App\Models\SchoolStream;
 use App\Models\SubjectMaster;
-use App\Models\AcademySetting;
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -30,6 +33,7 @@ class BulkImportService
         for ($i = 0; $i < $length; $i++) {
             $password .= $chars[random_int(0, $max)];
         }
+
         return $password;
     }
 
@@ -47,9 +51,9 @@ class BulkImportService
         }
 
         $headers = array_map(fn ($h) => strtolower(trim(str_replace([' ', '_', '-'], '', (string) $h))), array_shift($rows));
-        $sessionSetting = \App\Models\AcademySetting::get('academic_session');
+        $sessionSetting = AcademySetting::get('academic_session');
         $academicYear = $this->normalizeAcademicSession($sessionSetting);
-        if (!$academicYear) {
+        if (! $academicYear) {
             return ['success' => false, 'total' => 0, 'created' => 0, 'updated' => 0, 'parents_created' => 0, 'errors' => ['Configure a valid active academic session in School Settings before importing students.'], 'credentials' => []];
         }
 
@@ -74,31 +78,75 @@ class BulkImportService
             $guardianPhone = trim((string) ($data['guardianphone'] ?? ''));
             $studentPhone = trim((string) ($data['phone'] ?? ''));
 
-            if ($name === '') $errors[] = "Row {$rowNum}: Student name is required.";
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Row {$rowNum}: A valid student email is required; generated placeholder emails are not accepted.";
-            if ($admissionNo === '') $errors[] = "Row {$rowNum}: Admission number is required.";
-            if (mb_strlen($admissionNo) > 50) $errors[] = "Row {$rowNum}: Admission number cannot exceed 50 characters.";
-            if (mb_strlen($name) > 120) $errors[] = "Row {$rowNum}: Student name cannot exceed 120 characters.";
-            if (mb_strlen($email) > 150) $errors[] = "Row {$rowNum}: Student email cannot exceed 150 characters.";
-            if ($className === '' || $section === '') $errors[] = "Row {$rowNum}: Class and section are required and must already exist in academic master data.";
-            if (!preg_match('/^[A-Z]$/', $section)) $errors[] = "Row {$rowNum}: Section must be a single letter A-Z.";
+            if ($name === '') {
+                $errors[] = "Row {$rowNum}: Student name is required.";
+            }
+            if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = "Row {$rowNum}: A valid student email is required; generated placeholder emails are not accepted.";
+            }
+            if ($admissionNo === '') {
+                $errors[] = "Row {$rowNum}: Admission number is required.";
+            }
+            if (mb_strlen($admissionNo) > 50) {
+                $errors[] = "Row {$rowNum}: Admission number cannot exceed 50 characters.";
+            }
+            if (mb_strlen($name) > 120) {
+                $errors[] = "Row {$rowNum}: Student name cannot exceed 120 characters.";
+            }
+            if (mb_strlen($email) > 150) {
+                $errors[] = "Row {$rowNum}: Student email cannot exceed 150 characters.";
+            }
+            if ($className === '' || $section === '') {
+                $errors[] = "Row {$rowNum}: Class and section are required and must already exist in academic master data.";
+            }
+            if (! preg_match('/^[A-Z]$/', $section)) {
+                $errors[] = "Row {$rowNum}: Section must be a single letter A-Z.";
+            }
             $hasGuardianData = $guardianName !== '' || $guardianEmail !== '' || $guardianPhone !== '';
-            if (($createParentAccounts || $hasGuardianData) && ($guardianName === '' || !filter_var($guardianEmail, FILTER_VALIDATE_EMAIL) || $guardianPhone === '')) $errors[] = "Row {$rowNum}: Guardian name, valid guardian email and guardian phone must all be supplied together.";
-            if (mb_strlen($guardianName) > 120 || mb_strlen($guardianEmail) > 150) $errors[] = "Row {$rowNum}: Guardian name or email exceeds the supported length.";
-            if (isset($seenEmails[$email]) && $email !== '') $errors[] = "Row {$rowNum}: Duplicate student email in this CSV.";
-            if (isset($seenAdmissions[$admissionNo]) && $admissionNo !== '') $errors[] = "Row {$rowNum}: Duplicate admission number in this CSV.";
-            if ($email !== '') $seenEmails[$email] = true;
-            if ($admissionNo !== '') $seenAdmissions[$admissionNo] = true;
+            if (($createParentAccounts || $hasGuardianData) && ($guardianName === '' || ! filter_var($guardianEmail, FILTER_VALIDATE_EMAIL) || $guardianPhone === '')) {
+                $errors[] = "Row {$rowNum}: Guardian name, valid guardian email and guardian phone must all be supplied together.";
+            }
+            if (mb_strlen($guardianName) > 120 || mb_strlen($guardianEmail) > 150) {
+                $errors[] = "Row {$rowNum}: Guardian name or email exceeds the supported length.";
+            }
+            if (isset($seenEmails[$email]) && $email !== '') {
+                $errors[] = "Row {$rowNum}: Duplicate student email in this CSV.";
+            }
+            if (isset($seenAdmissions[$admissionNo]) && $admissionNo !== '') {
+                $errors[] = "Row {$rowNum}: Duplicate admission number in this CSV.";
+            }
+            if ($email !== '') {
+                $seenEmails[$email] = true;
+            }
+            if ($admissionNo !== '') {
+                $seenAdmissions[$admissionNo] = true;
+            }
 
             $rollRaw = trim((string) ($data['rollno'] ?? $data['rollnumber'] ?? ''));
-            if ($rollRaw !== '' && (!ctype_digit($rollRaw) || (int) $rollRaw < 1)) $errors[] = "Row {$rowNum}: Roll number must be a positive whole number.";
-            if ($studentPhone !== '' && mb_strlen($studentPhone) > 25) $errors[] = "Row {$rowNum}: Student phone number is too long.";
-            if ($guardianPhone !== '' && mb_strlen($guardianPhone) > 25) $errors[] = "Row {$rowNum}: Guardian phone number is too long.";
-            if (mb_strlen((string) ($data['bloodgroup'] ?? '')) > 10) $errors[] = "Row {$rowNum}: Blood group value is too long.";
-            if (mb_strlen((string) ($data['previousschoolname'] ?? $data['previousschool'] ?? $data['lastschool'] ?? '')) > 150) $errors[] = "Row {$rowNum}: Previous school name cannot exceed 150 characters.";
-            if (mb_strlen((string) ($data['previousschoolboard'] ?? $data['previousboard'] ?? $data['board'] ?? '')) > 60) $errors[] = "Row {$rowNum}: Previous school board cannot exceed 60 characters.";
-            if (mb_strlen((string) ($data['previousschoolyear'] ?? $data['passingyear'] ?? '')) > 30) $errors[] = "Row {$rowNum}: Previous school year cannot exceed 30 characters.";
-            if (mb_strlen((string) ($data['tcnumber'] ?? $data['previoustransfercertificate'] ?? $data['transfercertificateno'] ?? '')) > 60) $errors[] = "Row {$rowNum}: Transfer certificate number cannot exceed 60 characters.";
+            if ($rollRaw !== '' && (! ctype_digit($rollRaw) || (int) $rollRaw < 1)) {
+                $errors[] = "Row {$rowNum}: Roll number must be a positive whole number.";
+            }
+            if ($studentPhone !== '' && mb_strlen($studentPhone) > 25) {
+                $errors[] = "Row {$rowNum}: Student phone number is too long.";
+            }
+            if ($guardianPhone !== '' && mb_strlen($guardianPhone) > 25) {
+                $errors[] = "Row {$rowNum}: Guardian phone number is too long.";
+            }
+            if (mb_strlen((string) ($data['bloodgroup'] ?? '')) > 10) {
+                $errors[] = "Row {$rowNum}: Blood group value is too long.";
+            }
+            if (mb_strlen((string) ($data['previousschoolname'] ?? $data['previousschool'] ?? $data['lastschool'] ?? '')) > 150) {
+                $errors[] = "Row {$rowNum}: Previous school name cannot exceed 150 characters.";
+            }
+            if (mb_strlen((string) ($data['previousschoolboard'] ?? $data['previousboard'] ?? $data['board'] ?? '')) > 60) {
+                $errors[] = "Row {$rowNum}: Previous school board cannot exceed 60 characters.";
+            }
+            if (mb_strlen((string) ($data['previousschoolyear'] ?? $data['passingyear'] ?? '')) > 30) {
+                $errors[] = "Row {$rowNum}: Previous school year cannot exceed 30 characters.";
+            }
+            if (mb_strlen((string) ($data['tcnumber'] ?? $data['previoustransfercertificate'] ?? $data['transfercertificateno'] ?? '')) > 60) {
+                $errors[] = "Row {$rowNum}: Transfer certificate number cannot exceed 60 characters.";
+            }
 
             $prepared[] = [
                 'row' => $rowNum, 'name' => $name, 'email' => $email, 'admission' => $admissionNo,
@@ -113,8 +161,12 @@ class BulkImportService
                 'previous_school_remarks' => trim((string) ($data['previousschoolremarks'] ?? $data['tcremarks'] ?? '')) ?: null,
             ];
         }
-        if ($errors) return ['success' => false, 'total' => 0, 'created' => 0, 'updated' => 0, 'parents_created' => 0, 'errors' => $errors, 'credentials' => []];
-        if (!$prepared) return ['success' => false, 'total' => 0, 'created' => 0, 'updated' => 0, 'parents_created' => 0, 'errors' => ['No student records were found in the CSV.'], 'credentials' => []];
+        if ($errors) {
+            return ['success' => false, 'total' => 0, 'created' => 0, 'updated' => 0, 'parents_created' => 0, 'errors' => $errors, 'credentials' => []];
+        }
+        if (! $prepared) {
+            return ['success' => false, 'total' => 0, 'created' => 0, 'updated' => 0, 'parents_created' => 0, 'errors' => ['No student records were found in the CSV.'], 'credentials' => []];
+        }
 
         $created = 0;
         $updated = 0;
@@ -122,9 +174,9 @@ class BulkImportService
         $newAccountEmails = [];
         $credentials = [];
         try {
-            DB::transaction(function () use ($prepared, $academicYear, $createParentAccounts, $autoGeneratePassword, &$created, &$updated, &$parentsCreated, &$newAccountEmails, &$credentials) {
+            DB::transaction(function () use ($prepared, $academicYear, $createParentAccounts, &$created, &$updated, &$parentsCreated, &$newAccountEmails, &$credentials) {
                 foreach ($prepared as $item) {
-                    $shortAcademicYear = substr($academicYear, 0, 4) . '-' . substr($academicYear, -2);
+                    $shortAcademicYear = substr($academicYear, 0, 4).'-'.substr($academicYear, -2);
                     $classQuery = AcademicClass::query()
                         ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($item['class_name'])])
                         ->whereRaw('UPPER(TRIM(section)) = ?', [$item['section']])
@@ -134,10 +186,10 @@ class BulkImportService
                     }
                     $matchingClasses = $classQuery->lockForUpdate()->get();
                     if ($matchingClasses->count() !== 1) {
-                        throw new \RuntimeException("Row {$item['row']}: Class '{$item['class_name']}' section {$item['section']}" . ($item['stream'] ? " stream {$item['stream']}" : '') . " must match exactly one class configured for active session {$academicYear}. Create or correct master data first.");
+                        throw new \RuntimeException("Row {$item['row']}: Class '{$item['class_name']}' section {$item['section']}".($item['stream'] ? " stream {$item['stream']}" : '')." must match exactly one class configured for active session {$academicYear}. Create or correct master data first.");
                     }
                     $class = $matchingClasses->first();
-                    $feeStructures = \App\Models\SchoolFeeStructure::query()
+                    $feeStructures = SchoolFeeStructure::query()
                         ->where('class_id', $class->id)
                         ->whereIn('academic_year', array_unique([$academicYear, $shortAcademicYear]))
                         ->where('amount', '>', 0)
@@ -148,17 +200,17 @@ class BulkImportService
 
                     $studentByEmail = User::where('email', $item['email'])->lockForUpdate()->first();
                     $studentByAdmission = User::where('admission_number', $item['admission'])->lockForUpdate()->first();
-                    if ($studentByEmail && !$studentByEmail->isStudent()) {
+                    if ($studentByEmail && ! $studentByEmail->isStudent()) {
                         throw new \RuntimeException("Row {$item['row']}: Student email belongs to a non-student account.");
                     }
-                    if ($studentByAdmission && !$studentByAdmission->isStudent()) {
+                    if ($studentByAdmission && ! $studentByAdmission->isStudent()) {
                         throw new \RuntimeException("Row {$item['row']}: Admission number belongs to a non-student account.");
                     }
                     if ($studentByEmail && $studentByAdmission && $studentByEmail->id !== $studentByAdmission->id) {
                         throw new \RuntimeException("Row {$item['row']}: Student email and admission number identify different accounts.");
                     }
                     $student = $studentByEmail ?: $studentByAdmission;
-                    $isNewStudent = !$student;
+                    $isNewStudent = ! $student;
                     if ($isNewStudent && $class->capacity) {
                         $activeEnrollmentCount = ClassEnrollment::where('class_id', $class->id)
                             ->where('academic_year', $academicYear)->where('status', 'active')->count();
@@ -174,7 +226,7 @@ class BulkImportService
                         ->where('class_id', '!=', $class->id)->exists()) {
                         throw new \RuntimeException("Row {$item['row']}: Student already has an active enrollment in another class for this session. Use the formal class-transfer workflow.");
                     }
-                    if (!$student && User::where('student_id_number', $item['admission'])->exists()) {
+                    if (! $student && User::where('student_id_number', $item['admission'])->exists()) {
                         throw new \RuntimeException("Row {$item['row']}: Admission number is already in use.");
                     }
                     if (ClassEnrollment::where('class_id', $class->id)->where('academic_year', $academicYear)
@@ -184,10 +236,12 @@ class BulkImportService
                     }
 
                     $roll = $item['roll'];
-                    if ($roll !== null && !ClassEnrollment::isRollNumberAvailable($class->id, $roll, $student?->id, $academicYear)) {
+                    if ($roll !== null && ! ClassEnrollment::isRollNumberAvailable($class->id, $roll, $student?->id, $academicYear)) {
                         throw new \RuntimeException("Row {$item['row']}: Roll number {$roll} is already assigned in this class.");
                     }
-                    if ($roll === null) $roll = ClassEnrollment::generateNextRollNumber($class->id, $student?->id, $academicYear);
+                    if ($roll === null) {
+                        $roll = ClassEnrollment::generateNextRollNumber($class->id, $student?->id, $academicYear);
+                    }
                     if ($class->capacity && $roll > (int) $class->capacity) {
                         throw new \RuntimeException("Row {$item['row']}: Roll number exceeds the configured class capacity.");
                     }
@@ -221,19 +275,19 @@ class BulkImportService
                             'email' => $student->email,
                             'id_number' => $student->admission_number,
                             'password' => $studentPlainPassword,
-                            'detail' => $class->display_name ?? ($class->name . ' - ' . $class->section),
+                            'detail' => $class->display_name ?? ($class->name.' - '.$class->section),
                         ];
                     }
 
                     if ($createParentAccounts) {
                         $parent = User::where('email', $item['guardian_email'])->lockForUpdate()->first();
-                        if ($parent && !$parent->isParent()) {
+                        if ($parent && ! $parent->isParent()) {
                             throw new \RuntimeException("Row {$item['row']}: Guardian email belongs to a non-parent account.");
                         }
                         if ($student->parent_id && (int) $student->parent_id !== (int) ($parent?->id ?? 0)) {
                             throw new \RuntimeException("Row {$item['row']}: Student is already linked to a different parent account. Resolve the guardian relationship before importing this row.");
                         }
-                        if (!$parent) {
+                        if (! $parent) {
                             $parentPlainPassword = $this->generateRandomPassword(10);
                             $parent = User::create([
                                 'name' => $item['guardian_name'], 'email' => $item['guardian_email'],
@@ -247,9 +301,9 @@ class BulkImportService
                                 'name' => $parent->name,
                                 'role' => 'parent',
                                 'email' => $parent->email,
-                                'id_number' => 'Guardian of ' . $student->admission_number,
+                                'id_number' => 'Guardian of '.$student->admission_number,
                                 'password' => $parentPlainPassword,
-                                'detail' => 'Ward: ' . $student->name,
+                                'detail' => 'Ward: '.$student->name,
                             ];
                         }
                         $student->update(['parent_id' => $parent->id]);
@@ -276,8 +330,8 @@ class BulkImportService
                             $amount = round((float) $feeStructure->amount, 2);
                             $frequency = in_array($feeStructure->due_frequency, ['monthly', 'quarterly', 'annual'], true)
                                 ? $feeStructure->due_frequency : 'manual';
-                            \App\Models\FeeInvoice::create([
-                                'invoice_number' => 'SCH-' . now()->format('Ymd') . '-' . Str::upper(Str::random(10)),
+                            FeeInvoice::create([
+                                'invoice_number' => 'SCH-'.now()->format('Ymd').'-'.Str::upper(Str::random(10)),
                                 'student_id' => $student->id,
                                 'title' => $feeStructure->fee_title,
                                 'category' => $feeStructure->fee_type,
@@ -290,7 +344,7 @@ class BulkImportService
                                 'billing_type' => $frequency,
                                 'billing_month' => $frequency === 'monthly' ? now()->format('Y-m') : null,
                                 'due_date' => now()->addDays(15)->toDateString(),
-                                'notes' => 'Generated from fee structure #' . $feeStructure->id . ' for academic session ' . $academicYear,
+                                'notes' => 'Generated from fee structure #'.$feeStructure->id.' for academic session '.$academicYear,
                             ]);
                         }
                     }
@@ -298,6 +352,7 @@ class BulkImportService
             });
         } catch (\Throwable $e) {
             report($e);
+
             return ['success' => false, 'total' => 0, 'created' => 0, 'updated' => 0, 'parents_created' => 0, 'errors' => [$e instanceof \RuntimeException ? $e->getMessage() : 'Student import failed. No records were committed. Check application logs for details.'], 'credentials' => []];
         }
 
@@ -305,8 +360,10 @@ class BulkImportService
         $notificationFailures = [];
         foreach (array_unique($newAccountEmails) as $email) {
             try {
-                $status = \Illuminate\Support\Facades\Password::sendResetLink(['email' => $email]);
-                if ($status !== \Illuminate\Support\Facades\Password::RESET_LINK_SENT) $notificationFailures[] = $email;
+                $status = Password::sendResetLink(['email' => $email]);
+                if ($status !== Password::RESET_LINK_SENT) {
+                    $notificationFailures[] = $email;
+                }
             } catch (\Throwable $e) {
                 report($e);
                 $notificationFailures[] = $email;
@@ -314,7 +371,10 @@ class BulkImportService
         }
 
         $resultErrors = [];
-        if ($notificationFailures) $resultErrors[] = 'Some account setup emails could not be sent: ' . implode(', ', $notificationFailures) . '. Resend setup links from Account Management.';
+        if ($notificationFailures) {
+            $resultErrors[] = 'Some account setup emails could not be sent: '.implode(', ', $notificationFailures).'. Resend setup links from Account Management.';
+        }
+
         return [
             'success' => true, 'total' => $created + $updated, 'created' => $created,
             'updated' => $updated, 'parents_created' => $parentsCreated,
@@ -325,8 +385,13 @@ class BulkImportService
     private function normalizeAcademicSession(?string $session): ?string
     {
         $session = trim((string) $session);
-        if (preg_match('/^(\\d{4})-(\\d{2})$/', $session, $matches)) return $matches[1] . '-' . ((int) $matches[1] + 1);
-        if (preg_match('/^\\d{4}-\\d{4}$/', $session)) return $session;
+        if (preg_match('/^(\\d{4})-(\\d{2})$/', $session, $matches)) {
+            return $matches[1].'-'.((int) $matches[1] + 1);
+        }
+        if (preg_match('/^\\d{4}-\\d{4}$/', $session)) {
+            return $session;
+        }
+
         return null;
     }
 
@@ -347,7 +412,7 @@ class BulkImportService
             ];
         }
 
-        $headers = array_map(fn($h) => strtolower(trim(str_replace([' ', '_', '-'], '', (string)$h))), array_shift($rows));
+        $headers = array_map(fn ($h) => strtolower(trim(str_replace([' ', '_', '-'], '', (string) $h))), array_shift($rows));
 
         $created = 0;
         $updated = 0;
@@ -366,16 +431,17 @@ class BulkImportService
 
                 $name = $data['fullname'] ?? $data['name'] ?? $data['teachername'] ?? $data['staffname'] ?? null;
                 $email = $data['email'] ?? null;
-                $phone = !empty(trim((string)($data['phone'] ?? ''))) ? trim((string)$data['phone']) : null;
-                $role = strtolower(trim((string)($data['role'] ?? 'teacher')));
-                if (!in_array($role, ['teacher', 'admin'])) {
+                $phone = ! empty(trim((string) ($data['phone'] ?? ''))) ? trim((string) $data['phone']) : null;
+                $role = strtolower(trim((string) ($data['role'] ?? 'teacher')));
+                if (! in_array($role, ['teacher', 'admin'])) {
                     $role = 'teacher';
                 }
                 $employeeId = $data['employeeid'] ?? $data['idnumber'] ?? $data['staffid'] ?? null;
                 $designation = $data['designation'] ?? $data['title'] ?? null;
 
-                if (!$name || !$email) {
+                if (! $name || ! $email) {
                     $errors[] = "Row {$rowNum}: Name and Email are mandatory.";
+
                     continue;
                 }
 
@@ -388,10 +454,10 @@ class BulkImportService
                         $conflictQuery->where('id', '!=', $user->id);
                     }
                     if ($conflictQuery->exists()) {
-                        $employeeId = $employeeId . '-' . Str::upper(Str::random(3));
+                        $employeeId = $employeeId.'-'.Str::upper(Str::random(3));
                     }
                 } else {
-                    $employeeId = 'EMP-' . Str::upper(Str::random(5));
+                    $employeeId = 'EMP-'.Str::upper(Str::random(5));
                 }
 
                 if ($user) {
@@ -442,12 +508,13 @@ class BulkImportService
             ];
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return [
                 'success' => false,
                 'total' => 0,
                 'created' => 0,
                 'updated' => 0,
-                'errors' => ['Staff import failed: ' . $e->getMessage()],
+                'errors' => ['Staff import failed: '.$e->getMessage()],
                 'credentials' => [],
             ];
         }
@@ -471,7 +538,7 @@ class BulkImportService
             ];
         }
 
-        $headers = array_map(fn($h) => strtolower(trim(str_replace([' ', '_', '-'], '', (string)$h))), array_shift($rows));
+        $headers = array_map(fn ($h) => strtolower(trim(str_replace([' ', '_', '-'], '', (string) $h))), array_shift($rows));
         $created = 0;
         $updated = 0;
         $linked = 0;
@@ -493,8 +560,9 @@ class BulkImportService
                 $address = $data['address'] ?? null;
                 $studentRef = $data['studentadmissionnumber'] ?? $data['studentadmissionno'] ?? $data['admissionnumber'] ?? $data['admissionno'] ?? $data['studentid'] ?? $data['studentemail'] ?? null;
 
-                if (!$name || !$email) {
+                if (! $name || ! $email) {
                     $errors[] = "Row {$rowNum}: Parent Name and Email are mandatory.";
+
                     continue;
                 }
 
@@ -528,7 +596,7 @@ class BulkImportService
                         'name' => $parent->name,
                         'email' => $parent->email,
                         'role' => 'parent',
-                        'id_number' => 'PAR-' . $parent->id,
+                        'id_number' => 'PAR-'.$parent->id,
                         'password' => $plainPassword,
                         'detail' => $studentRef ? "Guardian (Child: {$studentRef})" : 'Parent Account',
                     ];
@@ -539,8 +607,8 @@ class BulkImportService
                     $student = User::where('role', 'student')
                         ->where(function ($q) use ($studentRef) {
                             $q->where('admission_number', trim($studentRef))
-                              ->orWhere('student_id_number', trim($studentRef))
-                              ->orWhere('email', trim($studentRef));
+                                ->orWhere('student_id_number', trim($studentRef))
+                                ->orWhere('email', trim($studentRef));
                         })
                         ->first();
 
@@ -569,13 +637,14 @@ class BulkImportService
             ];
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return [
                 'success' => false,
                 'total' => 0,
                 'created' => 0,
                 'updated' => 0,
                 'linked' => 0,
-                'errors' => ['Parent import failed: ' . $e->getMessage()],
+                'errors' => ['Parent import failed: '.$e->getMessage()],
                 'credentials' => [],
             ];
         }
@@ -610,9 +679,10 @@ class BulkImportService
             fclose($handle);
         }, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="generated_credentials_' . date('Y-m-d_His') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="generated_credentials_'.date('Y-m-d_His').'.csv"',
         ]);
     }
+
     public function importClassesAndSubjectsFromCsv(UploadedFile $file, ?User $actor = null, ?Request $request = null): array
     {
         $rows = $this->parseCsvFile($file);
@@ -625,7 +695,7 @@ class BulkImportService
         $subjectsCreated = 0;
         $errors = [];
         $academicYear = $this->normalizeAcademicSession(AcademySetting::get('academic_session'));
-        if (!$academicYear) {
+        if (! $academicYear) {
             return ['success' => false, 'total' => 0, 'created' => 0, 'updated' => 0, 'errors' => ['Configure a valid active academic session before importing classes and subjects.']];
         }
 
@@ -648,38 +718,44 @@ class BulkImportService
                 $subjectCode = strtoupper(trim((string) ($data['subjectcode'] ?? $data['code'] ?? '')));
                 $weeklyPeriods = isset($data['weeklyperiods']) && $data['weeklyperiods'] !== '' ? (int) $data['weeklyperiods'] : null;
 
-                if (!$gradeLevel && $className && preg_match('/\d+/', $className, $matches)) {
+                if (! $gradeLevel && $className && preg_match('/\d+/', $className, $matches)) {
                     $gradeLevel = (int) $matches[0];
                 }
-                if (!$className && $gradeLevel) {
+                if (! $className && $gradeLevel) {
                     $className = 'Class '.$gradeLevel;
                 }
-                if (!$className || !$gradeLevel || !in_array($gradeLevel, config('school.grade_levels', []), true)) {
+                if (! $className || ! $gradeLevel || ! in_array($gradeLevel, config('school.grade_levels', []), true)) {
                     $errors[] = "Row {$rowNum}: A valid class name and grade from 1 to 12 are required.";
+
                     continue;
                 }
-                if (!preg_match('/^[A-Z]$/', $sectionName)) {
+                if (! preg_match('/^[A-Z]$/', $sectionName)) {
                     $errors[] = "Row {$rowNum}: Section must be one letter from A to Z.";
+
                     continue;
                 }
-                if ($streamName === '' || !SchoolStream::active()->where('name', $streamName)->exists()) {
+                if ($streamName === '' || ! SchoolStream::active()->where('name', $streamName)->exists()) {
                     $errors[] = "Row {$rowNum}: Select an existing active academic stream; imports cannot create stream master records.";
+
                     continue;
                 }
 
                 $sectionRecord = SchoolSection::where('stream', $streamName)
                     ->where('name', $sectionName)->where('is_active', true)->first();
-                if (!$sectionRecord) {
+                if (! $sectionRecord) {
                     $errors[] = "Row {$rowNum}: Section {$sectionName} does not exist as an active section in {$streamName}. Create it in Section Master first.";
+
                     continue;
                 }
                 $capacity = $capacity ?? (int) $sectionRecord->capacity;
                 if ($capacity < config('school.capacity.minimum') || $capacity > config('school.capacity.maximum')) {
                     $errors[] = "Row {$rowNum}: Capacity must be within the configured school capacity limits, or left blank to use the section's configured capacity.";
+
                     continue;
                 }
                 if ($capacity > (int) $sectionRecord->capacity) {
                     $errors[] = "Row {$rowNum}: Capacity cannot exceed the configured section capacity of {$sectionRecord->capacity}.";
+
                     continue;
                 }
                 if ($room === null) {
@@ -694,9 +770,10 @@ class BulkImportService
                 if ($academicClass) {
                     if ($academicClass->section_id && (int) $academicClass->section_id !== (int) $sectionRecord->id) {
                         $errors[] = "Row {$rowNum}: Existing class section identity conflicts with Section Master.";
+
                         continue;
                     }
-                    if (!$academicClass->section_id) {
+                    if (! $academicClass->section_id) {
                         $academicClass->update(['section_id' => $sectionRecord->id]);
                     }
                 } else {
@@ -712,7 +789,7 @@ class BulkImportService
                     ]);
                     $classesCreated++;
                 }
-                $inheritance = app(\App\Services\SubjectCurriculumInheritanceService::class)->inheritForClass($academicClass, $actor, $request);
+                $inheritance = app(SubjectCurriculumInheritanceService::class)->inheritForClass($academicClass, $actor, $request);
                 $subjectsCreated += $inheritance['created'];
 
                 if ($subjectName !== '') {
@@ -723,18 +800,21 @@ class BulkImportService
                     $master = $subjectCode !== ''
                         ? $masterQuery->whereRaw('UPPER(code) = ?', [preg_replace('/-[0-9]+[A-Za-z]*$/', '', $subjectCode)])->first()
                         : $masterQuery->first();
-                    if (!$master) {
+                    if (! $master) {
                         $errors[] = "Row {$rowNum}: Subject '{$subjectName}' is not an active subject master for {$streamName}; no subject mapping was created.";
+
                         continue;
                     }
                     $canonicalCode = $master->generateCodeForGrade($gradeLevel);
-                    if ($subjectCode !== '' && !in_array($subjectCode, [strtoupper($master->code), strtoupper($canonicalCode)], true)) {
+                    if ($subjectCode !== '' && ! in_array($subjectCode, [strtoupper($master->code), strtoupper($canonicalCode)], true)) {
                         $errors[] = "Row {$rowNum}: Subject code does not match the selected subject master.";
+
                         continue;
                     }
                     $periods = $weeklyPeriods ?? (int) $master->default_periods;
                     if ($periods < 1 || $periods > 40) {
                         $errors[] = "Row {$rowNum}: Weekly periods must be configured in the CSV or subject master.";
+
                         continue;
                     }
 
@@ -746,14 +826,17 @@ class BulkImportService
                     if ($existingSubject) {
                         if (strtoupper($existingSubject->code) !== strtoupper($canonicalCode) || strtoupper($existingSubject->name) !== strtoupper($master->name) || ($existingSubject->subject_master_id && (int) $existingSubject->subject_master_id !== (int) $master->id)) {
                             $errors[] = "Row {$rowNum}: The class already has a subject with a conflicting name, code or master mapping; no duplicate mapping was created.";
-                        } elseif (!$existingSubject->subject_master_id) {
+                        } elseif (! $existingSubject->subject_master_id) {
                             $existingSubject->subject_master_id = $master->id;
                             $existingSubject->teacher_id = $existingSubject->teacher_id ?? $master->default_teacher_id;
-                            if ($weeklyPeriods) $existingSubject->weekly_periods = $weeklyPeriods;
+                            if ($weeklyPeriods) {
+                                $existingSubject->weekly_periods = $weeklyPeriods;
+                            }
                             $existingSubject->save();
                         } elseif ($weeklyPeriods) {
                             $existingSubject->update(['weekly_periods' => $weeklyPeriods]);
                         }
+
                         continue;
                     }
                     AcademicSubject::create([
@@ -770,10 +853,12 @@ class BulkImportService
 
             if ($errors) {
                 DB::rollBack();
+
                 return ['success' => false, 'total' => 0, 'created' => 0, 'updated' => 0, 'classes_count' => 0, 'subjects_count' => 0, 'errors' => $errors];
             }
 
             DB::commit();
+
             return [
                 'success' => true,
                 'total' => $classesCreated + $subjectsCreated,
@@ -786,6 +871,7 @@ class BulkImportService
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);
+
             return ['success' => false, 'total' => 0, 'created' => 0, 'updated' => 0, 'errors' => ['Import failed. No changes were committed. '.$e->getMessage()]];
         }
     }
@@ -908,8 +994,9 @@ class BulkImportService
     {
         $mapped = [];
         foreach ($headers as $i => $header) {
-            $mapped[$header] = isset($row[$i]) ? trim((string)$row[$i]) : null;
+            $mapped[$header] = isset($row[$i]) ? trim((string) $row[$i]) : null;
         }
+
         return $mapped;
     }
 }

@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('academic_classes', function (Blueprint $table) {
-            if (!Schema::hasColumn('academic_classes', 'stream')) {
+            if (! Schema::hasColumn('academic_classes', 'stream')) {
                 $table->string('stream', 50)->nullable()->after('grade_level');
             }
         });

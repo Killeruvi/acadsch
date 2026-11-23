@@ -18,10 +18,17 @@ class SchoolComplianceDocument extends Model
 
     public function getExpiryStatusAttribute(): string
     {
-        if (!$this->expires_on) return 'no_expiry';
+        if (! $this->expires_on) {
+            return 'no_expiry';
+        }
         $expiry = $this->expires_on->copy()->endOfDay();
-        if ($expiry->lt(now())) return 'expired';
-        if ($expiry->lte(now()->copy()->addDays(60)->endOfDay())) return 'expiring';
+        if ($expiry->lt(now())) {
+            return 'expired';
+        }
+        if ($expiry->lte(now()->copy()->addDays(60)->endOfDay())) {
+            return 'expiring';
+        }
+
         return 'valid';
     }
 }

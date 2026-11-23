@@ -72,7 +72,7 @@ class Schedule extends Model
         }
 
         if ($this->academicClass) {
-            return $this->academicClass->name . ($this->batch ? ' - ' . $this->batch->name : '');
+            return $this->academicClass->name.($this->batch ? ' - '.$this->batch->name : '');
         }
 
         return $this->title;

@@ -3,7 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
-use App\Models\AcademySetting;
+use App\Models\AcademicSubject;
+use App\Models\SchoolPeriodTimetable;
 use App\Models\SchoolSection;
 use App\Models\User;
 use App\Services\SchoolBrandingService;
@@ -257,7 +258,7 @@ class SchoolBrandingAndSectionTest extends TestCase
         ]);
 
         // Book teacher for Class 1 on Monday Period 1
-        \App\Models\SchoolPeriodTimetable::create([
+        SchoolPeriodTimetable::create([
             'class_id' => $class1->id,
             'teacher_id' => $teacher->id,
             'day_of_week' => 'Monday',
@@ -267,7 +268,7 @@ class SchoolBrandingAndSectionTest extends TestCase
             'is_break' => false,
         ]);
 
-        $subject = \App\Models\AcademicSubject::firstOrCreate([
+        $subject = AcademicSubject::firstOrCreate([
             'class_id' => $class2->id,
             'code' => 'SCI-06',
         ], [

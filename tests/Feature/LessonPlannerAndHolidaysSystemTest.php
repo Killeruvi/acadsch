@@ -3,13 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
-use App\Models\AcademicHoliday;
 use App\Models\AcademicSubject;
 use App\Models\CurriculumTopic;
 use App\Models\LessonPlan;
 use App\Models\User;
 use App\Services\AcademicCalendarService;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,9 +16,13 @@ class LessonPlannerAndHolidaysSystemTest extends TestCase
     use RefreshDatabase;
 
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $academicClass;
+
     protected AcademicSubject $subject;
+
     protected CurriculumTopic $topic;
 
     protected function setUp(): void

@@ -103,7 +103,7 @@ class MotivationService
             'meaning' => 'Self-reliance is the greatest source of strength and sovereignty.',
             'tag' => 'Visionary Self-Reliance',
             'category' => 'Science',
-        ]
+        ],
     ];
 
     /**
@@ -280,7 +280,8 @@ class MotivationService
 
     public static function getDailyQuote(): array
     {
-        $dayOfYear = (int)date('z');
+        $dayOfYear = (int) date('z');
+
         return self::$quotes[$dayOfYear % count(self::$quotes)];
     }
 
@@ -291,7 +292,8 @@ class MotivationService
 
     public static function getDailyFact(): array
     {
-        $dayOfYear = (int)date('z');
+        $dayOfYear = (int) date('z');
+
         return self::$facts[$dayOfYear % count(self::$facts)];
     }
 

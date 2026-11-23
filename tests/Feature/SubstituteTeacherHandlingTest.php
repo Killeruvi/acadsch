@@ -9,7 +9,9 @@ use App\Models\SchoolPeriod;
 use App\Models\SchoolPeriodSubstitute;
 use App\Models\SchoolPeriodTimetable;
 use App\Models\User;
+use App\Services\AttendanceAccessControlService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class SubstituteTeacherHandlingTest extends TestCase
@@ -17,11 +19,17 @@ class SubstituteTeacherHandlingTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $teacherPrimary;
+
     private User $teacherSubstitute;
+
     private User $teacherBusy;
+
     private AcademicClass $class10;
+
     private AcademicSubject $math;
+
     private SchoolPeriodTimetable $slotPeriod1;
 
     protected function setUp(): void
@@ -230,8 +238,8 @@ class SubstituteTeacherHandlingTest extends TestCase
             'assigned_by' => $this->admin->id,
         ]);
 
-        $service = app(\App\Services\AttendanceAccessControlService::class);
-        $request = \Illuminate\Http\Request::create('/school/attendance', 'POST');
+        $service = app(AttendanceAccessControlService::class);
+        $request = Request::create('/school/attendance', 'POST');
         $result = $service->validateAttendanceAttempt(
             $request,
             $this->teacherSubstitute,

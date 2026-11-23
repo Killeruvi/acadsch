@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\InAppNotification;
 use App\Models\User;
 use App\Models\UserBadge;
-use App\Services\SchoolBrandingService;
 use Carbon\Carbon;
 
 class BirthdayService
@@ -15,7 +14,7 @@ class BirthdayService
      */
     public static function checkAndCelebrate(User $user): ?array
     {
-        if (!$user->date_of_birth) {
+        if (! $user->date_of_birth) {
             return null;
         }
 
@@ -29,7 +28,7 @@ class BirthdayService
         $school = SchoolBrandingService::get();
         $schoolName = $school['name'] ?? 'PrimeOS Academy';
         $currentYear = $today->year;
-        $badgeKey = 'birthday_star_' . $currentYear;
+        $badgeKey = 'birthday_star_'.$currentYear;
 
         // Check if badge already given for this year
         $existingBadge = UserBadge::where('user_id', $user->id)
@@ -38,7 +37,7 @@ class BirthdayService
 
         $alreadyAwardedThisYear = (bool) $existingBadge;
 
-        if (!$alreadyAwardedThisYear) {
+        if (! $alreadyAwardedThisYear) {
             // 1. Award +100 Birthday Bonus XP
             $user->increment('xp_points', 100);
             $user->refreshTier();

@@ -21,25 +21,30 @@ class LiveQuizController extends Controller
     protected function authorizeManageQuiz(?LiveQuiz $quiz = null): void
     {
         $user = Auth::user();
-        if (!$user || (!$user->isTeacher() && !$user->isAdmin())) {
+        if (! $user || (! $user->isTeacher() && ! $user->isAdmin())) {
             abort(403, 'Unauthorized. Faculty credentials required to manage quiz arenas.');
         }
 
-        if ($quiz && !$user->isAdmin() && $quiz->creator_id && (int)$quiz->creator_id !== (int)$user->id) {
+        if ($quiz && ! $user->isAdmin() && $quiz->creator_id && (int) $quiz->creator_id !== (int) $user->id) {
             abort(403, 'Unauthorized to modify quizzes created by another faculty member.');
         }
         if ($quiz && $quiz->attempts()->exists()) {
             abort(409, 'This quiz has recorded attempts. Its questions and scoring rules are locked to preserve result integrity. Create a new quiz for revised content.');
         }
     }
+
     public function index(Request $request): View
     {
         $user = Auth::user();
-        if (!$user->isStudent() && !$user->isTeacher() && !$user->isAdmin()) abort(403, 'Quizzes are not available for this role.');
+        if (! $user->isStudent() && ! $user->isTeacher() && ! $user->isAdmin()) {
+            abort(403, 'Quizzes are not available for this role.');
+        }
         $allClasses = AcademicClass::orderBy('grade_level')->get();
         if ($user->isStudent()) {
             $visibleClassIds = collect([$user->current_class_id, $user->batch?->class_id])->filter();
-            if (method_exists($user, 'classEnrollments')) $visibleClassIds = $visibleClassIds->merge($user->classEnrollments()->pluck('class_id'));
+            if (method_exists($user, 'classEnrollments')) {
+                $visibleClassIds = $visibleClassIds->merge($user->classEnrollments()->pluck('class_id'));
+            }
             $allClasses = $allClasses->whereIn('id', $visibleClassIds->unique());
             $allSubjects = AcademicSubject::whereIn('class_id', $visibleClassIds->unique())->orderBy('name')->get();
         } else {
@@ -52,7 +57,9 @@ class LiveQuizController extends Controller
         $query = LiveQuiz::with(['creator', 'academicClass', 'subject'])->withCount('questions');
         if ($user->isStudent()) {
             $classIds = collect([$user->current_class_id, $user->batch?->class_id])->filter();
-            if (method_exists($user, 'classEnrollments')) $classIds = $classIds->merge($user->classEnrollments()->pluck('class_id'));
+            if (method_exists($user, 'classEnrollments')) {
+                $classIds = $classIds->merge($user->classEnrollments()->pluck('class_id'));
+            }
             $query->where('status', 'active')->where(function ($q) use ($classIds) {
                 $q->whereNull('class_id')->orWhereIn('class_id', $classIds->unique()->values());
             });
@@ -66,11 +73,11 @@ class LiveQuizController extends Controller
             $query->where('status', $statusFilter);
         }
 
-        if (!empty($searchTerm)) {
+        if (! empty($searchTerm)) {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('title', 'like', "%{$searchTerm}%")
-                  ->orWhere('access_code', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%");
+                    ->orWhere('access_code', 'like', "%{$searchTerm}%")
+                    ->orWhere('description', 'like', "%{$searchTerm}%");
             });
         }
 
@@ -88,14 +95,22 @@ class LiveQuizController extends Controller
     public function show(LiveQuiz $quiz, Request $request): View
     {
         $user = Auth::user();
-        if (!$user->isStudent() && !$user->isTeacher() && !$user->isAdmin()) abort(403, 'Quizzes are not available for this role.');
+        if (! $user->isStudent() && ! $user->isTeacher() && ! $user->isAdmin()) {
+            abort(403, 'Quizzes are not available for this role.');
+        }
         $quiz->load(['academicClass', 'subject', 'creator']);
         if ($user->isStudent()) {
-            if ($quiz->status !== 'active') abort(404);
+            if ($quiz->status !== 'active') {
+                abort(404);
+            }
             if ($quiz->class_id) {
                 $classIds = collect([$user->current_class_id, $user->batch?->class_id])->filter()->map(fn ($id) => (int) $id);
-                if (method_exists($user, 'classEnrollments')) $classIds = $classIds->merge($user->classEnrollments()->pluck('class_id')->map(fn ($id) => (int) $id));
-                if (!$classIds->contains((int) $quiz->class_id)) abort(403, 'This quiz is not assigned to your class.');
+                if (method_exists($user, 'classEnrollments')) {
+                    $classIds = $classIds->merge($user->classEnrollments()->pluck('class_id')->map(fn ($id) => (int) $id));
+                }
+                if (! $classIds->contains((int) $quiz->class_id)) {
+                    abort(403, 'This quiz is not assigned to your class.');
+                }
             }
         }
 
@@ -106,7 +121,7 @@ class LiveQuizController extends Controller
 
         // Students receive no answer key or explanation before attempting the quiz.
         $questions = $quiz->questions()->orderBy('id')->get();
-        if ($user->isStudent() && !$previousAttempt) {
+        if ($user->isStudent() && ! $previousAttempt) {
             $questions->each(function ($question) {
                 $question->setAttribute('correct_option', null);
                 $question->setAttribute('explanation', null);
@@ -133,12 +148,18 @@ class LiveQuizController extends Controller
     public function submit(Request $request, LiveQuiz $quiz): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isStudent()) abort(403, 'Only students can participate in live quizzes.');
+        if (! $user->isStudent()) {
+            abort(403, 'Only students can participate in live quizzes.');
+        }
         $quiz->load('questions');
         if ($quiz->class_id) {
             $classIds = collect([$user->current_class_id, $user->batch?->class_id])->filter()->map(fn ($id) => (int) $id);
-            if (method_exists($user, 'classEnrollments')) $classIds = $classIds->merge($user->classEnrollments()->pluck('class_id')->map(fn ($id) => (int) $id));
-            if (!$classIds->contains((int) $quiz->class_id)) abort(403, 'This quiz is not assigned to your class.');
+            if (method_exists($user, 'classEnrollments')) {
+                $classIds = $classIds->merge($user->classEnrollments()->pluck('class_id')->map(fn ($id) => (int) $id));
+            }
+            if (! $classIds->contains((int) $quiz->class_id)) {
+                abort(403, 'This quiz is not assigned to your class.');
+            }
         }
         if ($quiz->status !== 'active') {
             return back()->with('error', 'This live quiz arena is currently not active.');
@@ -210,7 +231,7 @@ class LiveQuizController extends Controller
                 'title' => 'Speed Quizzer',
                 'icon' => '⚡',
                 'category' => 'academics',
-                'description' => "Achieved 100% accuracy in a live competitive quiz sprint!",
+                'description' => 'Achieved 100% accuracy in a live competitive quiz sprint!',
                 'awarded_at' => now(),
             ]);
         }
@@ -240,13 +261,15 @@ class LiveQuizController extends Controller
             'questions.*.points' => 'nullable|integer|min:1',
         ]);
 
-        if (!empty($validated['class_id']) && !empty($validated['subject_id'])) {
+        if (! empty($validated['class_id']) && ! empty($validated['subject_id'])) {
             $class = AcademicClass::findOrFail($validated['class_id']);
-            if (!$class->subjects()->whereKey($validated['subject_id'])->exists()) {
+            if (! $class->subjects()->whereKey($validated['subject_id'])->exists()) {
                 return back()->withErrors(['subject_id' => 'The selected subject is not assigned to this class.'])->withInput();
             }
             $subject = AcademicSubject::findOrFail($validated['subject_id']);
-            if (Auth::user()->isTeacher() && (int) $subject->teacher_id !== (int) Auth::id()) abort(403, 'You can only create quizzes for subjects assigned to you.');
+            if (Auth::user()->isTeacher() && (int) $subject->teacher_id !== (int) Auth::id()) {
+                abort(403, 'You can only create quizzes for subjects assigned to you.');
+            }
         }
 
         $quiz = LiveQuiz::create([
@@ -255,13 +278,13 @@ class LiveQuizController extends Controller
             'subject_id' => $validated['subject_id'] ?? null,
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
-            'access_code' => 'QZ-' . strtoupper(Str::random(5)),
+            'access_code' => 'QZ-'.strtoupper(Str::random(5)),
             'time_per_question' => $validated['time_per_question'],
             'xp_reward' => $validated['xp_reward'],
             'status' => 'active',
         ]);
 
-        if (!empty($validated['questions'])) {
+        if (! empty($validated['questions'])) {
             foreach ($validated['questions'] as $qData) {
                 if (empty(trim((string) ($qData['question'] ?? '')))) {
                     continue;
@@ -305,13 +328,15 @@ class LiveQuizController extends Controller
             'xp_reward' => 'required|integer|min:20|max:1000',
             'status' => 'required|in:active,draft,archived',
         ]);
-        if (!empty($validated['class_id']) && !empty($validated['subject_id'])) {
+        if (! empty($validated['class_id']) && ! empty($validated['subject_id'])) {
             $class = AcademicClass::findOrFail($validated['class_id']);
-            if (!$class->subjects()->whereKey($validated['subject_id'])->exists()) {
+            if (! $class->subjects()->whereKey($validated['subject_id'])->exists()) {
                 return back()->withErrors(['subject_id' => 'The selected subject is not assigned to this class.'])->withInput();
             }
             $subject = AcademicSubject::findOrFail($validated['subject_id']);
-            if (Auth::user()->isTeacher() && (int) $subject->teacher_id !== (int) Auth::id()) abort(403, 'You can only manage quizzes for subjects assigned to you.');
+            if (Auth::user()->isTeacher() && (int) $subject->teacher_id !== (int) Auth::id()) {
+                abort(403, 'You can only manage quizzes for subjects assigned to you.');
+            }
         }
 
         $quiz->update($validated);
@@ -417,7 +442,7 @@ class LiveQuizController extends Controller
 
         $file = $request->file('csv_file');
         $ext = strtolower($file->getClientOriginalExtension());
-        if (!in_array($ext, ['csv', 'tsv', 'txt'], true)) {
+        if (! in_array($ext, ['csv', 'tsv', 'txt'], true)) {
             return back()->withErrors(['csv_file' => 'Uploaded question file must be a CSV, TSV, or TXT file.']);
         }
 
@@ -438,10 +463,14 @@ class LiveQuizController extends Controller
             $optC = $row['option_c'] ?? $row['optionc'] ?? $row['c'] ?? $row['opt_c'] ?? '';
             $optD = $row['option_d'] ?? $row['optiond'] ?? $row['d'] ?? $row['opt_d'] ?? '';
 
-            if (trim((string) $optA) === '' || trim((string) $optB) === '' || trim((string) $optC) === '' || trim((string) $optD) === '') continue;
+            if (trim((string) $optA) === '' || trim((string) $optB) === '' || trim((string) $optC) === '' || trim((string) $optD) === '') {
+                continue;
+            }
 
             $rawCorrect = strtoupper(trim((string) ($row['correct_option'] ?? $row['correct'] ?? $row['answer'] ?? $row['ans'] ?? '')));
-            if (!in_array($rawCorrect, ['A', 'B', 'C', 'D'], true)) continue;
+            if (! in_array($rawCorrect, ['A', 'B', 'C', 'D'], true)) {
+                continue;
+            }
             $correctOption = $rawCorrect;
             $explanation = $row['explanation'] ?? $row['solution'] ?? $row['sol'] ?? null;
             $points = (int) ($row['points'] ?? $row['marks'] ?? 10);
@@ -477,14 +506,14 @@ class LiveQuizController extends Controller
 
         $rawText = $request->input('raw_text');
         $lines = preg_split('/\r\n|\r|\n/', $rawText);
-        
+
         $imported = 0;
         $currentQ = null;
 
         foreach ($lines as $line) {
             $trimmed = trim($line);
             if (empty($trimmed)) {
-                if ($currentQ && !empty($currentQ['question']) && !empty($currentQ['option_a']) && !empty($currentQ['option_b']) && !empty($currentQ['option_c']) && !empty($currentQ['option_d']) && !empty($currentQ['correct_option'])) {
+                if ($currentQ && ! empty($currentQ['question']) && ! empty($currentQ['option_a']) && ! empty($currentQ['option_b']) && ! empty($currentQ['option_c']) && ! empty($currentQ['option_d']) && ! empty($currentQ['correct_option'])) {
                     LiveQuizQuestion::create([
                         'quiz_id' => $quiz->id,
                         'question' => $currentQ['question'],
@@ -499,12 +528,13 @@ class LiveQuizController extends Controller
                     $imported++;
                     $currentQ = null;
                 }
+
                 continue;
             }
 
             // Question prompt match
-            if (preg_match('/^(?:Q(?:\:|\.|\s*)|\d+[\.\)]\s*)(.*)$/i', $trimmed, $m) && (!$currentQ || !empty($currentQ['option_a']))) {
-                if ($currentQ && !empty($currentQ['question']) && !empty($currentQ['option_a']) && !empty($currentQ['option_b']) && !empty($currentQ['option_c']) && !empty($currentQ['option_d']) && !empty($currentQ['correct_option'])) {
+            if (preg_match('/^(?:Q(?:\:|\.|\s*)|\d+[\.\)]\s*)(.*)$/i', $trimmed, $m) && (! $currentQ || ! empty($currentQ['option_a']))) {
+                if ($currentQ && ! empty($currentQ['question']) && ! empty($currentQ['option_a']) && ! empty($currentQ['option_b']) && ! empty($currentQ['option_c']) && ! empty($currentQ['option_d']) && ! empty($currentQ['correct_option'])) {
                     LiveQuizQuestion::create([
                         'quiz_id' => $quiz->id,
                         'question' => $currentQ['question'],
@@ -528,54 +558,62 @@ class LiveQuizController extends Controller
                     'explanation' => null,
                     'points' => 10,
                 ];
+
                 continue;
             }
 
             // Option A
             if (preg_match('/^(?:A[\)\.\:]\s*|\(A\)\s*)(.*)$/i', $trimmed, $m) && $currentQ) {
                 $currentQ['option_a'] = trim($m[1]);
+
                 continue;
             }
 
             // Option B
             if (preg_match('/^(?:B[\)\.\:]\s*|\(B\)\s*)(.*)$/i', $trimmed, $m) && $currentQ) {
                 $currentQ['option_b'] = trim($m[1]);
+
                 continue;
             }
 
             // Option C
             if (preg_match('/^(?:C[\)\.\:]\s*|\(C\)\s*)(.*)$/i', $trimmed, $m) && $currentQ) {
                 $currentQ['option_c'] = trim($m[1]);
+
                 continue;
             }
 
             // Option D
             if (preg_match('/^(?:D[\)\.\:]\s*|\(D\)\s*)(.*)$/i', $trimmed, $m) && $currentQ) {
                 $currentQ['option_d'] = trim($m[1]);
+
                 continue;
             }
 
             // Correct Answer / Key
             if (preg_match('/^(?:Ans(?:wer)?[\:\.]?\s*|Key[\:\.]?\s*)([A-Da-d])/i', $trimmed, $m) && $currentQ) {
                 $currentQ['correct_option'] = strtoupper(trim($m[1]));
+
                 continue;
             }
 
             // Explanation
             if (preg_match('/^(?:Exp(?:lanation)?[\:\.]?\s*|Sol(?:ution)?[\:\.]?\s*)(.*)$/i', $trimmed, $m) && $currentQ) {
                 $currentQ['explanation'] = trim($m[1]);
+
                 continue;
             }
 
             // Points / Marks
             if (preg_match('/^(?:Points|Marks)[\:\.]?\s*(\d+)/i', $trimmed, $m) && $currentQ) {
                 $currentQ['points'] = (int) $m[1];
+
                 continue;
             }
         }
 
         // Save last pending question
-        if ($currentQ && !empty($currentQ['question']) && !empty($currentQ['option_a']) && !empty($currentQ['option_b']) && !empty($currentQ['option_c']) && !empty($currentQ['option_d']) && !empty($currentQ['correct_option'])) {
+        if ($currentQ && ! empty($currentQ['question']) && ! empty($currentQ['option_a']) && ! empty($currentQ['option_b']) && ! empty($currentQ['option_c']) && ! empty($currentQ['option_d']) && ! empty($currentQ['correct_option'])) {
             LiveQuizQuestion::create([
                 'quiz_id' => $quiz->id,
                 'question' => $currentQ['question'],
@@ -659,7 +697,7 @@ class LiveQuizController extends Controller
 
     public function exportCsv(LiveQuiz $quiz): StreamedResponse
     {
-        $filename = 'quiz_' . Str::slug($quiz->title) . '_questions.csv';
+        $filename = 'quiz_'.Str::slug($quiz->title).'_questions.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=utf-8',

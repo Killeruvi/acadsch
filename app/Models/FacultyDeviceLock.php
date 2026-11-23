@@ -39,10 +39,10 @@ class FacultyDeviceLock extends Model
 
         return self::query()
             ->where(function ($query) use ($deviceId, $fingerprint) {
-                if (!empty($deviceId)) {
+                if (! empty($deviceId)) {
                     $query->where('device_id', $deviceId);
                 }
-                if (!empty($fingerprint)) {
+                if (! empty($fingerprint)) {
                     $query->orWhere('device_fingerprint', $fingerprint);
                 }
             })

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,7 +32,7 @@ class AttendanceSession extends Model
 
     public function setSessionDateAttribute($value): void
     {
-        $this->attributes['session_date'] = \Carbon\Carbon::parse($value)->format('Y-m-d');
+        $this->attributes['session_date'] = Carbon::parse($value)->format('Y-m-d');
     }
 
     public function academicClass(): BelongsTo

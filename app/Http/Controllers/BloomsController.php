@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
 use App\Models\BloomAssignment;
+use App\Models\ClassEnrollment;
 use App\Models\CurriculumTopic;
 use App\Models\DailyLesson;
 use App\Models\TopicBloomActivity;
-use App\Models\ClassEnrollment;
 use App\Models\User;
 use App\Services\BloomsAssignmentService;
 use App\Services\CsvService;
@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -33,7 +34,7 @@ class BloomsController extends Controller
     protected function authorizeFaculty(): void
     {
         $user = Auth::user();
-        if (!$user || (!$user->isTeacher() && !$user->isAdmin())) {
+        if (! $user || (! $user->isTeacher() && ! $user->isAdmin())) {
             abort(403, 'Unauthorized. Faculty credentials required.');
         }
     }
@@ -41,7 +42,7 @@ class BloomsController extends Controller
     protected function authorizeLessonManagement(DailyLesson $lesson): void
     {
         $user = Auth::user();
-        if (!$user || $user->isAdmin()) {
+        if (! $user || $user->isAdmin()) {
             return;
         }
 
@@ -54,7 +55,7 @@ class BloomsController extends Controller
 
     protected function deleteBloomAttachment(?string $path): void
     {
-        if (!$path) {
+        if (! $path) {
             return;
         }
 
@@ -161,7 +162,7 @@ class BloomsController extends Controller
         $lesson = DailyLesson::create($validated);
 
         // Run the Bloom's Taxonomy roll-number assignment engine
-        $targetLevel = !empty($validated['target_level']) ? (int)$validated['target_level'] : null;
+        $targetLevel = ! empty($validated['target_level']) ? (int) $validated['target_level'] : null;
         $assignments = $this->bloomsService->distributeAssignments($lesson, $validated['distribution_mode'], $targetLevel);
 
         NotificationService::notifyClass(
@@ -198,7 +199,7 @@ class BloomsController extends Controller
         // Filter assignments if requested
         $assignmentsQuery = $lesson->assignments();
         if ($selectedLevel && is_numeric($selectedLevel)) {
-            $assignmentsQuery->where('bloom_level', (int)$selectedLevel);
+            $assignmentsQuery->where('bloom_level', (int) $selectedLevel);
         }
         if ($selectedStatus) {
             $assignmentsQuery->where('status', $selectedStatus);
@@ -206,10 +207,10 @@ class BloomsController extends Controller
         if ($searchQuery) {
             $assignmentsQuery->where(function ($q) use ($searchQuery) {
                 $q->where('activity_prompt', 'like', "%{$searchQuery}%")
-                  ->orWhereHas('student', function ($sq) use ($searchQuery) {
-                      $sq->where('name', 'like', "%{$searchQuery}%")
-                         ->orWhere('student_id_number', 'like', "%{$searchQuery}%");
-                  });
+                    ->orWhereHas('student', function ($sq) use ($searchQuery) {
+                        $sq->where('name', 'like', "%{$searchQuery}%")
+                            ->orWhere('student_id_number', 'like', "%{$searchQuery}%");
+                    });
             });
         }
         $filteredAssignments = $assignmentsQuery->with(['student', 'reviewer'])->orderBy('roll_number')->paginate(12)->withQueryString();
@@ -256,7 +257,7 @@ class BloomsController extends Controller
 
         $lesson = DailyLesson::with(['topic', 'assignments'])->findOrFail($id);
 
-        if (!$user->isAdmin() && $lesson->teacher_id !== $user->id) {
+        if (! $user->isAdmin() && $lesson->teacher_id !== $user->id) {
             abort(403, 'Unauthorized to delete lessons created by another faculty member.');
         }
 
@@ -333,7 +334,7 @@ class BloomsController extends Controller
         );
 
         return redirect()->route('blooms.lesson', $lesson->id)
-            ->with('success', "Successfully imported " . count($parsedRows) . " tasks and randomly distributed {$assignments->count()} assignments across students!");
+            ->with('success', 'Successfully imported '.count($parsedRows)." tasks and randomly distributed {$assignments->count()} assignments across students!");
     }
 
     /**
@@ -409,9 +410,9 @@ class BloomsController extends Controller
             'remove_teacher_attachment' => 'nullable|boolean',
         ]);
 
-        $level = (int)$validated['bloom_level'];
+        $level = (int) $validated['bloom_level'];
         $meta = TopicBloomActivity::getLevelMetadata($level);
-        $validated['level_name'] = !empty($validated['level_name']) ? $validated['level_name'] : $meta['name'];
+        $validated['level_name'] = ! empty($validated['level_name']) ? $validated['level_name'] : $meta['name'];
 
         if (isset($validated['score']) && $validated['score'] !== '') {
             $validated['reviewed_by'] = Auth::id();
@@ -430,7 +431,7 @@ class BloomsController extends Controller
         } elseif ($request->hasFile('teacher_attachment')) {
             $file = $request->file('teacher_attachment');
             $newPath = $file->store('blooms/reference_materials', 'private');
-            if (!$newPath) {
+            if (! $newPath) {
                 abort(500, 'The attachment could not be stored.');
             }
             $this->deleteBloomAttachment($assignment->teacher_attachment_path);
@@ -459,14 +460,14 @@ class BloomsController extends Controller
             'student_id' => 'required|exists:users,id',
         ]);
 
-        $targetStudentId = (int)$validated['student_id'];
+        $targetStudentId = (int) $validated['student_id'];
 
         // Verify target student is enrolled in the lesson's class
         $enrollment = ClassEnrollment::where('class_id', $assignment->lesson->class_id)
             ->where('student_id', $targetStudentId)
             ->first();
 
-        if (!$enrollment) {
+        if (! $enrollment) {
             return back()->with('error', 'Selected student is not enrolled in this class.');
         }
 
@@ -585,7 +586,7 @@ class BloomsController extends Controller
             ->where('student_id', $validated['student_id'])
             ->first();
 
-        $meta = TopicBloomActivity::getLevelMetadata((int)$validated['bloom_level']);
+        $meta = TopicBloomActivity::getLevelMetadata((int) $validated['bloom_level']);
 
         $teacherAttachmentPath = null;
         $teacherAttachmentName = null;
@@ -656,7 +657,7 @@ class BloomsController extends Controller
         $assignment = BloomAssignment::findOrFail($id);
         $user = Auth::user();
 
-        if (!$user || !$user->isStudent() || (int)$assignment->student_id !== (int)$user->id) {
+        if (! $user || ! $user->isStudent() || (int) $assignment->student_id !== (int) $user->id) {
             abort(403, 'Unauthorized. Students can only submit their own assigned activities.');
         }
 
@@ -665,11 +666,11 @@ class BloomsController extends Controller
             'attachment' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,pps,ppsx,txt,odt,rtf,png,jpg,jpeg,webp,zip|max:51200',
         ]);
 
-        $hasText = !empty(trim((string)($validated['submission_content'] ?? '')));
+        $hasText = ! empty(trim((string) ($validated['submission_content'] ?? '')));
         $hasFile = $request->hasFile('attachment');
-        $hasExistingAttachment = !empty($assignment->submission_attachment_path);
+        $hasExistingAttachment = ! empty($assignment->submission_attachment_path);
 
-        if (!$hasText && !$hasFile && !$hasExistingAttachment) {
+        if (! $hasText && ! $hasFile && ! $hasExistingAttachment) {
             return back()->withErrors([
                 'submission_content' => 'Please provide written notes or attach a document (PDF, PowerPoint slides, Word document, etc.).',
             ])->withInput();
@@ -690,7 +691,7 @@ class BloomsController extends Controller
             // Delete previously uploaded attachment if present
             $file = $request->file('attachment');
             $newPath = $file->store('blooms/submissions', 'private');
-            if (!$newPath) {
+            if (! $newPath) {
                 abort(500, 'The attachment could not be stored.');
             }
             $this->deleteBloomAttachment($assignment->submission_attachment_path);
@@ -757,10 +758,10 @@ class BloomsController extends Controller
 
         $path = $type === 'teacher' ? $assignment->teacher_attachment_path : $assignment->submission_attachment_path;
         $name = $type === 'teacher'
-            ? ($assignment->teacher_attachment_name ?? 'bloom_assignment_material.' . ($assignment->teacher_attachment_type ?? 'pdf'))
-            : ($assignment->submission_attachment_name ?? 'bloom_submission.' . ($assignment->submission_attachment_type ?? 'pdf'));
+            ? ($assignment->teacher_attachment_name ?? 'bloom_assignment_material.'.($assignment->teacher_attachment_type ?? 'pdf'))
+            : ($assignment->submission_attachment_name ?? 'bloom_submission.'.($assignment->submission_attachment_type ?? 'pdf'));
 
-        if (!$path || !Storage::disk('private')->exists($path)) {
+        if (! $path || ! Storage::disk('private')->exists($path)) {
             abort(404, 'The requested attachment document is not available or has been removed.');
         }
 
@@ -799,12 +800,13 @@ class BloomsController extends Controller
                 $enr->roll_number,
                 $enr->student->name,
                 $enr->student->email,
-                $enr->student->student_id_number ?? ('STU-' . str_pad($enr->student->id, 5, '0', STR_PAD_LEFT)),
+                $enr->student->student_id_number ?? ('STU-'.str_pad($enr->student->id, 5, '0', STR_PAD_LEFT)),
                 $enr->status,
             ];
         }
 
         $filename = "{$class->name}_Student_Roster.csv";
+
         return $this->csvService->downloadCsv($filename, $headers, $data);
     }
 
@@ -831,7 +833,7 @@ class BloomsController extends Controller
             $email = $row['email'] ?? ($row['student_email'] ?? null);
             $rollNumber = isset($row['roll_number']) ? (int) $row['roll_number'] : ($index + 1);
 
-            if (!$name || !$email) {
+            if (! $name || ! $email) {
                 continue;
             }
 
@@ -853,7 +855,7 @@ class BloomsController extends Controller
 
             $academicYear = trim((string) $class->academic_year);
             if ($academicYear === '') {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'file' => 'The selected class has no configured academic session.',
                 ]);
             }
@@ -861,14 +863,14 @@ class BloomsController extends Controller
                 ->where('academic_year', $academicYear)->where('status', 'active')
                 ->lockForUpdate()->first();
             if ($activeEnrollment && (int) $activeEnrollment->class_id !== (int) $class->id) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'file' => "{$student->name} is already enrolled in another class for {$academicYear}. Use the class transfer workflow.",
                 ]);
             }
 
             $requestedRoll = $rollNumber > 0 ? $rollNumber : null;
-            if ($requestedRoll !== null && !ClassEnrollment::isRollNumberAvailable($class->id, $requestedRoll, $student->id, $academicYear)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+            if ($requestedRoll !== null && ! ClassEnrollment::isRollNumberAvailable($class->id, $requestedRoll, $student->id, $academicYear)) {
+                throw ValidationException::withMessages([
                     'file' => "Roll number {$requestedRoll} is already assigned in this class and session.",
                 ]);
             }

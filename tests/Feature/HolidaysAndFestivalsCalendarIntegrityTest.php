@@ -13,8 +13,11 @@ class HolidaysAndFestivalsCalendarIntegrityTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $teacher;
+
     private User $student;
+
     private User $parent;
 
     protected function setUp(): void

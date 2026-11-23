@@ -129,7 +129,8 @@ class CurriculumTopic extends Model
     public function isActivityOrganized(string $type): bool
     {
         $list = $this->normalized_activity_checklist;
-        return !empty($list[$type]['organized']);
+
+        return ! empty($list[$type]['organized']);
     }
 
     /**
@@ -139,10 +140,11 @@ class CurriculumTopic extends Model
     {
         $count = 0;
         foreach ($this->normalized_activity_checklist as $act) {
-            if (!empty($act['organized'])) {
+            if (! empty($act['organized'])) {
                 $count++;
             }
         }
+
         return $count;
     }
 
@@ -152,6 +154,7 @@ class CurriculumTopic extends Model
     public function getActivityProgressPercentAttribute(): float
     {
         $total = count(self::defaultActivityChecklistTemplate());
+
         return $total > 0 ? round(($this->organized_activities_count / $total) * 100, 1) : 0.0;
     }
 
@@ -161,12 +164,12 @@ class CurriculumTopic extends Model
     public function toggleActivity(string $type, ?bool $state = null, ?string $date = null, ?string $notes = null): void
     {
         $list = $this->normalized_activity_checklist;
-        if (!isset($list[$type])) {
+        if (! isset($list[$type])) {
             return;
         }
 
-        $currentState = !empty($list[$type]['organized']);
-        $newState = ($state !== null) ? $state : !$currentState;
+        $currentState = ! empty($list[$type]['organized']);
+        $newState = ($state !== null) ? $state : ! $currentState;
 
         $list[$type]['organized'] = $newState;
         if ($date !== null) {

@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
 use App\Models\SchoolSection;
 use App\Models\SchoolStream;
+use App\Services\SchoolAcademicAuditService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SchoolSectionController extends Controller
@@ -43,14 +46,14 @@ class SchoolSectionController extends Controller
         if ($request->filled('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('room_number', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('room_number', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
         $sections = $query->orderBy('stream')->orderBy('name')->paginate(12)->withQueryString();
 
-        if ($request->expectsJson() && !$request->acceptsHtml()) {
+        if ($request->expectsJson() && ! $request->acceptsHtml()) {
             return response()->json([
                 'success' => true,
                 'sections' => $sections,
@@ -107,7 +110,7 @@ class SchoolSectionController extends Controller
     public function store(Request $request): JsonResponse|RedirectResponse
     {
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Only administrators can create reusable sections.');
         }
 
@@ -136,7 +139,7 @@ class SchoolSectionController extends Controller
                     ->exists();
 
                 if ($duplicate) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                    throw ValidationException::withMessages([
                         'name' => "Section {$validated['name']} already exists in {$validated['stream']}.",
                     ]);
                 }
@@ -146,7 +149,7 @@ class SchoolSectionController extends Controller
                     'is_active' => true,
                 ]);
             }, 3);
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
@@ -155,14 +158,15 @@ class SchoolSectionController extends Controller
                 ], 422);
             }
             throw $exception;
-        } catch (\Illuminate\Database\QueryException $exception) {
+        } catch (QueryException $exception) {
             report($exception);
+
             return $request->wantsJson()
                 ? response()->json(['success' => false, 'message' => 'The section could not be created because it conflicts with an existing record.'], 409)
                 : back()->withInput()->withErrors(['name' => 'The section conflicts with an existing record.']);
         }
 
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'created_section', 'Created section '.$section->name.' in '.$section->stream.'.', null, ['section_id' => $section->id, 'name' => $section->name, 'stream' => $section->stream, 'capacity' => $section->capacity], $request);
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'created_section', 'Created section '.$section->name.' in '.$section->stream.'.', null, ['section_id' => $section->id, 'name' => $section->name, 'stream' => $section->stream, 'capacity' => $section->capacity], $request);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -210,7 +214,8 @@ class SchoolSectionController extends Controller
 
         $oldValues = $section->only(['room_number', 'capacity', 'description']);
         $section->update($data);
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'updated_section', 'Updated section '.$section->name.' in '.$section->stream.'.', $oldValues, $section->only(['room_number', 'capacity', 'description']), $request);
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'updated_section', 'Updated section '.$section->name.' in '.$section->stream.'.', $oldValues, $section->only(['room_number', 'capacity', 'description']), $request);
+
         return back()->with('success', 'Section details updated.');
     }
 
@@ -220,13 +225,14 @@ class SchoolSectionController extends Controller
         abort_unless(Auth::user()?->isAdmin(), 403);
         $section = SchoolSection::findOrFail($id);
         $streamIsActive = SchoolStream::where('name', $section->stream)->where('is_active', true)->exists();
-        if (!$section->is_active && !$streamIsActive) {
+        if (! $section->is_active && ! $streamIsActive) {
             return back()->withErrors(['section' => 'Reactivate the parent stream before reactivating this section.']);
         }
         $oldActive = $section->is_active;
-        $section->is_active = !$section->is_active;
+        $section->is_active = ! $section->is_active;
         $section->save();
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'toggled_section', 'Changed activation state for section '.$section->name.' in '.$section->stream.'.', ['is_active' => $oldActive], ['is_active' => $section->is_active], request());
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'toggled_section', 'Changed activation state for section '.$section->name.' in '.$section->stream.'.', ['is_active' => $oldActive], ['is_active' => $section->is_active], request());
+
         return back()->with('success', $section->is_active ? 'Section reactivated for new classes.' : 'Section deactivated. Existing classes remain unchanged.');
     }
 
@@ -237,8 +243,8 @@ class SchoolSectionController extends Controller
         $section = SchoolSection::findOrFail($id);
         $oldActive = $section->is_active;
         $section->update(['is_active' => false]);
-        app(\App\Services\SchoolAcademicAuditService::class)->log(Auth::user(), 'deactivated_section', 'Deactivated section '.$section->name.' in '.$section->stream.'.', ['is_active' => $oldActive], ['is_active' => false], request());
+        app(SchoolAcademicAuditService::class)->log(Auth::user(), 'deactivated_section', 'Deactivated section '.$section->name.' in '.$section->stream.'.', ['is_active' => $oldActive], ['is_active' => false], request());
+
         return redirect()->route('school.sections.index')->with('success', 'Section deactivated. Historical class links were preserved.');
     }
-
 }

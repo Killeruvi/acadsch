@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -17,6 +18,7 @@ class StaffEmploymentController extends Controller
     {
         $user = auth()->user();
         abort_unless($user && $user->isAdmin(), 403);
+
         return $user;
     }
 
@@ -29,6 +31,7 @@ class StaffEmploymentController extends Controller
     {
         $this->admin();
         $person = $this->staff($staff);
+
         return view('school.staff-employment.show', [
             'staff' => $person,
             'profile' => DB::table('staff_employment_profiles')->where('staff_id', $person->id)->first(),
@@ -43,7 +46,7 @@ class StaffEmploymentController extends Controller
         $actor = $this->admin();
         $person = $this->staff($staff);
         $data = $request->validate([
-            'employee_code' => ['required', 'string', 'max:40', 'regex:/^[A-Za-z0-9._-]+$/', \Illuminate\Validation\Rule::unique('staff_employment_profiles', 'employee_code')->ignore($person->id, 'staff_id')],
+            'employee_code' => ['required', 'string', 'max:40', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('staff_employment_profiles', 'employee_code')->ignore($person->id, 'staff_id')],
             'designation' => ['required', 'string', 'max:120'],
             'department' => ['nullable', 'string', 'max:120'],
             'employment_type' => ['required', 'in:permanent,probation,contract,part_time,intern'],
@@ -84,6 +87,7 @@ class StaffEmploymentController extends Controller
             ]);
         }
         $this->audit('employment_profile', $person->id, 'saved', $actor->id, null, $data);
+
         return back()->with('success', 'Employment profile saved. Complete the onboarding checklist before activating employment.');
     }
 
@@ -100,8 +104,8 @@ class StaffEmploymentController extends Controller
             'status' => ['required', 'in:draft,active'],
             'file' => ['required', 'file', 'mimes:pdf', 'max:10240'],
         ]);
-        $path = $request->file('file')->store('staff/' . $person->id . '/contracts', 'local');
-        abort_if(!$path, 500, 'The contract could not be stored securely.');
+        $path = $request->file('file')->store('staff/'.$person->id.'/contracts', 'local');
+        abort_if(! $path, 500, 'The contract could not be stored securely.');
         try {
             DB::table('staff_employment_contracts')->insert([
                 'staff_id' => $person->id, 'contract_number' => trim($data['contract_number']), 'contract_type' => $data['contract_type'],
@@ -115,6 +119,7 @@ class StaffEmploymentController extends Controller
             throw $e;
         }
         $this->audit('employment_contract', $person->id, 'uploaded', $actor->id, null, ['contract_number' => $data['contract_number']]);
+
         return back()->with('success', 'Employment contract uploaded to private storage.');
     }
 
@@ -130,8 +135,8 @@ class StaffEmploymentController extends Controller
             'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ]);
         $file = $request->file('file');
-        $path = $file->store('staff/' . $person->id . '/documents', 'local');
-        abort_if(!$path, 500, 'The document could not be stored securely.');
+        $path = $file->store('staff/'.$person->id.'/documents', 'local');
+        abort_if(! $path, 500, 'The document could not be stored securely.');
         try {
             DB::table('staff_documents')->insert([
                 'staff_id' => $person->id, 'document_type' => $data['document_type'], 'document_name' => $data['document_name'],
@@ -144,6 +149,7 @@ class StaffEmploymentController extends Controller
             throw $e;
         }
         $this->audit('staff_document', $person->id, 'uploaded', $actor->id, null, ['document_type' => $data['document_type'], 'document_name' => $data['document_name']]);
+
         return back()->with('success', 'Staff document uploaded securely.');
     }
 
@@ -152,6 +158,7 @@ class StaffEmploymentController extends Controller
         $this->admin();
         $row = DB::table('staff_employment_contracts')->where('id', $contract)->where('staff_id', $staff)->first();
         abort_unless($row && Storage::disk('local')->exists($row->file_path), 404);
+
         return Storage::disk('local')->download($row->file_path, $row->original_filename, ['Content-Type' => 'application/pdf', 'X-Content-Type-Options' => 'nosniff']);
     }
 
@@ -160,6 +167,7 @@ class StaffEmploymentController extends Controller
         $this->admin();
         $row = DB::table('staff_documents')->where('id', $document)->where('staff_id', $staff)->first();
         abort_unless($row && Storage::disk('local')->exists($row->file_path), 404);
+
         return Storage::disk('local')->download($row->file_path, $row->original_filename, ['Content-Type' => $row->mime_type, 'X-Content-Type-Options' => 'nosniff']);
     }
 
@@ -178,6 +186,7 @@ class StaffEmploymentController extends Controller
         ]);
         $this->audit('onboarding_task', $task, $data['completed'] ? 'completed' : 'reopened', $actor->id,
             ['completed_at' => $row->completed_at], ['completed' => (bool) $data['completed'], 'notes' => $data['notes'] ?? null]);
+
         return back()->with('success', 'Onboarding checklist updated.');
     }
 
@@ -189,7 +198,7 @@ class StaffEmploymentController extends Controller
         $data = $request->validate([
             'last_working_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'separation_reason' => ['required', 'string', 'min:5', 'max:2000'],
-            'confirm_email' => ['required', 'email', 'in:' . $person->email],
+            'confirm_email' => ['required', 'email', 'in:'.$person->email],
         ]);
         DB::transaction(function () use ($person, $actor, $data) {
             $profile = DB::table('staff_employment_profiles')->where('staff_id', $person->id)->lockForUpdate()->first();
@@ -197,13 +206,14 @@ class StaffEmploymentController extends Controller
             abort_if($profile->employment_status === 'separated', 409, 'This staff member is already separated.');
             DB::table('staff_employment_profiles')->where('staff_id', $person->id)->update([
                 'employment_status' => 'separated', 'last_working_date' => $data['last_working_date'], 'updated_at' => now(),
-                'admin_notes' => trim(($profile->admin_notes ? $profile->admin_notes . "\n" : '') . 'Separation: ' . $data['separation_reason']),
+                'admin_notes' => trim(($profile->admin_notes ? $profile->admin_notes."\n" : '').'Separation: '.$data['separation_reason']),
             ]);
             DB::table('staff_employment_contracts')->where('staff_id', $person->id)->where('status', 'active')->update(['status' => 'terminated', 'updated_at' => now()]);
             $person->forceFill(['is_approved' => false])->save();
             DB::table('sessions')->where('user_id', $person->id)->delete();
             $this->audit('employment_profile', $person->id, 'separated', $actor->id, ['employment_status' => $profile->employment_status], ['employment_status' => 'separated', 'last_working_date' => $data['last_working_date'], 'reason' => $data['separation_reason']]);
         }, 3);
+
         return redirect()->route('staff.show', $person->id)->with('success', 'Staff account access disabled and employment marked separated. Historical records were retained.');
     }
 

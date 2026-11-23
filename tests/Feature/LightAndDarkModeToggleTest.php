@@ -11,8 +11,11 @@ class LightAndDarkModeToggleTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $student;
+
     protected User $teacher;
+
     protected User $parent;
 
     protected function setUp(): void

@@ -32,21 +32,22 @@ class GenerateMonthlyFeesCommand extends Command
     {
         $config = MonthlyFeeService::getMonthlyFeeConfig();
 
-        if (!$config['auto_enabled'] && !$this->option('force')) {
+        if (! $config['auto_enabled'] && ! $this->option('force')) {
             $this->warn('Monthly fee auto-generation is currently disabled in Academy Settings.');
             $this->line('Use --force to run anyway, or enable it in the Fees configuration dashboard.');
+
             return self::SUCCESS;
         }
 
-        $month = $this->option('month') ? (int)$this->option('month') : null;
-        $year = $this->option('year') ? (int)$this->option('year') : null;
-        $classId = $this->option('class') ? (int)$this->option('class') : null;
-        $batchId = $this->option('batch') ? (int)$this->option('batch') : null;
-        $amount = $this->option('amount') ? (float)$this->option('amount') : null;
+        $month = $this->option('month') ? (int) $this->option('month') : null;
+        $year = $this->option('year') ? (int) $this->option('year') : null;
+        $classId = $this->option('class') ? (int) $this->option('class') : null;
+        $batchId = $this->option('batch') ? (int) $this->option('batch') : null;
+        $amount = $this->option('amount') ? (float) $this->option('amount') : null;
         $due = $this->option('due') ?: null;
         $title = $this->option('title') ?: null;
 
-        $this->info("Initializing monthly fee generation...");
+        $this->info('Initializing monthly fee generation...');
 
         $result = MonthlyFeeService::generateMonthlyInvoices(
             month: $month,
@@ -71,7 +72,8 @@ class GenerateMonthlyFeesCommand extends Command
             ]
         );
 
-        $this->info("Monthly fee billing cycle finished successfully.");
+        $this->info('Monthly fee billing cycle finished successfully.');
+
         return self::SUCCESS;
     }
 }

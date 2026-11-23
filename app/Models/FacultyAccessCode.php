@@ -51,7 +51,7 @@ class FacultyAccessCode extends Model
     public static function createUniqueCode(int $adminId, ?string $notes = null): self
     {
         do {
-            $code = 'FAC-' . strtoupper(Str::random(4)) . '-' . strtoupper(Str::random(4));
+            $code = 'FAC-'.strtoupper(Str::random(4)).'-'.strtoupper(Str::random(4));
         } while (self::where('code', $code)->exists());
 
         return self::create([

@@ -14,6 +14,13 @@ class BookReservation extends Model
         return ['reserved_at' => 'datetime', 'fulfilled_at' => 'datetime', 'cancelled_at' => 'datetime'];
     }
 
-    public function book(): BelongsTo { return $this->belongsTo(LibraryBook::class, 'book_id'); }
-    public function member(): BelongsTo { return $this->belongsTo(User::class, 'member_id'); }
+    public function book(): BelongsTo
+    {
+        return $this->belongsTo(LibraryBook::class, 'book_id');
+    }
+
+    public function member(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'member_id');
+    }
 }

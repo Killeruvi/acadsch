@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class LibraryController extends Controller
@@ -48,7 +49,7 @@ class LibraryController extends Controller
         } elseif ($user->role === 'parent') {
             $childIds = $user->children()->pluck('id');
             $issuesQuery->whereIn('member_id', $childIds);
-        } elseif (!$this->canManage()) {
+        } elseif (! $this->canManage()) {
             $issuesQuery->whereRaw('1 = 0');
         }
         if (in_array($status, ['issued', 'returned', 'overdue'], true)) {
@@ -93,6 +94,7 @@ class LibraryController extends Controller
         $validated['available_quantity'] = $validated['quantity'];
         $validated['book_price'] = $validated['book_price'] ?? 0;
         LibraryBook::create($validated);
+
         return back()->with('success', 'Book catalogued successfully.');
     }
 
@@ -111,19 +113,20 @@ class LibraryController extends Controller
             $member = User::whereKey($validated['member_id'])->lockForUpdate()->firstOrFail();
             $activeCount = BookIssue::where('member_id', $member->id)->where('status', 'issued')->count();
             if ($activeCount >= (int) config('library.max_active_issues', 5)) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['member_id' => 'This member has reached the active borrowing limit.']);
+                throw ValidationException::withMessages(['member_id' => 'This member has reached the active borrowing limit.']);
             }
             if ($book->available_quantity < 1) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['book_id' => 'No available copies remain for this title.']);
+                throw ValidationException::withMessages(['book_id' => 'No available copies remain for this title.']);
             }
             $nextReservation = BookReservation::where('book_id', $book->id)->where('status', 'pending')->orderBy('reserved_at')->orderBy('id')->lockForUpdate()->first();
             if ($nextReservation && (int) $nextReservation->member_id !== (int) $member->id) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['member_id' => 'A reservation queue exists. Issue this copy to the earliest reserver first.']);
+                throw ValidationException::withMessages(['member_id' => 'A reservation queue exists. Issue this copy to the earliest reserver first.']);
             }
             if ($nextReservation) {
                 $nextReservation->update(['status' => 'fulfilled', 'fulfilled_at' => now()]);
             }
             $book->decrement('available_quantity');
+
             return BookIssue::create([
                 'book_id' => $book->id,
                 'member_id' => $member->id,
@@ -134,7 +137,8 @@ class LibraryController extends Controller
                 'note' => $validated['note'] ?? null,
             ]);
         });
-        return back()->with('success', 'Book issued successfully. Issue reference: #' . $issue->id);
+
+        return back()->with('success', 'Book issued successfully. Issue reference: #'.$issue->id);
     }
 
     public function returnBook(Request $request, int $issueId): RedirectResponse
@@ -144,7 +148,7 @@ class LibraryController extends Controller
         DB::transaction(function () use ($issueId, $validated) {
             $issue = BookIssue::whereKey($issueId)->lockForUpdate()->firstOrFail();
             if ($issue->status !== 'issued') {
-                throw \Illuminate\Validation\ValidationException::withMessages(['issue' => 'Only currently issued books can be returned.']);
+                throw ValidationException::withMessages(['issue' => 'Only currently issued books can be returned.']);
             }
             $book = LibraryBook::whereKey($issue->book_id)->lockForUpdate()->firstOrFail();
             if ($book->available_quantity >= $book->quantity) {
@@ -153,6 +157,7 @@ class LibraryController extends Controller
             $issue->update(['status' => 'returned', 'return_date' => today(), 'fine_amount' => 0, 'note' => $validated['note'] ?? $issue->note]);
             $book->increment('available_quantity');
         });
+
         return back()->with('success', 'Book return recorded. No fine has been charged.');
     }
 
@@ -163,17 +168,18 @@ class LibraryController extends Controller
         DB::transaction(function () use ($issueId, $validated) {
             $issue = BookIssue::whereKey($issueId)->lockForUpdate()->firstOrFail();
             if ($issue->status !== 'issued') {
-                throw \Illuminate\Validation\ValidationException::withMessages(['issue' => 'Only active issues can be renewed.']);
+                throw ValidationException::withMessages(['issue' => 'Only active issues can be renewed.']);
             }
             $maxRenewals = (int) config('library.max_renewals', 2);
             if ((int) $issue->renewal_count >= $maxRenewals) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['due_date' => 'The renewal limit has been reached.']);
+                throw ValidationException::withMessages(['due_date' => 'The renewal limit has been reached.']);
             }
             if ($validated['due_date'] <= $issue->due_date->toDateString()) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['due_date' => 'The new due date must be later than the current due date.']);
+                throw ValidationException::withMessages(['due_date' => 'The new due date must be later than the current due date.']);
             }
             $issue->update(['due_date' => $validated['due_date'], 'renewal_count' => (int) $issue->renewal_count + 1]);
         });
+
         return back()->with('success', 'Loan renewed successfully.');
     }
 
@@ -185,14 +191,16 @@ class LibraryController extends Controller
         $reservation = DB::transaction(function () use ($validated, $user) {
             $book = LibraryBook::whereKey($validated['book_id'])->lockForUpdate()->firstOrFail();
             if ($book->available_quantity > 0) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['book_id' => 'Copies are currently available; ask the library to issue one directly.']);
+                throw ValidationException::withMessages(['book_id' => 'Copies are currently available; ask the library to issue one directly.']);
             }
             $existing = BookReservation::where('book_id', $book->id)->where('member_id', $user->id)->where('status', 'pending')->exists();
             if ($existing) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['book_id' => 'An active reservation already exists for this title.']);
+                throw ValidationException::withMessages(['book_id' => 'An active reservation already exists for this title.']);
             }
+
             return BookReservation::create(['book_id' => $book->id, 'member_id' => $user->id, 'status' => 'pending', 'reserved_at' => now()]);
         });
-        return back()->with('success', 'Reservation placed. Reference: #' . $reservation->id);
+
+        return back()->with('success', 'Reservation placed. Reference: #'.$reservation->id);
     }
 }

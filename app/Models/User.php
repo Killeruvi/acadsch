@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Services\BirthdayService;
+use Carbon\Carbon;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -136,12 +139,13 @@ class User extends Authenticatable
 
     public function isGuardianOf(?self $student): bool
     {
-        if (!$student || !$this->isParent() || !$student->isStudent()) {
+        if (! $student || ! $this->isParent() || ! $student->isStudent()) {
             return false;
         }
         if ((int) $student->parent_id === (int) $this->id) {
             return true;
         }
+
         return $student->parent_id === null
             && is_string($this->email) && trim($this->email) !== ''
             && is_string($student->guardian_email)
@@ -167,7 +171,7 @@ class User extends Authenticatable
         } elseif (is_numeric($activityOrXp)) {
             $xpEarned = (int) $activityOrXp;
         } else {
-            $xpEarned = match($activityOrXp) {
+            $xpEarned = match ($activityOrXp) {
                 'bloom_submission', 'assignment_submit' => 75,
                 'fee_payment' => 50,
                 'login', 'dashboard', 'visit' => 25,
@@ -177,11 +181,12 @@ class User extends Authenticatable
 
         if ($this->last_active_date === $today) {
             // Already checked in today: Only award XP for genuine task completions, never page reloads
-            if (!$isPassiveVisit && $xpEarned > 0) {
+            if (! $isPassiveVisit && $xpEarned > 0) {
                 $this->increment('xp_points', $xpEarned);
                 $this->refreshTier();
                 $this->save();
             }
+
             return;
         }
 
@@ -213,7 +218,7 @@ class User extends Authenticatable
 
     public function getXpLevelAttribute(): int
     {
-        return max(1, (int)floor(($this->xp_points ?? 0) / 300) + 1);
+        return max(1, (int) floor(($this->xp_points ?? 0) / 300) + 1);
     }
 
     /** Return only a persisted institutional ID; never fabricate an identifier for display. */
@@ -255,7 +260,7 @@ class User extends Authenticatable
 
         // Loop to guarantee no collision across both users and class_enrollments
         do {
-            $candidate = sprintf("ADM-%s-%04d", $year, $candidateSeq);
+            $candidate = sprintf('ADM-%s-%04d', $year, $candidateSeq);
             $conflict = static::where('admission_number', $candidate)
                 ->orWhere('student_id_number', $candidate)
                 ->exists()
@@ -296,8 +301,8 @@ class User extends Authenticatable
     public function enrolledCourses(): BelongsToMany
     {
         return $this->belongsToMany(Course::class, 'enrollments', 'student_id', 'course_id')
-                    ->withPivot(['id', 'status', 'enrolled_at', 'grade_letter', 'final_score'])
-                    ->withTimestamps();
+            ->withPivot(['id', 'status', 'enrolled_at', 'grade_letter', 'final_score'])
+            ->withTimestamps();
     }
 
     /**
@@ -435,14 +440,14 @@ class User extends Authenticatable
         }
 
         $today = now();
-        $dob = \Carbon\Carbon::parse($this->date_of_birth);
+        $dob = Carbon::parse($this->date_of_birth);
 
         return $today->month === $dob->month && $today->day === $dob->day;
     }
 
     public function checkBirthdayCelebration(): ?array
     {
-        return \App\Services\BirthdayService::checkAndCelebrate($this);
+        return BirthdayService::checkAndCelebrate($this);
     }
 
     public function parent(): BelongsTo
@@ -460,7 +465,7 @@ class User extends Authenticatable
         return $this->belongsTo(AcademicClass::class, 'current_class_id');
     }
 
-    public function homeroomClass(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function homeroomClass(): HasOne
     {
         return $this->hasOne(AcademicClass::class, 'class_teacher_id');
     }
@@ -485,7 +490,7 @@ class User extends Authenticatable
         return $this->hasMany(StudentTransportAssignment::class, 'student_id');
     }
 
-    public function activeTransportAssignment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function activeTransportAssignment(): HasOne
     {
         return $this->hasOne(StudentTransportAssignment::class, 'student_id')->where('status', 'active')->latestOfMany();
     }

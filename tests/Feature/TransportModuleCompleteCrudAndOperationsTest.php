@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicClass;
+use App\Models\AcademySetting;
+use App\Models\ClassEnrollment;
 use App\Models\FeeInvoice;
+use App\Models\SchoolFeeStructure;
 use App\Models\StudentTransportAssignment;
-use App\Models\TransportAuditLog;
 use App\Models\TransportRoute;
 use App\Models\TransportRouteStop;
 use App\Models\TransportStaff;
@@ -21,16 +23,20 @@ class TransportModuleCompleteCrudAndOperationsTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student1;
+
     protected User $student2;
+
     protected AcademicClass $class10A;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        \App\Models\AcademySetting::set('academic_session', '2026-2027');
+        AcademySetting::set('academic_session', '2026-2027');
 
         $this->admin = User::factory()->create([
             'name' => 'Transport Director',
@@ -55,7 +61,7 @@ class TransportModuleCompleteCrudAndOperationsTest extends TestCase
             'status' => 'active',
         ]);
 
-        \App\Models\SchoolFeeStructure::create([
+        SchoolFeeStructure::create([
             'class_id' => $this->class10A->id,
             'fee_title' => 'Tuition Fee',
             'fee_type' => 'tuition',
@@ -73,7 +79,7 @@ class TransportModuleCompleteCrudAndOperationsTest extends TestCase
             'is_approved' => true,
         ]);
 
-        \App\Models\ClassEnrollment::create([
+        ClassEnrollment::create([
             'student_id' => $this->student1->id,
             'class_id' => $this->class10A->id,
             'academic_year' => '2026-2027',
@@ -90,7 +96,7 @@ class TransportModuleCompleteCrudAndOperationsTest extends TestCase
             'is_approved' => true,
         ]);
 
-        \App\Models\ClassEnrollment::create([
+        ClassEnrollment::create([
             'student_id' => $this->student2->id,
             'class_id' => $this->class10A->id,
             'academic_year' => '2026-2027',
@@ -270,8 +276,8 @@ class TransportModuleCompleteCrudAndOperationsTest extends TestCase
         // Auto-generated Fee Invoice verified (Category: transport, No fines)
         $invoice = FeeInvoice::where('student_id', $this->student1->id)->where('category', 'transport')->first();
         $this->assertNotNull($invoice);
-        $this->assertEquals(1300.00, (float)$invoice->total_due);
-        $this->assertEquals(0.00, (float)$invoice->late_fine_amount);
+        $this->assertEquals(1300.00, (float) $invoice->total_due);
+        $this->assertEquals(0.00, (float) $invoice->late_fine_amount);
 
         // PREVENT DUPLICATE ACTIVE ASSIGNMENT
         $dupRes = $this->actingAs($this->admin)->post(route('school.transport.students.assign'), [
@@ -351,8 +357,8 @@ class TransportModuleCompleteCrudAndOperationsTest extends TestCase
         // Verify transport invoice created with no late fine
         $invoice = FeeInvoice::where('student_id', $newStudent->id)->where('category', 'transport')->first();
         $this->assertNotNull($invoice);
-        $this->assertEquals(1900.00, (float)$invoice->total_due);
-        $this->assertEquals(0.00, (float)$invoice->late_fine_amount);
+        $this->assertEquals(1900.00, (float) $invoice->total_due);
+        $this->assertEquals(0.00, (float) $invoice->late_fine_amount);
     }
 
     /**
@@ -387,9 +393,9 @@ class TransportModuleCompleteCrudAndOperationsTest extends TestCase
             ->first();
 
         $this->assertNotNull($invoice);
-        $this->assertEquals(1200.00, (float)$invoice->total_due);
-        $this->assertEquals(400.00, (float)$invoice->discount);
-        $this->assertEquals(0.00, (float)$invoice->late_fine_amount);
+        $this->assertEquals(1200.00, (float) $invoice->total_due);
+        $this->assertEquals(400.00, (float) $invoice->discount);
+        $this->assertEquals(0.00, (float) $invoice->late_fine_amount);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AcademySetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -89,7 +90,7 @@ class AuthenticationSecurityPass6Test extends TestCase
 
     public function test_web_login_failure_and_success_logs_audit_records(): void
     {
-        \App\Models\AcademySetting::set('onboarding_completed', 'true');
+        AcademySetting::set('onboarding_completed', 'true');
 
         $user = User::factory()->create([
             'role' => 'admin',

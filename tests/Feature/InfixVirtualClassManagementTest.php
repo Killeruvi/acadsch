@@ -13,8 +13,11 @@ class InfixVirtualClassManagementTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $teacher;
+
     protected User $student;
+
     protected AcademicClass $class;
 
     protected function setUp(): void

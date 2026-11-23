@@ -14,7 +14,7 @@ class EnsureStudentAccountActive
     {
         $user = $request->user();
 
-        if ($user && $user->isStudent() && !$user->is_approved) {
+        if ($user && $user->isStudent() && ! $user->is_approved) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

@@ -18,7 +18,7 @@ class FacultyCodeController extends Controller
     public function index(): View
     {
         $user = Auth::user();
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             abort(403, 'Unauthorized. Only institutional administrators can manage faculty authorization codes.');
         }
 
@@ -58,7 +58,7 @@ class FacultyCodeController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -77,7 +77,7 @@ class FacultyCodeController extends Controller
     public function destroy(FacultyAccessCode $code): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -97,15 +97,15 @@ class FacultyCodeController extends Controller
     public function toggleTeacherLock(User $user): RedirectResponse
     {
         $admin = Auth::user();
-        if (!$admin->isAdmin()) {
+        if (! $admin->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
-        if (!$user->isTeacher()) {
+        if (! $user->isTeacher()) {
             return back()->with('error', 'Target user is not a teacher.');
         }
 
-        $newStatus = !$user->is_approved;
+        $newStatus = ! $user->is_approved;
         $user->update([
             'is_approved' => $newStatus,
             'approved_by' => $newStatus ? $admin->id : null,
@@ -113,6 +113,7 @@ class FacultyCodeController extends Controller
         ]);
 
         $statusText = $newStatus ? 'Approved & Unlocked' : 'Locked';
+
         return back()->with('success', "Teacher {$user->name} is now {$statusText}.");
     }
 
@@ -122,7 +123,7 @@ class FacultyCodeController extends Controller
     public function unlockDevice(FacultyDeviceLock $lock): RedirectResponse
     {
         $admin = Auth::user();
-        if (!$admin->isAdmin()) {
+        if (! $admin->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 

@@ -88,7 +88,7 @@ class SubmissionController extends Controller
         abort_unless($request->user() && $request->user()->can('grade', $submission->assignment), 403);
 
         $validated = $request->validate([
-            'grade' => 'required|numeric|min:0|max:' . $submission->assignment->max_points,
+            'grade' => 'required|numeric|min:0|max:'.$submission->assignment->max_points,
             'feedback' => 'nullable|string',
         ]);
 

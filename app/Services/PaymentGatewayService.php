@@ -14,13 +14,14 @@ class PaymentGatewayService
     public static function getConfig(): array
     {
         $settings = AcademySetting::pluck('value', 'key')->toArray();
+
         return [
-            'mode'                 => 'manual',
-            'active_gateway'       => 'none',
-            'auto_receipt_generate'=> (bool) ($settings['auto_receipt_generate'] ?? true),
-            'currency_code'        => $settings['currency_code'] ?? 'INR',
-            'currency_symbol'      => $settings['currency_symbol'] ?? '₹',
-            'payment_modes'        => ['cash', 'upi', 'qr', 'bank', 'cheque'],
+            'mode' => 'manual',
+            'active_gateway' => 'none',
+            'auto_receipt_generate' => (bool) ($settings['auto_receipt_generate'] ?? true),
+            'currency_code' => $settings['currency_code'] ?? 'INR',
+            'currency_symbol' => $settings['currency_symbol'] ?? '₹',
+            'payment_modes' => ['cash', 'upi', 'qr', 'bank', 'cheque'],
         ];
     }
 

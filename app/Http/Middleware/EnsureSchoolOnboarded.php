@@ -20,17 +20,17 @@ class EnsureSchoolOnboarded
         }
 
         // Exempt routes required during onboarding, template downloads, or authentication
-        if ($request->routeIs('school.onboarding.*') || 
+        if ($request->routeIs('school.onboarding.*') ||
             $request->routeIs('school.bulk.*') ||
-            $request->routeIs('login') || 
-            $request->routeIs('logout') || 
+            $request->routeIs('login') ||
+            $request->routeIs('logout') ||
             $request->routeIs('password.*')) {
             return $next($request);
         }
 
         $isOnboarded = AcademySetting::get('onboarding_completed') === 'true';
 
-        if (!$isOnboarded) {
+        if (! $isOnboarded) {
             // System is not onboarded: always redirect to installation / onboarding wizard
             return redirect()->route('school.onboarding.index');
         }

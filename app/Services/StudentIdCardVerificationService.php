@@ -29,7 +29,7 @@ class StudentIdCardVerificationService
             return null;
         }
 
-        return route('school.students.verify-id', $student->id . '.' . $signature);
+        return route('school.students.verify-id', $student->id.'.'.$signature);
     }
 
     public function verifies(User $student, string $signature): bool
