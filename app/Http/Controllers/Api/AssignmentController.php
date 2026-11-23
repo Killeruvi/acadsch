@@ -16,8 +16,11 @@ class AssignmentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = Assignment::with(['course:id,title,code', 'teacher:id,name'])->withCount('submissions');
+        $query = Assignment::with(['academicClass:id,name,grade_level,section', 'subject:id,name,code', 'course:id,title,code', 'teacher:id,name'])->withCount('submissions');
         if ($user->isAdmin()) {
+            if ($request->filled('class_id')) {
+                $query->where('class_id', $request->integer('class_id'));
+            }
             if ($request->filled('course_id')) {
                 $query->where('course_id', $request->integer('course_id'));
             }
@@ -27,14 +30,25 @@ class AssignmentController extends Controller
         } elseif ($user->isTeacher()) {
             $query->where('teacher_id', $user->id);
         } elseif ($user->isStudent()) {
+            $studentClassIds = $user->classEnrollments()->where(function ($q) {
+                $q->whereNull('status')->orWhereIn('status', ['active', 'enrolled']);
+            })->pluck('class_id');
+            if ($user->current_class_id) {
+                $studentClassIds->push($user->current_class_id);
+            }
+            $studentClassIds = $studentClassIds->unique()->filter()->values();
             $courseIds = $user->enrolledCourses()->pluck('courses.id');
-            $query->where(function ($q) use ($user, $courseIds) {
-                $q->where(function ($q) use ($courseIds) {
-                    $q->where('target_type', 'all_enrolled')->whereIn('course_id', $courseIds);
+
+            $query->where(function ($q) use ($user, $studentClassIds, $courseIds) {
+                $q->where(function ($sq) use ($studentClassIds) {
+                    $sq->where('target_type', 'class')->whereIn('class_id', $studentClassIds);
                 })
                     ->orWhere('target_type', 'all_students')
-                    ->orWhere(function ($q) use ($user) {
-                        $q->where('target_type', 'specific_student')->where('student_id', $user->id);
+                    ->orWhere(function ($sq) use ($user) {
+                        $sq->where('target_type', 'specific_student')->where('student_id', $user->id);
+                    })
+                    ->orWhere(function ($sq) use ($courseIds) {
+                        $sq->where('target_type', 'all_enrolled')->whereIn('course_id', $courseIds);
                     });
             });
         } else {

@@ -7,9 +7,9 @@
 
     <!-- Top Action & Navigation Bar -->
     <div class="flex items-center justify-between gap-3">
-        <a href="{{ route('homework.index') }}" class="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-emerald-600 transition">
+        <a href="{{ route('assignments.index') }}" class="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-emerald-600 transition">
             <span>&larr;</span>
-            <span>Back to Homework &amp; Assignments</span>
+            <span>Back to Assignments</span>
         </a>
         @if(Auth::user()->isAdmin() || (Auth::user()->isTeacher() && $assignment->teacher_id === Auth::id()))
         <div class="flex items-center space-x-2">
@@ -31,15 +31,24 @@
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <div class="flex items-center space-x-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    @if($assignment->academicClass)
+                    <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                        {{ $assignment->academicClass->display_name }}
+                    </span>
+                    @endif
+                    @if($assignment->subject)
+                    <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {{ $assignment->subject->name }}
+                    </span>
+                    @elseif($assignment->course)
                     <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-800">{{ $assignment->course->code }}</span>
-                    <a href="{{ route('courses.show', $assignment->course->id) }}" class="text-xs font-semibold text-emerald-600 hover:underline">
-                        {{ $assignment->course->title }}
-                    </a>
+                    <span class="text-xs font-semibold text-slate-600">{{ $assignment->course->title }}</span>
+                    @endif
                 </div>
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">{{ $assignment->title }}</h1>
                 <div class="flex items-center space-x-2 text-xs text-slate-500 mt-1">
-                    <span>Instructor: <strong class="text-slate-800 font-semibold">{{ $assignment->teacher?->name ?? 'TBA' }}</strong></span>
+                    <span>Teacher: <strong class="text-slate-800 font-semibold">{{ $assignment->teacher?->name ?? 'TBA' }}</strong></span>
                     <span>&bull;</span>
                     <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                         Assigned To: {{ $assignment->assigned_to_label }}

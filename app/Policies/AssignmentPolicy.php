@@ -2,8 +2,9 @@
 
 namespace App\Policies;
 
+use App\Models\AcademicClass;
+use App\Models\AcademicSubject;
 use App\Models\Assignment;
-use App\Models\Enrollment;
 use App\Models\User;
 
 class AssignmentPolicy
@@ -19,25 +20,31 @@ class AssignmentPolicy
             return true;
         }
         if ($user->isTeacher()) {
-            return (int) $assignment->teacher_id === (int) $user->id;
+            if ((int) $assignment->teacher_id === (int) $user->id) {
+                return true;
+            }
+            if ($assignment->class_id) {
+                return AcademicSubject::where('class_id', $assignment->class_id)->where('teacher_id', $user->id)->exists()
+                    || AcademicClass::where('id', $assignment->class_id)->where('class_teacher_id', $user->id)->exists();
+            }
+
+            return false;
         }
         if ($user->isStudent()) {
             return $this->studentCanAccess($user, $assignment);
         }
         if ($user->isParent()) {
-            $childIds = User::childrenOf($user)->pluck('id');
-            if ($childIds->isEmpty()) {
+            $children = User::childrenOf($user)->get();
+            if ($children->isEmpty()) {
                 return false;
             }
-            if ($assignment->target_type === 'all_students') {
-                return true;
-            }
-            if ($assignment->target_type === 'specific_student') {
-                return $childIds->contains((int) $assignment->student_id);
+            foreach ($children as $child) {
+                if ($this->studentCanAccess($child, $assignment)) {
+                    return true;
+                }
             }
 
-            return $assignment->course_id !== null
-                && Enrollment::whereIn('student_id', $childIds)->where('course_id', $assignment->course_id)->exists();
+            return false;
         }
 
         return false;
@@ -54,6 +61,28 @@ class AssignmentPolicy
         if ($assignment->target_type === 'all_students') {
             return true;
         }
+        if ($assignment->class_id) {
+            $studentClassIds = $student->classEnrollments()
+                ->where(function ($q) {
+                    $q->whereNull('status')->orWhereIn('status', ['active', 'enrolled']);
+                })->pluck('class_id');
+            if ($student->current_class_id) {
+                $studentClassIds->push($student->current_class_id);
+            }
+
+            if (! $studentClassIds->contains((int) $assignment->class_id)) {
+                return false;
+            }
+
+            if ($assignment->section_id) {
+                $cls = $assignment->academicClass;
+                if ($cls && $cls->section_id && (int) $cls->section_id !== (int) $assignment->section_id) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         return $assignment->course_id !== null && $student->enrolledCourses()->where('courses.id', $assignment->course_id)->exists();
     }
@@ -65,7 +94,20 @@ class AssignmentPolicy
 
     public function update(User $user, Assignment $assignment): bool
     {
-        return $user->isAdmin() || ($user->isTeacher() && (int) $assignment->teacher_id === (int) $user->id);
+        if ($user->isAdmin()) {
+            return true;
+        }
+        if ($user->isTeacher()) {
+            if ((int) $assignment->teacher_id === (int) $user->id) {
+                return true;
+            }
+            if ($assignment->class_id) {
+                return AcademicSubject::where('class_id', $assignment->class_id)->where('teacher_id', $user->id)->exists()
+                    || AcademicClass::where('id', $assignment->class_id)->where('class_teacher_id', $user->id)->exists();
+            }
+        }
+
+        return false;
     }
 
     public function delete(User $user, Assignment $assignment): bool

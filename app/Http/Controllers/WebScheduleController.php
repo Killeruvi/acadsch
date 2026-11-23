@@ -98,7 +98,7 @@ class WebScheduleController extends Controller
             ->get();
 
         // Fetch upcoming deliverables: assignments, homeworks, and tests
-        $upcomingAssignments = Assignment::with(['course:id,title,code', 'teacher:id,name'])
+        $upcomingAssignments = Assignment::with(['academicClass:id,name,grade_level,section', 'subject:id,name,code', 'course:id,title,code', 'teacher:id,name'])
             ->orderBy('due_date')
             ->take(6)
             ->get();

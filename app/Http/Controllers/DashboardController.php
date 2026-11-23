@@ -528,9 +528,29 @@ class DashboardController extends Controller
                 ->orderBy('start_time')
                 ->get();
 
-            // Assignments for enrolled courses
-            $assignments = Assignment::whereIn('course_id', $enrolledCourseIds)
-                ->with(['course:id,title,code', 'teacher:id,name'])
+            // Assignments for enrolled classes and courses
+            $studentClassIds = $user->classEnrollments()->where(function ($q) {
+                $q->whereNull('status')->orWhereIn('status', ['active', 'enrolled']);
+            })->pluck('class_id');
+            if ($user->current_class_id) {
+                $studentClassIds->push($user->current_class_id);
+            }
+            $studentClassIds = $studentClassIds->unique()->filter()->values();
+
+            $assignments = Assignment::query()
+                ->with(['academicClass.schoolSection', 'subject:id,name,code', 'course:id,title,code', 'teacher:id,name'])
+                ->where(function ($q) use ($user, $studentClassIds, $enrolledCourseIds) {
+                    $q->where(function ($sq) use ($studentClassIds) {
+                        $sq->where('target_type', 'class')->whereIn('class_id', $studentClassIds);
+                    })
+                        ->orWhere('target_type', 'all_students')
+                        ->orWhere(function ($sq) use ($user) {
+                            $sq->where('target_type', 'specific_student')->where('student_id', $user->id);
+                        })
+                        ->orWhere(function ($sq) use ($enrolledCourseIds) {
+                            $sq->where('target_type', 'all_enrolled')->whereIn('course_id', $enrolledCourseIds);
+                        });
+                })
                 ->orderBy('due_date')
                 ->get();
 

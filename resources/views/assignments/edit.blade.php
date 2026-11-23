@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit ' . $assignment->title . ' — ' . ($school['name'] ?? 'PrimeOS Academy'))
+@section('title', 'Edit ' . $assignment->title . ' — ' . ($school['name'] ?? config('app.name', 'School Management System')))
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-4">
@@ -20,10 +20,10 @@
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <div>
                 <h2 class="text-lg font-black text-slate-900 dark:text-white">Edit Academic Assignment</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Update title, rubric points, target due date, and instructions.</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Update class, section, subject, rubric points, target due date, and instructions.</p>
             </div>
             <span class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                Course Work
+                School Coursework
             </span>
         </div>
 
@@ -31,22 +31,48 @@
             @csrf
             @method('PUT')
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div class="sm:col-span-2">
+            <div class="space-y-3">
+                <div>
                     <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Assignment Title *</label>
                     <input type="text" name="title" value="{{ old('title', $assignment->title) }}" required class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold">
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Course Assignment</label>
-                    <select name="course_id" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold">
-                        <option value="">General Academy Deliverable</option>
-                        @foreach($courses as $c)
-                        <option value="{{ $c->id }}" {{ old('course_id', $assignment->course_id) == $c->id ? 'selected' : '' }}>
-                            {{ $c->title }} ({{ $c->code }})
-                        </option>
-                        @endforeach
-                    </select>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Academic Class</label>
+                        <select name="class_id" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold">
+                            <option value="">-- No Specific Class / School-Wide --</option>
+                            @foreach($classes as $c)
+                            <option value="{{ $c->id }}" {{ old('class_id', $assignment->class_id) == $c->id ? 'selected' : '' }}>
+                                {{ $c->display_name }}
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Section</label>
+                        <select name="section_id" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold">
+                            <option value="">Default Class Section / All Sections</option>
+                            @foreach($sections as $sec)
+                            <option value="{{ $sec->id }}" {{ old('section_id', $assignment->section_id) == $sec->id ? 'selected' : '' }}>
+                                Section {{ $sec->name }}
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">Academic Subject</label>
+                        <select name="subject_id" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold">
+                            <option value="">General Academic Coursework</option>
+                            @foreach($subjects as $sub)
+                            <option value="{{ $sub->id }}" {{ old('subject_id', $assignment->subject_id) == $sub->id ? 'selected' : '' }}>
+                                {{ $sub->name }} ({{ $sub->code ?? 'SUB' }})
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
             </div>
 

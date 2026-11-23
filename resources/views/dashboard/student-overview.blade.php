@@ -202,7 +202,7 @@
                             <table class="w-full text-left text-xs">
                                 <thead>
                                     <tr class="bg-slate-50 dark:bg-slate-850/80 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">
-                                        <th class="p-2">Course</th>
+                                        <th class="p-2">Subject / Class</th>
                                         <th class="p-2">Assignment</th>
                                         <th class="p-2">Due</th>
                                         <th class="p-2 text-center">Status</th>
@@ -217,7 +217,9 @@
                                     @endphp
                                     <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-850/40 transition">
                                         <td class="p-2 font-bold text-slate-800 dark:text-slate-200">
-                                            <span class="px-1.5 py-0.2 rounded font-mono bg-slate-100 dark:bg-slate-800 text-[10px]">{{ $asg->course->code }}</span>
+                                            <span class="px-1.5 py-0.2 rounded font-mono bg-slate-100 dark:bg-slate-800 text-[10px]">
+                                                {{ $asg->subject?->name ?? $asg->academicClass?->display_name ?? $asg->course?->code ?? 'General' }}
+                                            </span>
                                         </td>
                                         <td class="p-2 font-medium text-slate-900 dark:text-white">
                                             {{ $asg->title }}
