@@ -126,6 +126,49 @@
                 <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Permanent institutional contact number for identity verification and SMS alerts.</p>
             </div>
 
+            <!-- Guardian / Parent Details (Student Only) -->
+            <div x-show="role === 'student'" class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
+                <div class="flex items-center space-x-1.5 pb-2 border-b border-slate-200 dark:border-slate-700">
+                    <span class="text-base">👨‍👩‍👦</span>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Parent / Guardian Information</h3>
+                </div>
+
+                <!-- Guardian Full Name -->
+                <div>
+                    <label for="guardian_name" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1">
+                        <span>👤</span>
+                        <span>Guardian Full Name</span>
+                        <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" name="guardian_name" id="guardian_name" :required="role === 'student'" value="{{ old('guardian_name') }}" placeholder="e.g. Rajesh Sharma"
+                           class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-xs sm:text-sm shadow-2xs">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Guardian Phone -->
+                    <div>
+                        <label for="guardian_phone" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1">
+                            <span>📞</span>
+                            <span>Guardian Phone</span>
+                            <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="tel" name="guardian_phone" id="guardian_phone" :required="role === 'student'" value="{{ old('guardian_phone') }}" placeholder="+91 98765 12345"
+                               class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-xs sm:text-sm shadow-2xs">
+                    </div>
+
+                    <!-- Guardian Email -->
+                    <div>
+                        <label for="guardian_email" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1">
+                            <span>✉️</span>
+                            <span>Guardian Email</span>
+                            <span class="text-slate-400 font-normal text-[10px]">(Optional)</span>
+                        </label>
+                        <input type="email" name="guardian_email" id="guardian_email" value="{{ old('guardian_email') }}" placeholder="parent@example.com"
+                               class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-xs sm:text-sm shadow-2xs">
+                    </div>
+                </div>
+            </div>
+
             <!-- Password -->
             <div>
                 <label for="password" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1">

@@ -223,6 +223,11 @@ class WebAuthController extends Controller
             'role' => 'nullable|in:student,teacher',
             'class_id' => ($role === 'student' && $hasClasses ? 'required' : 'nullable').'|exists:academic_classes,id',
             'phone' => ['required', 'string', 'min:7', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/'],
+            'guardian_name' => $role === 'student' ? 'required|string|max:100' : 'nullable|string|max:100',
+            'guardian_phone' => $role === 'student'
+                ? ['required', 'string', 'min:7', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/']
+                : 'nullable|string|max:20',
+            'guardian_email' => 'nullable|string|email|max:255',
             'faculty_code' => $role === 'teacher' ? 'required|string|max:50' : 'nullable|string',
             'captcha' => 'nullable|string',
         ], [
@@ -230,6 +235,10 @@ class WebAuthController extends Controller
             'class_id.exists' => 'The selected academic class is invalid.',
             'phone.required' => 'A permanent phone number is mandatory for institutional identity verification.',
             'phone.regex' => 'Please provide a valid permanent phone number format (e.g. +91 98765 43210).',
+            'guardian_name.required' => 'Guardian / Parent full name is required for student registration.',
+            'guardian_phone.required' => 'Guardian / Parent phone number is required for student communication and emergency alerts.',
+            'guardian_phone.regex' => 'Please provide a valid guardian contact phone number format.',
+            'guardian_email.email' => 'Please provide a valid email format for the guardian.',
             'faculty_code.required' => 'The special faculty authorization code is required to complete teacher registration.',
         ]);
 
@@ -271,6 +280,9 @@ class WebAuthController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => $role,
             'phone' => $validated['phone'],
+            'guardian_name' => $role === 'student' ? ($validated['guardian_name'] ?? null) : null,
+            'guardian_phone' => $role === 'student' ? ($validated['guardian_phone'] ?? null) : null,
+            'guardian_email' => $role === 'student' ? ($validated['guardian_email'] ?? null) : null,
             'batch_id' => $batchId,
             'current_class_id' => $classId,
             'admission_number' => $admissionNumber,
