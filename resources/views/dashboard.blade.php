@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
+@section('title', 'Dashboard — ' . ($school['name'] ?? 'PrimeOS Academy'))
+
 @section('content')
+<div class="space-y-4">
     @include('dashboard.quick-actions')
 
     @if($user->isAdmin())
@@ -14,6 +17,7 @@
     @if($user->isStudent())
         @include('dashboard.student-overview')
     @endif
+</div>
 
-    @include('dashboard.charts')
+@include('dashboard.charts')
 @endsection

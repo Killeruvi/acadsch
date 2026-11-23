@@ -92,7 +92,5 @@
             @endif
         </div>
     </div>
-    @endif
-
-    <!-- STUDENT DASHBOARD -->
+@endif
     
