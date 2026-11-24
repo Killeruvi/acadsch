@@ -1,5 +1,5 @@
 /**
- * Prime Arc Academy - Enterprise Progressive Web App (PWA) Service Worker
+ * PrimeArc Public School - Enterprise Progressive Web App (PWA) Service Worker
  * Architecture: Stale-While-Revalidate for Static Assets + Network-First with Offline Fallback for Navigation
  * Author: Developed with love for Bharat 🇮🇳
  */

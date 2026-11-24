@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CertificateBadgeController;
+use App\Http\Controllers\InstallController;
 use App\Http\Controllers\MotivationController;
 use App\Http\Controllers\School\BulkDataHubController;
 use App\Models\User;
@@ -69,8 +70,21 @@ Route::post('/contact', function (Request $request) {
 
     $school = SchoolBrandingService::get();
 
-    return back()->with('success', 'Thank you for reaching out to '.($school['name'] ?? 'PrimeArc Public School').'. Our Academic Admissions team will connect with you within 24 hours.');
+    return back()->with('success', 'Thank you for reaching out to '.($school['name'] ?? 'our institution').'. Our Academic Admissions team will connect with you within 24 hours.');
 })->name('contact.submit');
+
+// Web Installer Setup Wizard (Commercial Deployment & Setup)
+Route::prefix('install')->name('install.')->group(function () {
+    Route::get('/', [InstallController::class, 'index'])->name('index');
+    Route::get('/requirements', [InstallController::class, 'stepRequirements'])->name('requirements');
+    Route::get('/database', [InstallController::class, 'stepDatabase'])->name('database');
+    Route::post('/database', [InstallController::class, 'postDatabase'])->name('database.post');
+    Route::get('/branding', [InstallController::class, 'stepBranding'])->name('branding');
+    Route::post('/branding', [InstallController::class, 'postBranding'])->name('branding.post');
+    Route::get('/admin', [InstallController::class, 'stepAdmin'])->name('admin');
+    Route::post('/admin', [InstallController::class, 'postAdmin'])->name('admin.post');
+    Route::get('/complete', [InstallController::class, 'stepComplete'])->name('complete');
+});
 
 // PWA Offline Fallback
 Route::get('/offline', function () {

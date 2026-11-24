@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Academic Holidays & Festivals — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Academic Holidays & Festivals — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div class="max-w-[1680px] mx-auto space-y-4" x-data="{

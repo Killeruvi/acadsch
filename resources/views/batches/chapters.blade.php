@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($batch ? $batch->name : 'My Batch') . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', ($batch ? $batch->name : 'My Batch') . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div class="w-full max-w-[1500px] mx-auto px-2 sm:px-4 py-3 space-y-3">

@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\AcademySetting;
+use App\Models\SchoolSetting;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,12 +14,34 @@ class EnsureSchoolOnboarded
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Skip API routes, health check, dev tools, and static asset streaming
-        if ($request->is('api/*') || $request->is('up') || $request->is('_boost/*') || $request->is('storage/*')) {
+        // 1. Skip API routes, health check, dev tools, and static asset streaming
+        if ($request->is('api/*') || 
+            $request->is('up') || 
+            $request->is('_boost/*') || 
+            $request->is('storage/*') || 
+            $request->is('uploads/*') || 
+            $request->is('assets/*')) {
             return $next($request);
         }
 
-        // Exempt routes required during onboarding, template downloads, or authentication
+        $installedFile = storage_path('installed');
+        $isInstalled = file_exists($installedFile);
+
+        // 2. Fresh uninstalled system: Redirect everything to the Web Installer wizard
+        if (! $isInstalled) {
+            if ($request->is('install*')) {
+                return $next($request);
+            }
+
+            return redirect()->route('install.index');
+        }
+
+        // 3. System is already installed: Prevent re-running installer
+        if ($request->is('install*')) {
+            return redirect()->route('login')->with('info', 'Application is already installed and secured.');
+        }
+
+        // 4. Exempt routes required during authentication or onboarding
         if ($request->routeIs('school.onboarding.*') ||
             $request->routeIs('school.bulk.*') ||
             $request->routeIs('login') ||
@@ -28,11 +50,14 @@ class EnsureSchoolOnboarded
             return $next($request);
         }
 
-        $isOnboarded = AcademySetting::get('onboarding_completed') === 'true';
-
-        if (! $isOnboarded) {
-            // System is not onboarded: always redirect to installation / onboarding wizard
-            return redirect()->route('school.onboarding.index');
+        // 5. Safely verify onboarding flag
+        try {
+            $isOnboarded = SchoolSetting::get('onboarding_completed') === 'true';
+            if (! $isOnboarded) {
+                return redirect()->route('school.onboarding.index');
+            }
+        } catch (\Throwable $e) {
+            // Gracefully ignore database issues if not yet ready
         }
 
         return $next($request);

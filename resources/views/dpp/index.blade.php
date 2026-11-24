@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'DPP & Timed Tests' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'DPP & Timed Tests' . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div x-data="dppComponent()" class="space-y-4">
@@ -18,7 +18,7 @@
                     </span>
                 </div>
                 <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white mt-0.5">
-                    Daily DPPs &amp; Timed Examination Tests
+                    Daily Practice Worksheets (DPP) &amp; Timed Examination Tests
                 </h1>
                 <p class="text-xs text-slate-500 dark:text-slate-400">
                     Single-question CBT practice with automated scoring, solution keys, and re-attempt / resolve capabilities.

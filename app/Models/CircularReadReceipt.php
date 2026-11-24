@@ -26,7 +26,7 @@ class CircularReadReceipt extends Model
 
     public function notice(): BelongsTo
     {
-        return $this->belongsTo(AcademyNotice::class, 'notice_id');
+        return $this->belongsTo(SchoolNotice::class, 'notice_id');
     }
 
     public function user(): BelongsTo

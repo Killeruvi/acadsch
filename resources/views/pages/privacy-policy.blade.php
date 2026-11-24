@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Privacy Policy — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Privacy Policy — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 @section('meta_description', 'Official Privacy Policy detailing strict student data protection, parental consent safeguards, and institutional security standards. Powered by PrimeOS.')
 
 @section('content')

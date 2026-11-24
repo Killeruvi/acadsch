@@ -223,10 +223,8 @@ class WebAuthController extends Controller
             'role' => 'nullable|in:student,teacher',
             'class_id' => ($role === 'student' && $hasClasses ? 'required' : 'nullable').'|exists:academic_classes,id',
             'phone' => ['required', 'string', 'min:7', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/'],
-            'guardian_name' => $role === 'student' ? 'required|string|max:100' : 'nullable|string|max:100',
-            'guardian_phone' => $role === 'student'
-                ? ['required', 'string', 'min:7', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/']
-                : 'nullable|string|max:20',
+            'guardian_name' => 'nullable|string|max:100',
+            'guardian_phone' => ['nullable', 'string', 'min:7', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/'],
             'guardian_email' => 'nullable|string|email|max:255',
             'faculty_code' => $role === 'teacher' ? 'required|string|max:50' : 'nullable|string',
             'captcha' => 'nullable|string',
@@ -254,13 +252,15 @@ class WebAuthController extends Controller
             if (! $batch) {
                 $academicClass = AcademicClass::find($classId);
                 if ($academicClass) {
+                    $sec = $academicClass->section ?: 'A';
                     $batch = Batch::create([
                         'class_id' => $academicClass->id,
-                        'name' => $academicClass->name.' - Morning Batch',
-                        'code' => 'B-'.$academicClass->grade_level.'-MORN',
+                        'name' => $academicClass->name.' - Section '.$sec,
+                        'code' => 'SEC-'.$academicClass->grade_level.'-'.$sec,
                         'shift' => 'morning',
-                        'timing_slot' => '08:00 AM - 01:00 PM',
-                        'academic_year' => $academicClass->academic_year,
+                        'timing_slot' => '08:00 AM - 02:00 PM',
+                        'academic_year' => $academicClass->academic_year ?: '2026-2027',
+                        'description' => "Academic class cohort for {$academicClass->name} Section {$sec}.",
                         'is_active' => true,
                     ]);
                 }

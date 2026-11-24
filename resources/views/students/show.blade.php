@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $student->name . ' — Student Dossier' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', $student->name . ' — Student Dossier' . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div x-data="{ openDeleteModal: {{ $errors->hasAny(['confirmation_text', 'admin_password', 'withdrawal_reason', 'effective_date', 'student']) ? 'true' : 'false' }} }" class="max-w-6xl mx-auto space-y-4">

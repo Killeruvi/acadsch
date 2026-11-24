@@ -12,7 +12,7 @@
         <tr>
             <td style="background-color: #059669; padding: 28px 30px; text-align: center;">
                 <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase;">
-                    {{ $school['name'] ?? 'PrimeArc Public School' }}
+                    {{ $school['name'] ?? config('app.name', 'School ERP') }}
                 </h1>
                 <p style="color: #a7f3d0; margin: 6px 0 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
                     Official Institutional Access Pass &bull; {{ $school['academic_session'] ?? '2026-2027' }}
@@ -83,7 +83,7 @@
         <tr>
             <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 30px; text-align: center;">
                 <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; color: #475569;">
-                    {{ $school['name'] ?? 'PrimeArc Public School' }} &bull; {{ $school['campus'] ?? 'Main Campus' }}
+                    {{ $school['name'] ?? config('app.name', 'School ERP') }} &bull; {{ $school['campus'] ?? 'Main Campus' }}
                 </p>
                 <p style="margin: 0; font-size: 10px; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px;">
                     ⚡ Powered by PrimeOS Institutional Cloud

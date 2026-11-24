@@ -1,5 +1,5 @@
 /**
- * Prime Arc Academy - Fullscreen Mode & Progressive Web App (PWA) Manager
+ * PrimeArc Public School - Fullscreen Mode & Progressive Web App (PWA) Manager
  * Developed with love for Bharat 🇮🇳
  */
 

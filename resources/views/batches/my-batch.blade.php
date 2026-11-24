@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($batch ? $batch->name : 'My Batch') . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', ($batch ? $batch->name : 'My Batch') . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div class="space-y-3" x-data="{ currentTab: '{{ $activeTab }}' }">

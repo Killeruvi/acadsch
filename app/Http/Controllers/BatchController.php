@@ -52,25 +52,43 @@ class BatchController extends Controller
             }
         }
 
-        // If student has no batch, check if there's any batch available in their enrolled class first
+        // If student has no batch, strictly look up or initialize section batch within their enrolled class
         if ($user->isStudent() && ! $user->batch_id) {
-            $enrolledClassId = $user->classEnrollments()->first()?->class_id;
-            $classBatch = $enrolledClassId
-                ? Batch::where('class_id', $enrolledClassId)->where('is_active', true)->first()
-                : null;
-            if ($classBatch) {
-                $user->update(['batch_id' => $classBatch->id]);
+            $enrolledClassId = $user->classEnrollments()->first()?->class_id ?? $user->current_class_id;
+            if ($enrolledClassId) {
+                $classBatch = Batch::where('class_id', $enrolledClassId)->where('is_active', true)->first();
+                if (! $classBatch) {
+                    $academicClass = AcademicClass::find($enrolledClassId);
+                    if ($academicClass) {
+                        $sec = $academicClass->section ?: 'A';
+                        $classBatch = Batch::create([
+                            'class_id' => $academicClass->id,
+                            'name' => $academicClass->name.' - Section '.$sec,
+                            'code' => 'SEC-'.$academicClass->grade_level.'-'.$sec,
+                            'shift' => 'morning',
+                            'timing_slot' => '08:00 AM - 02:00 PM',
+                            'academic_year' => $academicClass->academic_year ?: '2026-2027',
+                            'description' => "Academic class cohort for {$academicClass->name} Section {$sec}.",
+                            'is_active' => true,
+                        ]);
+                    }
+                }
+                if ($classBatch) {
+                    $user->update(['batch_id' => $classBatch->id]);
 
-                return redirect()->route('batches.subjects', ['batch' => $classBatch->id]);
+                    return redirect()->route('batches.subjects', ['batch' => $classBatch->id]);
+                }
             }
         }
 
-        // If user has no batch, check if there's any batch available or go to selection
-        $defaultBatch = Batch::where('is_active', true)->first();
-        if ($defaultBatch && ! $user->batch_id) {
-            $user->update(['batch_id' => $defaultBatch->id]);
+        // For non-students (teachers/admins), fall back to active batch if none assigned
+        if (! $user->isStudent()) {
+            $defaultBatch = Batch::where('is_active', true)->first();
+            if ($defaultBatch && ! $user->batch_id) {
+                $user->update(['batch_id' => $defaultBatch->id]);
 
-            return redirect()->route('batches.subjects', ['batch' => $defaultBatch->id]);
+                return redirect()->route('batches.subjects', ['batch' => $defaultBatch->id]);
+            }
         }
 
         return redirect()->route('batches.select');

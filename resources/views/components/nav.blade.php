@@ -19,7 +19,7 @@
                             {{ substr($school['name'] ?? 'P', 0, 1) }}
                         </div>
                     @endif
-                    <span class="font-black text-lg text-slate-900 dark:text-white tracking-tight group-hover:text-purple-600 transition">{{ $school['name'] ?? 'PrimeArc Public School' }}</span>
+                    <span class="font-black text-lg text-slate-900 dark:text-white tracking-tight group-hover:text-purple-600 transition">{{ $school['name'] ?? config('app.name', 'School ERP') }}</span>
                 </a>
             </div>
 

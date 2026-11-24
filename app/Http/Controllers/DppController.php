@@ -166,7 +166,7 @@ class DppController extends Controller
             ->when($selectedClass, fn ($q) => $q->where('class_id', $selectedClass->id))
             ->latest()->limit(100)->get();
 
-        // Stats are scoped to the student's enrolled classes; staff retain academy-wide totals.
+        // Stats are scoped to the student's enrolled classes; staff retain school-wide totals.
         $statsQuery = DailyDpp::query();
         if ($user->isStudent()) {
             $statsQuery->whereIn('class_id', $visibleClassIds->unique());

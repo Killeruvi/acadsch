@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'About Us — ' . ($school['name'] ?? 'PrimeArc Public School'))
-@section('meta_description', 'Learn about ' . ($school['name'] ?? 'PrimeArc Public School') . ', our philosophy of conceptual mastery over memorisation, core scientific inquiry, and long-term academic excellence.')
+@section('title', 'About Us — ' . ($school['name'] ?? config('app.name', 'School ERP')))
+@section('meta_description', 'Learn about ' . ($school['name'] ?? config('app.name', 'School ERP')) . ', our philosophy of conceptual mastery over memorisation, core scientific inquiry, and long-term academic excellence.')
 
 @section('content')
 <!-- About Hero -->
@@ -9,7 +9,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div class="max-w-3xl space-y-3">
             <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                <span>About {{ $school['name'] ?? 'PrimeArc Public School' }}</span>
+                <span>About {{ $school['name'] ?? config('app.name', 'School ERP') }}</span>
             </div>
             <h1 class="font-display text-3xl sm:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                 Building Minds. <br>
@@ -30,7 +30,7 @@
             <div class="lg:col-span-7 space-y-4">
                 <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 block">Our Origin &amp; Purpose</span>
                 <h2 class="font-display text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-                    Why {{ $school['name'] ?? 'PrimeArc Public School' }} Exists.
+                    Why {{ $school['name'] ?? config('app.name', 'School ERP') }} Exists.
                 </h2>
                 <div class="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
                     <p>

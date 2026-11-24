@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', ($school['name'] ?? 'PrimeArc Public School') . ' — Tomorrow\'s World Needs Creators')
+@section('title', ($school['name'] ?? config('app.name', 'School ERP')) . ' — Tomorrow\'s World Needs Creators')
 @section('meta_description', 'Don\'t just prepare students for the future. Prepare them to discover, build and create it. A next-generation educational institution founded on pure sciences, advanced technology, and real-world invention.')
 
 @section('content')

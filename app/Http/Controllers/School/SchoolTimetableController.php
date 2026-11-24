@@ -572,4 +572,48 @@ class SchoolTimetableController extends Controller
 
         return back()->with('success', 'Proxy substitute assignment cancelled.');
     }
+
+    /**
+     * AJAX endpoint: Check for timetable conflicts prior to form submission.
+     */
+    public function checkConflict(Request $request, \App\Services\TimetableConflictService $conflictService): \Illuminate\Http\JsonResponse
+    {
+        $classId = (int) $request->input('class_id');
+        $teacherId = $request->filled('teacher_id') ? (int) $request->input('teacher_id') : null;
+        $dayOfWeek = (string) $request->input('day_of_week');
+        $periodNumber = (int) $request->input('period_number');
+        $roomNumber = $request->input('room_number');
+        $ignoreId = $request->filled('ignore_id') ? (int) $request->input('ignore_id') : null;
+
+        $result = $conflictService->checkSlotConflict(
+            $classId,
+            $teacherId,
+            $dayOfWeek,
+            $periodNumber,
+            $roomNumber,
+            $ignoreId
+        );
+
+        return response()->json($result);
+    }
+
+    /**
+     * AJAX endpoint: Get list of available substitute teachers for a date and period.
+     */
+    public function availableSubstitutes(Request $request, \App\Services\TimetableConflictService $conflictService): \Illuminate\Http\JsonResponse
+    {
+        $date = (string) $request->input('date', now()->toDateString());
+        $dayOfWeek = (string) $request->input('day_of_week', strtolower(now()->format('l')));
+        $periodNumber = (int) $request->input('period_number');
+
+        $availableTeachers = $conflictService->findAvailableSubstituteTeachers($date, $dayOfWeek, $periodNumber);
+
+        return response()->json([
+            'teachers' => $availableTeachers->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'email' => $t->email,
+            ]),
+        ]);
+    }
 }

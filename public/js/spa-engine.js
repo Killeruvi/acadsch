@@ -1,5 +1,5 @@
 /**
- * Prime Arc Academy — Seamless SPA Engine & Dynamic Wireframe Loader
+ * PrimeArc Public School — Seamless SPA Engine & Dynamic Wireframe Loader
  * 
  * Intercepts page transitions and forms to eliminate complete page reloads.
  * Displays a top progress bar, responsive loading states, and updates only required DOM components.

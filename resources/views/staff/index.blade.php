@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Faculty & Staff Directory' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Faculty & Staff Directory' . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div x-data="{ 

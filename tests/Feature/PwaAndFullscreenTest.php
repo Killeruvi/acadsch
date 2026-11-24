@@ -23,8 +23,10 @@ class PwaAndFullscreenTest extends TestCase
                 'password' => bcrypt('password123'),
                 'role' => 'student',
                 'student_id_number' => 'PA-STD-2026-99',
+                'is_approved' => true,
             ]
         );
+        $this->student->update(['is_approved' => true]);
     }
 
     /**

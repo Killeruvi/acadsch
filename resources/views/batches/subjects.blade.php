@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($batch ? $batch->name : 'My Batch') . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', ($batch ? $batch->name : 'My Batch') . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div class="w-full max-w-6xl mx-auto px-2 sm:px-4 py-3 space-y-3">
@@ -45,7 +45,7 @@
                 <a href="{{ route('batches.select', ['class_id' => $batch->class_id]) }}"
                    class="px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center space-x-1">
                     <span>🔄</span>
-                    <span>Change Class / Section</span>
+                    <span>Change Class / Batch</span>
                 </a>
             </div>
             @endif

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Online Fees & Invoicing' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Online Fees & Invoicing' . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div x-data="{ openInvoiceModal: false, openMonthlyModal: false, openConfigModal: false, openPayModal: false, activeInvoice: null, targetScope: 'all' }" class="space-y-4">

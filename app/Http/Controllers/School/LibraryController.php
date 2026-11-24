@@ -203,4 +203,119 @@ class LibraryController extends Controller
 
         return back()->with('success', 'Reservation placed. Reference: #'.$reservation->id);
     }
+
+    /**
+     * Rapid Barcode Circulation Scanner Terminal.
+     */
+    public function scannerView(): \Illuminate\View\View
+    {
+        abort_unless($this->canManage(), 403);
+        $recentTransactions = BookIssue::with(['book', 'member'])
+            ->latest('updated_at')
+            ->take(15)
+            ->get();
+
+        return view('school.library.scanner', compact('recentTransactions'));
+    }
+
+    /**
+     * AJAX endpoint for 1-click barcode issue and return.
+     */
+    public function quickScan(Request $request): \Illuminate\Http\JsonResponse
+    {
+        abort_unless($this->canManage(), 403);
+
+        $barcode = trim((string) $request->input('barcode'));
+        $memberBarcode = trim((string) $request->input('member_barcode'));
+
+        if (empty($barcode)) {
+            return response()->json(['success' => false, 'message' => 'Please scan or enter a book barcode / accession number.'], 422);
+        }
+
+        // Find Book by book_number or isbn_number or ID
+        $book = LibraryBook::where('book_number', $barcode)
+            ->orWhere('isbn_number', $barcode)
+            ->orWhere('id', is_numeric($barcode) ? (int) $barcode : 0)
+            ->first();
+
+        if (! $book) {
+            return response()->json(['success' => false, 'message' => "Book with barcode '{$barcode}' not found in catalog."], 404);
+        }
+
+        // Check if book has an active issued copy
+        $activeIssue = BookIssue::where('book_id', $book->id)
+            ->where('status', 'issued')
+            ->with('member')
+            ->first();
+
+        // 1. IF CURRENTLY ISSUED -> INSTANT RETURN
+        if ($activeIssue) {
+            DB::transaction(function () use ($activeIssue, $book) {
+                $activeIssue->update([
+                    'status' => 'returned',
+                    'return_date' => today(),
+                    'fine_amount' => 0,
+                    'note' => 'Processed via rapid barcode scanner.',
+                ]);
+                $book->increment('available_quantity');
+            });
+
+            return response()->json([
+                'success' => true,
+                'action' => 'return',
+                'message' => "RETURN SUCCESS: '{$book->book_title}' successfully returned from {$activeIssue->member?->name}.",
+                'book_title' => $book->book_title,
+                'member_name' => $activeIssue->member?->name,
+                'available_quantity' => $book->available_quantity + 1,
+            ]);
+        }
+
+        // 2. IF AVAILABLE -> ISSUE TO MEMBER
+        if (empty($memberBarcode)) {
+            return response()->json([
+                'success' => true,
+                'action' => 'awaiting_member',
+                'message' => "Book identified: '{$book->book_title}' (Available: {$book->available_quantity}). Now scan student ID card or staff badge to complete issue.",
+                'book_id' => $book->id,
+                'book_title' => $book->book_title,
+            ]);
+        }
+
+        $member = User::where('admission_number', $memberBarcode)
+            ->orWhere('biometric_pin', $memberBarcode)
+            ->orWhere('id', is_numeric($memberBarcode) ? (int) $memberBarcode : 0)
+            ->first();
+
+        if (! $member) {
+            return response()->json(['success' => false, 'message' => "Member with ID card barcode '{$memberBarcode}' not found."], 404);
+        }
+
+        if ($book->available_quantity < 1) {
+            return response()->json(['success' => false, 'message' => "No copies available for '{$book->book_title}'."], 422);
+        }
+
+        $issue = DB::transaction(function () use ($book, $member) {
+            $createdIssue = BookIssue::create([
+                'book_id' => $book->id,
+                'member_id' => $member->id,
+                'issue_date' => today(),
+                'due_date' => today()->addDays(14),
+                'status' => 'issued',
+                'fine_amount' => 0,
+                'note' => 'Issued via rapid barcode scanner.',
+            ]);
+            $book->decrement('available_quantity');
+
+            return $createdIssue;
+        });
+
+        return response()->json([
+            'success' => true,
+            'action' => 'issue',
+            'message' => "ISSUE SUCCESS: '{$book->book_title}' issued to {$member->name} (Due: ".today()->addDays(14)->format('M d, Y').').',
+            'book_title' => $book->book_title,
+            'member_name' => $member->name,
+            'due_date' => today()->addDays(14)->format('M d, Y'),
+        ]);
+    }
 }

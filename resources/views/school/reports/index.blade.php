@@ -18,7 +18,7 @@
                 <span>Institutional Reports Center</span>
             </h1>
             <p class="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                Comprehensive data intelligence, auditing records, and exportable regulatory registers for {{ $school['name'] ?? 'PrimeArc Public School' }}.
+                Comprehensive data intelligence, auditing records, and exportable regulatory registers for {{ $school['name'] ?? config('app.name', 'School ERP') }}.
             </p>
         </div>
 
@@ -296,7 +296,7 @@
 
         <!-- Table Footer Summary -->
         <div class="p-4 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-2">
-            <span>Official Institutional Document • {{ $school['name'] ?? 'PrimeArc Public School' }}</span>
+            <span>Official Institutional Document • {{ $school['name'] ?? config('app.name', 'School ERP') }}</span>
             <span>Printed copies without official seal are provisional only</span>
         </div>
     </div>

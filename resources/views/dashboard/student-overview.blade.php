@@ -151,7 +151,7 @@
 
                     @if($enrollments->isEmpty())
                         <div class="text-center py-3 text-slate-400 text-xs">
-                            <p>Standard grade curriculum registered in My Batch.</p>
+                            <p>Standard grade curriculum registered for your class and section.</p>
                         </div>
                     @else
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">

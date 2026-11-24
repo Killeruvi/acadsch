@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Invoice #' . $invoice->invoice_number . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Invoice #' . $invoice->invoice_number . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div class="max-w-5xl mx-auto space-y-4">
@@ -48,7 +48,7 @@
                 </div>
                 <div>
                     <span class="text-[10px] font-black uppercase tracking-widest text-emerald-400 block">Verified Fee Demand Note</span>
-                    <h1 class="text-lg sm:text-xl font-black text-white tracking-tight">{{ $instituteName ?? ($school['name'] ?? 'PrimeArc Public School') }}</h1>
+                    <h1 class="text-lg sm:text-xl font-black text-white tracking-tight">{{ $instituteName ?? ($school['name'] ?? config('app.name', 'School ERP')) }}</h1>
                     <span class="text-xs text-slate-400 font-mono">Invoice Reference: <strong class="text-slate-200">{{ $invoice->invoice_number }}</strong></span>
                 </div>
             </div>

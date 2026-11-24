@@ -34,7 +34,7 @@ class GenerateMonthlyFeesCommand extends Command
         $config = MonthlyFeeService::getMonthlyFeeConfig();
 
         if (! $config['auto_enabled'] && ! $this->option('force')) {
-            $this->warn('Monthly fee auto-generation is currently disabled in Academy Settings.');
+            $this->warn('Monthly fee auto-generation is currently disabled in School Settings.');
             $this->line('Use --force to run anyway, or enable it in the Fees configuration dashboard.');
 
             return self::SUCCESS;

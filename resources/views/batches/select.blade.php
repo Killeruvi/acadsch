@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Select Class & Batch' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Select Class & Batch' . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4" 
@@ -383,28 +383,28 @@
                 </div>
 
                 <div>
-                    <label for="batch_name" class="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Batch Name <span class="text-rose-500">*</span></label>
-                    <input type="text" id="batch_name" name="name" required placeholder="e.g. Class 10 - Early Birds Batch" class="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden">
+                    <label for="batch_name" class="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Section / Batch Name <span class="text-rose-500">*</span></label>
+                    <input type="text" id="batch_name" name="name" required placeholder="e.g. Class 10 - Section A (Morning Cohort)" class="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden">
                 </div>
 
                 <div>
                     <label for="batch_shift" class="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Timing Shift <span class="text-rose-500">*</span></label>
                     <select id="batch_shift" name="shift" required class="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden">
-                        <option value="morning">☀️ Morning Batch</option>
-                        <option value="evening">🌙 Evening / Afternoon Batch</option>
-                        <option value="custom">⏱️ Custom Batch</option>
-                        <option value="weekend">📅 Weekend Batch</option>
+                        <option value="morning">☀️ Morning Shift (Standard School Hours)</option>
+                        <option value="evening">🌙 Afternoon / Evening Shift</option>
+                        <option value="custom">⏱️ Custom Shift</option>
+                        <option value="weekend">📅 Weekend / Special Session</option>
                     </select>
                 </div>
 
                 <div>
                     <label for="timing_slot" class="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Custom Timing Label</label>
-                    <input type="text" id="timing_slot" name="timing_slot" placeholder="e.g. 06:00 AM - 08:30 AM" class="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden">
+                    <input type="text" id="timing_slot" name="timing_slot" placeholder="e.g. 08:00 AM - 02:00 PM" class="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden">
                 </div>
 
                 <div class="pt-2 flex items-center justify-end space-x-2">
                     <button type="button" @click="showCreateModal = false" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">Cancel</button>
-                    <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs">Create Batch</button>
+                    <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs">Create Section / Batch</button>
                 </div>
             </form>
         </div>
@@ -422,7 +422,7 @@
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center space-x-1.5">
                     <span>✏️</span>
-                    <span>Edit Batch Settings</span>
+                    <span>Edit Section / Cohort Settings</span>
                 </h3>
                 <button type="button" @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none">&times;</button>
             </div>
@@ -433,17 +433,17 @@
                 <input type="hidden" name="class_id" :value="editBatch.class_id">
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Batch Name <span class="text-rose-500">*</span></label>
+                    <label class="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Section / Batch Name <span class="text-rose-500">*</span></label>
                     <input type="text" name="name" x-model="editBatch.name" required class="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden font-bold">
                 </div>
 
                 <div>
                     <label class="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Timing Shift <span class="text-rose-500">*</span></label>
                     <select name="shift" x-model="editBatch.shift" required class="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden">
-                        <option value="morning">☀️ Morning Batch</option>
-                        <option value="evening">🌙 Evening / Afternoon Batch</option>
-                        <option value="custom">⏱️ Custom Batch</option>
-                        <option value="weekend">📅 Weekend Batch</option>
+                        <option value="morning">☀️ Morning Shift (Standard School Hours)</option>
+                        <option value="evening">🌙 Afternoon / Evening Shift</option>
+                        <option value="custom">⏱️ Custom Shift</option>
+                        <option value="weekend">📅 Weekend / Special Session</option>
                     </select>
                 </div>
 

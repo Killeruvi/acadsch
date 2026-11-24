@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
-use App\Models\AcademySetting;
+use App\Models\SchoolSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -62,7 +62,7 @@ class DatabaseSetupService
     /**
      * Wipe all operational and test records with option to retain or remove administrator.
      */
-    public function wipeAndInitializeCleanSlate(?string $adminEmail = 'principal@primearc.edu.in', ?string $adminPassword = 'password123', bool $retainAdmin = true): array
+    public function wipeAndInitializeCleanSlate(?string $adminEmail = 'principal@school.local', ?string $adminPassword = 'password123', bool $retainAdmin = true): array
     {
         $tablesToClear = [
             'class_enrollments',
@@ -162,9 +162,9 @@ class DatabaseSetupService
                 }
             }
 
-            // Reset Academy Settings to fresh default state
+            // Reset School Settings to fresh default state
             if (Schema::hasTable('academy_settings')) {
-                AcademySetting::whereIn('key', [
+                SchoolSetting::whereIn('key', [
                     'onboarding_completed',
                     'onboarding_completed_at',
                     'onboarding_current_step',
@@ -183,13 +183,13 @@ class DatabaseSetupService
                         'currency_symbol' => config('school.currency_symbol'),
                     ] as $settingKey => $settingValue) {
                         if ($settingValue !== null && $settingValue !== '') {
-                            AcademySetting::set($settingKey, $settingValue);
+                            SchoolSetting::set($settingKey, $settingValue);
                         } else {
-                            AcademySetting::where('key', $settingKey)->delete();
+                            SchoolSetting::where('key', $settingKey)->delete();
                         }
                     }
                 } else {
-                    AcademySetting::whereIn('key', [
+                    SchoolSetting::whereIn('key', [
                         'institute_name',
                         'campus_name',
                         'academic_session',

@@ -4,15 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     
-    <title>@yield('title', ($school['name'] ?? 'PrimeArc Public School') . ' — Powered by PrimeOS')</title>
-    <meta name="description" content="@yield('meta_description', ($school['name'] ?? 'PrimeArc Public School') . ' — ' . ($school['motto'] ?? 'Excellence in Education') . '. Powered by PrimeOS.')">
+    <title>@yield('title', ($school['name'] ?? config('app.name', 'School ERP')) . ' — Powered by PrimeOS')</title>
+    <meta name="description" content="@yield('meta_description', ($school['name'] ?? config('app.name', 'School ERP')) . ' — ' . ($school['motto'] ?? 'Excellence in Education') . '. Powered by PrimeOS.')">
     <link rel="canonical" href="{{ url()->current() }}">
 
     <!-- Open Graph / Social Sharing -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:title" content="@yield('title', ($school['name'] ?? 'PrimeArc Public School') . ' — Powered by PrimeOS')">
-    <meta property="og:description" content="@yield('meta_description', ($school['name'] ?? 'PrimeArc Public School') . ' — ' . ($school['motto'] ?? 'Excellence in Education') . '. Powered by PrimeOS.')">
+    <meta property="og:title" content="@yield('title', ($school['name'] ?? config('app.name', 'School ERP')) . ' — Powered by PrimeOS')">
+    <meta property="og:description" content="@yield('meta_description', ($school['name'] ?? config('app.name', 'School ERP')) . ' — ' . ($school['motto'] ?? 'Excellence in Education') . '. Powered by PrimeOS.')">
     <meta property="og:image" content="{{ asset('icons/icon-180x180.png') }}">
     <meta name="twitter:card" content="summary_large_image">
 

@@ -13,7 +13,7 @@ class CleanSlateCommand extends Command
      * @var string
      */
     protected $signature = 'school:clean-slate 
-                            {--admin-email=principal@primearc.edu.in : The master administrator email}
+                            {--admin-email=principal@school.local : The master administrator email}
                             {--admin-password=password123 : The master administrator password}
                             {--no-admin : Completely wipe all users including administrator for absolute zero-user manual setup}
                             {--force : Force the wipe operation without confirmation}';

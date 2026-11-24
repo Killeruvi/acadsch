@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', ($school['name'] ?? 'PrimeArc Public School') . ' — School ERP')</title>
+    <title>@yield('title', ($school['name'] ?? config('app.name', 'School ERP')) . ' — School ERP')</title>
 
     <!-- Progressive Web App (PWA) Manifest & Meta Tags -->
     <link rel="manifest" href="{{ asset('manifest.json') }}">
@@ -230,6 +230,12 @@
                             <div class="nav_title"><span>Parent Portal</span></div>
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('school.ptm.index') }}" class="{{ request()->routeIs('school.ptm.*') ? 'active infix-nav-active' : '' }}">
+                            <div class="infix-nav-icon"><i class="ti-comments"></i></div>
+                            <div class="nav_title"><span>Parent-Teacher (PTM)</span></div>
+                        </a>
+                    </li>
                 @else
                     <li>
                         <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active infix-nav-active' : '' }}">
@@ -306,6 +312,12 @@
                             </a>
                         </li>
                         <li>
+                            <a href="{{ route('school.ptm.index') }}" class="{{ request()->routeIs('school.ptm.*') ? 'active infix-nav-active' : '' }}">
+                                <span class="sub-bullet"></span>
+                                <span>Parent-Teacher (PTM)</span>
+                            </a>
+                        </li>
+                        <li>
                             <a href="{{ route('school.holidays.index') }}" class="{{ request()->routeIs('school.holidays.*') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
                                 <span>School Holidays</span>
@@ -370,6 +382,12 @@
                             </a>
                         </li>
                         @if(Auth::user()->isAdmin())
+                        <li>
+                            <a href="{{ route('school.admissions.online.index') }}" class="{{ request()->routeIs('school.admissions.online.*') ? 'active infix-nav-active' : '' }}">
+                                <span class="sub-bullet"></span>
+                                <span>Online Applications</span>
+                            </a>
+                        </li>
                         <li>
                             <a href="{{ route('school.admissions.enquiries.index') }}" class="{{ request()->routeIs('school.admissions.enquiries.*') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
@@ -449,6 +467,14 @@
                                 <span>Leave Applications</span>
                             </a>
                         </li>
+                        @if(Auth::user()->isAdmin())
+                        <li>
+                            <a href="{{ route('school.attendance.biometric') }}" class="{{ request()->routeIs('school.attendance.biometric*') ? 'active infix-nav-active' : '' }}">
+                                <span class="sub-bullet"></span>
+                                <span>Biometric &amp; Machine Sync</span>
+                            </a>
+                        </li>
+                        @endif
                     </ul>
                 </li>
 
@@ -492,15 +518,27 @@
                     </a>
                     <ul class="sidebar-submenu" style="{{ $isOperationsOpen ? 'display: block;' : 'display: none;' }}">
                         <li>
-                            <a href="{{ route('school.library.index') }}" class="{{ request()->routeIs('school.library.*') ? 'active infix-nav-active' : '' }}">
+                            <a href="{{ route('school.library.index') }}" class="{{ request()->routeIs('school.library.index') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
                                 <span>Library Catalog</span>
                             </a>
                         </li>
                         <li>
-                            <a href="{{ route('school.transport.index') }}" class="{{ request()->routeIs('school.transport.*') ? 'active infix-nav-active' : '' }}">
+                            <a href="{{ route('school.library.scanner') }}" class="{{ request()->routeIs('school.library.scanner') ? 'active infix-nav-active' : '' }}">
+                                <span class="sub-bullet"></span>
+                                <span>Barcode Quick-Scan</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('school.transport.index') }}" class="{{ request()->routeIs('school.transport.index') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
                                 <span>Transport &amp; Bus Fleet</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('school.transport.live-map') }}" class="{{ request()->routeIs('school.transport.live-map') ? 'active infix-nav-active' : '' }}">
+                                <span class="sub-bullet"></span>
+                                <span>Live Bus GPS Map</span>
                             </a>
                         </li>
                         <li>
@@ -539,6 +577,12 @@
                             <a href="{{ route('school.exams.marks-entry') }}" class="{{ request()->routeIs('school.exams.marks-entry') ? 'active infix-nav-active' : '' }}">
                                 <span class="sub-bullet"></span>
                                 <span>Marks Entry Register</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('school.exams.co-scholastic') }}" class="{{ request()->routeIs('school.exams.co-scholastic') ? 'active infix-nav-active' : '' }}">
+                                <span class="sub-bullet"></span>
+                                <span>Co-Scholastic &amp; 360° HPC</span>
                             </a>
                         </li>
                         <li>

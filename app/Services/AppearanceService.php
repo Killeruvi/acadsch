@@ -181,8 +181,12 @@ class AppearanceService
         }
 
         $settings = [];
-        if (Schema::hasTable('academy_settings')) {
-            $settings = AcademySetting::pluck('value', 'key')->toArray();
+        try {
+            if (Schema::hasTable('academy_settings')) {
+                $settings = AcademySetting::pluck('value', 'key')->toArray();
+            }
+        } catch (\Throwable $e) {
+            $settings = [];
         }
 
         $available = static::availableThemes();

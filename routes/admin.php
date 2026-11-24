@@ -34,7 +34,7 @@ Route::middleware(['auth', 'student.account.active'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::match(['post', 'put'], '/profile', [ProfileController::class, 'update'])->name('profile.update');
 
-    // Academy Circulars & Notices
+    // Official School Circulars & Notices
     Route::get('/notices', [AcademyNoticeController::class, 'index'])->name('notices.index');
     Route::post('/notices/{id}/read', [AcademyNoticeController::class, 'markRead'])->name('notices.read')->whereNumber('id');
 

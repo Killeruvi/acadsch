@@ -9,12 +9,14 @@ use App\Models\AcademicSubject;
 use App\Models\AcademySetting;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
+use App\Models\CoScholasticAssessment;
 use App\Models\SchoolExamGradeScale;
 use App\Models\SchoolExamMark;
 use App\Models\SchoolExamSchedule;
 use App\Models\SchoolExamTerm;
 use App\Models\SchoolReportCard;
 use App\Models\User;
+use App\Services\SchoolBrandingService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -1066,5 +1068,140 @@ class SchoolExaminationController extends Controller
         }
 
         return view('school.exams.admit-card-verified', compact('verificationData', 'term', 'student', 'class'));
+    }
+
+    /**
+     * Co-Scholastic Assessment Register (Work Ed, Art, Health/PE, Discipline, Vitals).
+     */
+    public function coScholasticRegister(Request $request): View
+    {
+        $user = Auth::user();
+        abort_unless($user && ($user->isAdmin() || $user->isTeacher()), 403);
+
+        $terms = SchoolExamTerm::orderBy('start_date', 'desc')->get();
+        $selectedTermId = $request->input('term_id', $terms->first()?->id);
+        $selectedTerm = $terms->firstWhere('id', (int) $selectedTermId) ?? $terms->first();
+
+        $classesQuery = AcademicClass::with(['students'])->orderBy('grade_level')->orderBy('section');
+        if ($user->isTeacher() && ! $user->isAdmin()) {
+            $classesQuery->where('class_teacher_id', $user->id);
+        }
+        $classes = $classesQuery->get();
+
+        $selectedClassId = $request->input('class_id', $classes->first()?->id);
+        $selectedClass = $classes->firstWhere('id', (int) $selectedClassId) ?? $classes->first();
+
+        $students = collect();
+        $assessments = collect();
+
+        if ($selectedClass && $selectedTerm) {
+            $students = User::where('role', 'student')
+                ->where('current_class_id', $selectedClass->id)
+                ->orderBy('roll_number')
+                ->orderBy('name')
+                ->get();
+
+            $assessments = CoScholasticAssessment::where('class_id', $selectedClass->id)
+                ->where('exam_term_id', $selectedTerm->id)
+                ->get()
+                ->keyBy('student_id');
+        }
+
+        return view('school.exams.co_scholastic', compact(
+            'terms',
+            'classes',
+            'selectedTerm',
+            'selectedClass',
+            'students',
+            'assessments'
+        ));
+    }
+
+    /**
+     * Store / Update Batch Co-Scholastic Assessment Marks.
+     */
+    public function storeCoScholasticMarks(Request $request): RedirectResponse
+    {
+        $user = Auth::user();
+        abort_unless($user && ($user->isAdmin() || $user->isTeacher()), 403);
+
+        $validated = $request->validate([
+            'term_id' => 'required|exists:school_exam_terms,id',
+            'class_id' => 'required|exists:academic_classes,id',
+            'scores' => 'required|array',
+            'scores.*.work_education' => 'required|string|in:A,B,C,A+,B+,C+',
+            'scores.*.art_education' => 'required|string|in:A,B,C,A+,B+,C+',
+            'scores.*.health_physical_education' => 'required|string|in:A,B,C,A+,B+,C+',
+            'scores.*.discipline' => 'required|string|in:A,B,C,A+,B+,C+',
+            'scores.*.height_cm' => 'nullable|numeric|min:50|max:250',
+            'scores.*.weight_kg' => 'nullable|numeric|min:10|max:200',
+            'scores.*.teacher_holistic_remarks' => 'nullable|string|max:1000',
+        ]);
+
+        $term = SchoolExamTerm::findOrFail($validated['term_id']);
+        $class = AcademicClass::findOrFail($validated['class_id']);
+
+        DB::transaction(function () use ($validated, $term, $class, $user) {
+            foreach ($validated['scores'] as $studentId => $data) {
+                CoScholasticAssessment::updateOrCreate(
+                    [
+                        'student_id' => (int) $studentId,
+                        'exam_term_id' => $term->id,
+                    ],
+                    [
+                        'class_id' => $class->id,
+                        'academic_year' => $term->academic_year ?? AcademySetting::get('academic_session'),
+                        'work_education' => $data['work_education'],
+                        'art_education' => $data['art_education'],
+                        'health_physical_education' => $data['health_physical_education'],
+                        'discipline' => $data['discipline'],
+                        'height_cm' => $data['height_cm'] ?? null,
+                        'weight_kg' => $data['weight_kg'] ?? null,
+                        'teacher_holistic_remarks' => $data['teacher_holistic_remarks'] ?? null,
+                        'assessed_by' => $user->id,
+                    ]
+                );
+            }
+        });
+
+        return back()->with('success', "Co-Scholastic & Holistic assessments recorded for {$class->display_name} ({$term->name}).");
+    }
+
+    /**
+     * Display 360-Degree Holistic Progress Card (HPC) combining Scholastic & Co-Scholastic.
+     */
+    public function holisticReportCard(int $studentId, int $termId): View
+    {
+        $student = User::with('currentClass')->findOrFail($studentId);
+        $term = SchoolExamTerm::findOrFail($termId);
+        $class = $student->currentClass ?? AcademicClass::first();
+
+        // 1. Scholastic Marks
+        $marks = SchoolExamMark::where('student_id', $student->id)
+            ->where('exam_term_id', $term->id)
+            ->with('subject')
+            ->get();
+
+        // 2. Summary Report Card
+        $reportCard = SchoolReportCard::where('student_id', $student->id)
+            ->where('exam_term_id', $term->id)
+            ->first();
+
+        // 3. Co-Scholastic & 360 Vitals
+        $coScholastic = CoScholasticAssessment::where('student_id', $student->id)
+            ->where('exam_term_id', $term->id)
+            ->first();
+
+        $school = app(SchoolBrandingService::class)->getBranding();
+
+        return view('school.exams.holistic_report_card', compact(
+            'student',
+            'term',
+            'class',
+            'marks',
+            'reportCard',
+            'coScholastic',
+            'school'
+        ));
     }
 }

@@ -5,8 +5,8 @@ namespace App\Http\Controllers\School;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicClass;
 use App\Models\AcademicSubject;
-use App\Models\AcademySetting;
 use App\Models\SchoolSection;
+use App\Models\SchoolSetting;
 use App\Models\SchoolStream;
 use App\Models\SubjectMaster;
 use App\Models\User;
@@ -57,7 +57,7 @@ class SchoolOnboardingController extends Controller
     {
         $this->checkAdminAccess(true);
 
-        $settings = AcademySetting::pluck('value', 'key')->toArray();
+        $settings = SchoolSetting::pluck('value', 'key')->toArray();
         $dbStatus = $this->databaseSetupService->getStatus();
         $adminCount = User::where('role', 'admin')->count();
 
@@ -182,8 +182,8 @@ class SchoolOnboardingController extends Controller
         Auth::login($admin);
         $request->session()->regenerate();
 
-        AcademySetting::set('onboarding_step_1_done', 'true');
-        AcademySetting::set('onboarding_current_step', '2');
+        SchoolSetting::set('onboarding_step_1_done', 'true');
+        SchoolSetting::set('onboarding_current_step', '2');
 
         return redirect()->route('school.onboarding.index', ['step' => 2])
             ->with('success', 'Master Administrator account initialized successfully! Proceed with Step 2 (School Profile).');
@@ -198,7 +198,7 @@ class SchoolOnboardingController extends Controller
 
         $removeAdmin = $request->boolean('remove_admin');
         $user = Auth::user();
-        $adminEmail = $user ? $user->email : 'principal@primearc.edu.in';
+        $adminEmail = $user ? $user->email : 'principal@school.local';
 
         $result = $this->databaseSetupService->wipeAndInitializeCleanSlate($adminEmail, 'password123', ! $removeAdmin);
 
@@ -221,8 +221,8 @@ class SchoolOnboardingController extends Controller
             Auth::login($admin);
         }
 
-        AcademySetting::set('onboarding_step_1_done', 'true');
-        AcademySetting::set('onboarding_current_step', '2');
+        SchoolSetting::set('onboarding_step_1_done', 'true');
+        SchoolSetting::set('onboarding_current_step', '2');
 
         return redirect()->route('school.onboarding.index', ['step' => 2])
             ->with('success', 'Database successfully wiped clean! Retained primary administrator. Proceed with Step 2 (School Profile).');
@@ -252,13 +252,13 @@ class SchoolOnboardingController extends Controller
         ]);
 
         foreach ($validated as $key => $value) {
-            AcademySetting::set($key, $value);
+            SchoolSetting::set($key, $value);
         }
 
         SchoolBrandingService::flush();
 
-        AcademySetting::set('onboarding_step_2_done', 'true');
-        AcademySetting::set('onboarding_current_step', '3');
+        SchoolSetting::set('onboarding_step_2_done', 'true');
+        SchoolSetting::set('onboarding_current_step', '3');
 
         return redirect()->route('school.onboarding.index', ['step' => 3])
             ->with('success', 'Institutional profile saved! Proceed to Step 3 to configure academic curriculum.');
@@ -272,7 +272,7 @@ class SchoolOnboardingController extends Controller
         $this->checkAdminAccess();
 
         $board = $request->input('board', 'cbse');
-        $academicYear = AcademySetting::get('academic_session');
+        $academicYear = SchoolSetting::get('academic_session');
         if (! $academicYear) {
             return back()->withErrors(['academic_session' => 'Configure the active academic session before applying class presets.']);
         }
@@ -377,8 +377,8 @@ class SchoolOnboardingController extends Controller
         if (Auth::user()) {
             app(SchoolAcademicAuditService::class)->log(Auth::user(), 'applied_k12_class_preset', 'Applied K-12 classes and curriculum from configured stream, section and subject masters.', null, ['classes_created' => $createdClasses, 'subjects_created' => $createdSubjects, 'academic_year' => $academicYear, 'stream' => $stream->name, 'section' => $sectionRecord->name], $request);
         }
-        AcademySetting::set('onboarding_step_3_done', 'true');
-        AcademySetting::set('onboarding_current_step', '4');
+        SchoolSetting::set('onboarding_step_3_done', 'true');
+        SchoolSetting::set('onboarding_current_step', '4');
 
         return redirect()->route('school.onboarding.index', ['step' => 4])
             ->with('success', "{$board} K-12 class setup applied from the active stream, section and subject masters. Created {$createdClasses} classes and {$createdSubjects} class-subject mappings.");
@@ -392,8 +392,8 @@ class SchoolOnboardingController extends Controller
         $this->checkAdminAccess();
 
         $nextStep = min(6, $step + 1);
-        AcademySetting::set('onboarding_step_'.$step.'_done', 'true');
-        AcademySetting::set('onboarding_current_step', (string) $nextStep);
+        SchoolSetting::set('onboarding_step_'.$step.'_done', 'true');
+        SchoolSetting::set('onboarding_current_step', (string) $nextStep);
 
         return redirect()->route('school.onboarding.index', ['step' => $nextStep])
             ->with('info', "Step {$step} marked for later review. Resuming at Step {$nextStep}.");
@@ -406,9 +406,9 @@ class SchoolOnboardingController extends Controller
     {
         $this->checkAdminAccess();
 
-        AcademySetting::set('onboarding_completed', 'true');
-        AcademySetting::set('onboarding_completed_at', now()->toDateTimeString());
-        AcademySetting::set('onboarding_current_step', '6');
+        SchoolSetting::set('onboarding_completed', 'true');
+        SchoolSetting::set('onboarding_completed_at', now()->toDateTimeString());
+        SchoolSetting::set('onboarding_current_step', '6');
 
         return redirect()->route('school.classes.index')
             ->with('success', '🎉 Congratulations! Your School Management System is fully configured and ready for live campus operations.');

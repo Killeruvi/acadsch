@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Admissions & Batches — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Admissions & Batches — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 @section('meta_description', 'Guide to enrollment, Classes 1–12 batch scheduling, morning and evening shifts, and transparent admission procedures. Powered by PrimeOS.')
 
 @section('content')
@@ -12,7 +12,7 @@
                 <span>Admissions &amp; Batches</span>
             </div>
             <h1 class="font-display text-3xl sm:text-5xl font-black tracking-tight text-slate-900 leading-tight">
-                Join {{ $school['name'] ?? 'PrimeArc Public School' }} <br>
+                Join {{ $school['name'] ?? config('app.name', 'School ERP') }} <br>
                 <span class="text-emerald-700">Student Community.</span>
             </h1>
             <p class="text-sm sm:text-base text-slate-600 leading-relaxed">

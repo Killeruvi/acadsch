@@ -8,7 +8,7 @@
             <span class="text-slate-500 font-mono">{{ now()->format('h:i A') }}</span>
         </div>
         <h1 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center space-x-2">
-            <span>Welcome To — {{ $school['name'] ?? 'PrimeArc Public School' }}</span>
+            <span>Welcome To — {{ $school['name'] ?? config('app.name', 'School ERP') }}</span>
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-xs" style="background: var(--system_primary_gradient);">
                 @if($user->isAdmin()) ADMIN PORTAL @else {{ strtoupper($user->role) }} @endif
             </span>

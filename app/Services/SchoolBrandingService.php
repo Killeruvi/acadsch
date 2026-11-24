@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\AcademySetting;
+use App\Models\SchoolSetting;
 use Illuminate\Support\Facades\Schema;
 
 class SchoolBrandingService
@@ -22,7 +22,15 @@ class SchoolBrandingService
      */
     public static function getInstituteName(): string
     {
-        return static::get()['name'] ?? 'School';
+        return static::get()['name'] ?? config('app.name', 'School ERP');
+    }
+
+    /**
+     * Instance accessor for branding profile.
+     */
+    public function getBranding(): array
+    {
+        return static::get();
     }
 
     /**
@@ -35,11 +43,16 @@ class SchoolBrandingService
         }
 
         $settings = [];
-        if (Schema::hasTable('academy_settings')) {
-            $settings = AcademySetting::pluck('value', 'key')->toArray();
+        try {
+            if (Schema::hasTable('academy_settings')) {
+                $settings = SchoolSetting::pluck('value', 'key')->toArray();
+            }
+        } catch (\Throwable $e) {
+            $settings = [];
         }
 
-        $rawName = $settings['institute_name'] ?? 'PrimeArc Public School';
+        $defaultName = config('school.institution_name') ?: config('app.name', 'School ERP');
+        $rawName = ! empty($settings['institute_name']) ? trim($settings['institute_name']) : $defaultName;
 
         // Generate a concise 2-4 letter short code / initials if not explicitly set
         $words = preg_split('/\s+/', trim($rawName));
@@ -53,28 +66,30 @@ class SchoolBrandingService
             $autoShort = strtoupper(substr($rawName, 0, 3));
         }
 
-        $shortName = ! empty($settings['school_short_name']) ? trim($settings['school_short_name']) : ($autoShort ?: 'PAS');
+        $shortName = ! empty($settings['school_short_name']) ? trim($settings['school_short_name']) : ($autoShort ?: 'ERP');
+        $currentYear = (int) date('Y');
+        $defaultSession = $currentYear . '–' . ($currentYear + 1);
 
         static::$cached = [
             'name' => $rawName,
             'short_name' => $shortName,
             'campus' => $settings['campus_name'] ?? 'Main Campus',
-            'motto' => $settings['motto'] ?? 'विद्या ददाति विनयं • Knowledge, Character, Excellence',
+            'motto' => $settings['motto'] ?? 'Excellence • Knowledge • Integrity',
             'logo_url' => $settings['school_logo_url'] ?? null,
             'favicon_url' => $settings['school_favicon_url'] ?? null,
-            'affiliation' => $settings['affiliation_number'] ?? 'CBSE/AFF/2026/089',
-            'board_name' => $settings['board_name'] ?? 'CBSE',
-            'academic_session' => $settings['academic_session'] ?? '2026–2027',
+            'affiliation' => $settings['affiliation_number'] ?? '',
+            'board_name' => $settings['board_name'] ?? 'General Board',
+            'academic_session' => $settings['academic_session'] ?? $defaultSession,
             'principal' => $settings['principal_name'] ?? 'Principal Office',
-            'phone' => $settings['institution_phone'] ?? '+91 98765 43210',
-            'email' => $settings['institution_email'] ?? 'admin@primearc.school',
-            'address' => $settings['institution_address'] ?? 'Plot 42, Institutional Area, New Delhi 110092',
+            'phone' => $settings['institution_phone'] ?? '',
+            'email' => $settings['institution_email'] ?? config('mail.from.address', 'admin@school.local'),
+            'address' => $settings['institution_address'] ?? '',
             'upi_vpa' => $settings['upi_vpa'] ?? null,
-            'currency_symbol' => $settings['currency_symbol'] ?? '₹',
+            'currency_symbol' => $settings['currency_symbol'] ?? config('school.currency_symbol', '$'),
             'primary_color' => $settings['brand_primary_color'] ?? ($settings['theme_primary_color'] ?? '#7c32ff'),
-            'system_name' => 'School ERP',
-            'brand_mark' => 'School Management System',
-            'company_name' => 'School ERP',
+            'system_name' => $settings['system_name'] ?? config('app.name', 'School ERP'),
+            'brand_mark' => $settings['brand_mark'] ?? ('Powered by ' . ($settings['system_name'] ?? config('app.name', 'School ERP'))),
+            'company_name' => $settings['company_name'] ?? $rawName,
         ];
 
         return static::$cached;

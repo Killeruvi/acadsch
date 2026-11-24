@@ -94,7 +94,7 @@ Route::middleware(['auth', 'student.account.active'])->group(function () {
     Route::get('/projects/{project}', [ProjectCaseStudyController::class, 'show'])->name('projects.show');
     Route::post('/projects/{project}/submit', [ProjectCaseStudyController::class, 'submit'])->name('projects.submit');
 
-    // Academy Events
+    // School Events
     Route::get('/events', [AcademyEventController::class, 'index'])->name('events.index');
     Route::get('/events/{event}', [AcademyEventController::class, 'show'])->name('events.show');
     Route::post('/events/{event}/register', [AcademyEventController::class, 'register'])->name('events.register');

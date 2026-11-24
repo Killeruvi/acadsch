@@ -14,7 +14,7 @@
             <div class="infix-spinner-orbit-dot"></div>
             <div class="infix-spinner-orbit-dot-2"></div>
         </div>
-        <div class="spinner-title">{{ $school['name'] ?? 'PrimeArc Public School' }}</div>
+        <div class="spinner-title">{{ $school['name'] ?? config('app.name', 'School ERP') }}</div>
     </div>
 </div>
 

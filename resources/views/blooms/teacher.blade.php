@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Bloom Taxonomy Engine' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Bloom Taxonomy Engine' . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div x-data="{ 

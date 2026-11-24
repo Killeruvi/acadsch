@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Receipt #' . $payment->receipt_number . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Receipt #' . $payment->receipt_number . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div class="max-w-3xl mx-auto space-y-4">
@@ -106,11 +106,11 @@
         <div class="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-3">
             <div>
                 <p>Digital Cryptographic Sign: <span class="font-mono text-slate-700 dark:text-slate-300 font-bold ml-1">PA-DIGITAL-SIGN-OK</span></p>
-                <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Automated electronic fee receipt issued by {{ $school["name"] ?? "PrimeArc Public School" }} Financial Services.</p>
+                <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Automated electronic fee receipt issued by {{ $school["name"] ?? config('app.name', 'School ERP') }} Financial Services.</p>
             </div>
             <div class="text-right">
                 <div class="w-28 border-b border-slate-300 dark:border-slate-700 pb-0.5 mb-0.5 font-mono text-[10px] text-center text-slate-600 dark:text-slate-400">Financial Seal</div>
-                <span class="text-[10px] text-slate-400 dark:text-slate-500 block text-center">{{ $school["name"] ?? "PrimeArc Public School" }}</span>
+                <span class="text-[10px] text-slate-400 dark:text-slate-500 block text-center">{{ $school["name"] ?? config('app.name', 'School ERP') }}</span>
             </div>
         </div>
 

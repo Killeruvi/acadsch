@@ -13,7 +13,9 @@ use App\Models\TransportStaff;
 use App\Models\TransportTrip;
 use App\Models\TransportTripPassenger;
 use App\Models\TransportVehicle;
+use App\Models\TransportVehicleTelemetry;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -937,5 +939,91 @@ class TransportController extends Controller
         if (! $user || ! $user->isAdmin()) {
             abort(403, 'Unauthorized access to Transport Fleet controls.');
         }
+    }
+
+    /**
+     * Display live fleet GPS tracking map.
+     */
+    public function liveMap(Request $request): View
+    {
+        $vehicles = TransportVehicle::with(['driver'])
+            ->where('status', 'active')
+            ->get();
+
+        $routes = TransportRoute::with('stops')->get();
+
+        return view('school.transport.live_map', compact('vehicles', 'routes'));
+    }
+
+    /**
+     * JSON API: Live vehicle fleet coordinates for map refresh.
+     */
+    public function getVehicleLocations(Request $request): JsonResponse
+    {
+        $vehicles = TransportVehicle::with(['driver'])
+            ->where('status', 'active')
+            ->get()
+            ->map(function ($v) {
+                // Default to institutional coordinates if no telemetry recorded yet
+                $lat = $v->current_latitude ?? 26.9124;
+                $lng = $v->current_longitude ?? 75.7873;
+
+                return [
+                    'id' => $v->id,
+                    'vehicle_number' => $v->vehicle_number,
+                    'vehicle_model' => $v->vehicle_model,
+                    'capacity' => $v->capacity,
+                    'driver_name' => $v->driver?->name ?? 'Campus Assigned Driver',
+                    'driver_phone' => $v->driver?->phone ?? 'N/A',
+                    'latitude' => (float) $lat,
+                    'longitude' => (float) $lng,
+                    'last_updated' => $v->last_telemetry_at ? $v->last_telemetry_at->diffForHumans() : 'Live ready',
+                ];
+            });
+
+        return response()->json(['vehicles' => $vehicles]);
+    }
+
+    /**
+     * Ingest GPS telematics from vehicle onboard trackers or driver mobile app.
+     */
+    public function recordTelemetry(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'vehicle_id' => 'required|exists:transport_vehicles,id',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+            'speed_kmh' => 'nullable|numeric|min:0|max:200',
+            'heading_degrees' => 'nullable|integer|between:0,360',
+            'ignition' => 'nullable|boolean',
+            'battery_percentage' => 'nullable|integer|between:0,100',
+        ]);
+
+        $vehicle = TransportVehicle::findOrFail($validated['vehicle_id']);
+        $now = now();
+
+        TransportVehicleTelemetry::create([
+            'vehicle_id' => $vehicle->id,
+            'latitude' => $validated['latitude'],
+            'longitude' => $validated['longitude'],
+            'speed_kmh' => $validated['speed_kmh'] ?? 0,
+            'heading_degrees' => $validated['heading_degrees'] ?? null,
+            'ignition' => $validated['ignition'] ?? true,
+            'battery_percentage' => $validated['battery_percentage'] ?? null,
+            'recorded_at' => $now,
+        ]);
+
+        $vehicle->update([
+            'current_latitude' => $validated['latitude'],
+            'current_longitude' => $validated['longitude'],
+            'last_telemetry_at' => $now,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Telemetry coordinates recorded successfully.',
+            'vehicle' => $vehicle->vehicle_number,
+            'timestamp' => $now->toIso8601String(),
+        ], 201);
     }
 }

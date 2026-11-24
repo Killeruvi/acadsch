@@ -319,7 +319,7 @@ class MonthlyFeeService
         self::ensureSchemaExists();
         $config = self::getMonthlyFeeConfig();
         if (! $config['auto_enabled']) {
-            return ['status' => 'disabled', 'message' => 'Monthly fee auto-billing is disabled in Academy Settings.'];
+            return ['status' => 'disabled', 'message' => 'Monthly fee auto-billing is disabled in School Settings.'];
         }
 
         $year = (int) date('Y');

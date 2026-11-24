@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Debates' . ' — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Debates' . ' — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-4">

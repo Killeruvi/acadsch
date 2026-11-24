@@ -70,8 +70,10 @@ class TimedDppAndQuestionBankTest extends TestCase
                 'student_id_number' => 'PAA-STU-001',
                 'streak_count' => 2,
                 'xp_points' => 100,
+                'is_approved' => true,
             ]
         );
+        $this->student->update(['is_approved' => true]);
 
         $this->class8 = AcademicClass::where('grade_level', 8)->first() ?? AcademicClass::first();
         $this->scienceSubject = AcademicSubject::where('class_id', $this->class8->id)->first() ?? AcademicSubject::first();

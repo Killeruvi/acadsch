@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Official Student Class Register &bull; {{ $school["name"] ?? "PrimeArc Public School" }}</title>
+    <title>Official Student Class Register &bull; {{ $school["name"] ?? config('app.name', 'School ERP') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -42,7 +42,7 @@
                     PA
                 </div>
                 <div>
-                    <h1 class="text-2xl font-black uppercase tracking-tight text-slate-900">{{ $school["name"] ?? "PrimeArc Public School" }}</h1>
+                    <h1 class="text-2xl font-black uppercase tracking-tight text-slate-900">{{ $school["name"] ?? config('app.name', 'School ERP') }}</h1>
                     <p class="text-xs text-slate-600 font-semibold">Center for Academic Excellence &bull; Aim, Ascend, Achieve</p>
                     <p class="text-xs text-slate-500">Official Student Roster &amp; Roll Call Register &bull; Academic Year 2026-2027</p>
                 </div>
@@ -117,7 +117,7 @@
 
         <!-- Footer -->
         <div class="mt-8 pt-4 border-t border-slate-300 flex items-center justify-between text-xs text-slate-500">
-            <div>{{ $school["name"] ?? "PrimeArc Public School" }} Institutional Management &bull; confidential records</div>
+            <div>{{ $school["name"] ?? config('app.name', 'School ERP') }} Institutional Management &bull; confidential records</div>
             <div>Authorized Faculty Signature: ___________________________</div>
         </div>
     </div>

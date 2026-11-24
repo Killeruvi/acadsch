@@ -162,7 +162,7 @@ class AcademyEventController extends Controller
         $event = AcademyEvent::create($validated);
 
         return redirect()->route('events.show', $event->id)
-            ->with('success', "Academy competition '{$event->title}' organized successfully!");
+            ->with('success', "School event '{$event->title}' organized successfully!");
     }
 
     public function edit(AcademyEvent $event): View
@@ -186,7 +186,7 @@ class AcademyEventController extends Controller
         $event->update($validated);
 
         return redirect()->route('events.show', $event->id)
-            ->with('success', "Academy event '{$event->title}' updated successfully!");
+            ->with('success', "School event '{$event->title}' updated successfully!");
     }
 
     public function destroy(AcademyEvent $event): RedirectResponse

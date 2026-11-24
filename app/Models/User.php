@@ -405,7 +405,12 @@ class User extends Authenticatable
 
     public function notices(): HasMany
     {
-        return $this->hasMany(AcademyNotice::class, 'author_id')->latest('published_at');
+        return $this->hasMany(SchoolNotice::class, 'author_id')->latest('published_at');
+    }
+
+    public function circulars(): HasMany
+    {
+        return $this->hasMany(SchoolNotice::class, 'author_id')->latest('published_at');
     }
 
     public function batch(): BelongsTo

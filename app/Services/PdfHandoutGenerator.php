@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\AcademySetting;
+use App\Models\SchoolSetting;
 use App\Models\Course;
 use App\Models\CourseLesson;
 
@@ -43,8 +43,8 @@ class PdfHandoutGenerator
         };
 
         $school = SchoolBrandingService::get();
-        $academicSession = AcademySetting::get('academic_session');
-        $schoolName = strtoupper($clean($school['name'] ?? 'PRIMEOS ACADEMY'));
+        $academicSession = SchoolSetting::get('academic_session');
+        $schoolName = strtoupper($clean($school['name'] ?? 'PRIMEARC PUBLIC SCHOOL'));
         $schoolDomain = $clean($school['website'] ?? 'www.primeos.edu');
 
         // Construct PostScript-like PDF Drawing & Text Stream

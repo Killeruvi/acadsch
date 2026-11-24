@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Contact Us — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Contact Us — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 @section('meta_description', 'Connect with Academic Relations, admissions advisors, and student support. Powered by PrimeOS.')
 
 @section('content')
@@ -13,10 +13,10 @@
             </div>
             <h1 class="font-display text-3xl sm:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                 Connect With <br>
-                <span class="text-emerald-700">{{ $school['name'] ?? 'PrimeArc Public School' }}.</span>
+                <span class="text-emerald-700">{{ $school['name'] ?? config('app.name', 'School ERP') }}.</span>
             </h1>
             <p class="text-sm sm:text-base text-slate-600 leading-relaxed">
-                Whether you have questions regarding syllabus coverage, batch scheduling, admissions, or student verification, we are here to assist.
+                Whether you have questions regarding syllabus coverage, class scheduling & timetables, admissions, or student verification, we are here to assist.
             </p>
         </div>
     </div>
@@ -62,7 +62,7 @@
                         <span class="text-base text-indigo-600">🏛️</span>
                         <div>
                             <span class="font-bold text-slate-900 block">Campus Admissions Desk</span>
-                            <span class="text-slate-500">Open for in-person parent consultations and batch allocations</span>
+                            <span class="text-slate-500">Open for in-person parent consultations and classroom section allocations</span>
                         </div>
                     </div>
                 </div>

@@ -26,7 +26,7 @@ class BirthdayService
         }
 
         $school = SchoolBrandingService::get();
-        $schoolName = $school['name'] ?? 'PrimeOS Academy';
+        $schoolName = $school['name'] ?? config('app.name', 'School ERP');
         $currentYear = $today->year;
         $badgeKey = 'birthday_star_'.$currentYear;
 

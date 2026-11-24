@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Offline Mode &bull; {{ $school["name"] ?? "PrimeArc Public School" }}</title>
+    <title>Offline Mode &bull; {{ $school["name"] ?? config('app.name', 'School ERP') }}</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0f172a">
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
@@ -29,8 +29,8 @@
                 PA
             </div>
             <div>
-                <span class="text-base font-extrabold tracking-tight text-white block">{{ !empty($school["name"]) && $school["name"] !== 'PrimeArc Public School' ? ($school["name"] . ' • PrimeArc Public School') : 'PrimeArc Public School' }}</span>
-                <span class="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase">Institutional Offline Gateway</span>
+                <span class="text-base font-extrabold tracking-tight text-white block">{{ !empty($school["name"]) && $school["name"] !== config('app.name', 'School ERP') ? ($school["name"] . ' • School ERP') : config('app.name', 'School ERP') }}</span>
+                <span class="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase">Institutional Offline Gateway &bull; Prime Arc Academy Portal</span>
             </div>
         </div>
         <div class="flex items-center space-x-2">

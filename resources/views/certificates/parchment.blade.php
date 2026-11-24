@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $certificate->title }} - Certificate &bull; {{ $school["name"] ?? "PrimeArc Public School" }}</title>
+    <title>{{ $certificate->title }} - Certificate &bull; {{ $school["name"] ?? config('app.name', 'School ERP') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -47,7 +47,7 @@
                 PA
             </div>
             <h2 class="text-2xl sm:text-3xl font-serif font-black uppercase tracking-widest text-amber-900">
-                {{ $school["name"] ?? "PrimeArc Public School" }}
+                {{ $school["name"] ?? config('app.name', 'School ERP') }}
             </h2>
             <p class="text-xs font-serif uppercase tracking-widest text-amber-700 font-bold">
                 Center for Scholastic Excellence &bull; Aim, Ascend, Achieve
@@ -117,7 +117,7 @@
 
     <!-- Footer for page -->
     <div class="text-center text-xs text-slate-400 mt-6 no-print">
-        {{ $school["name"] ?? "PrimeArc Public School" }} Institutional Management &bull; Certificate record — check online status before relying on it
+        {{ $school["name"] ?? config('app.name', 'School ERP') }} Institutional Management &bull; Certificate record — check online status before relying on it
     </div>
 
 </body>

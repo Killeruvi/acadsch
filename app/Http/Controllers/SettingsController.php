@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AcademySetting;
 use App\Models\SchoolAdminAudit;
 use App\Models\SchoolComplianceDocument;
+use App\Models\SchoolSetting;
 use App\Services\SchoolBrandingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +17,7 @@ class SettingsController extends Controller
 {
     public function index(): View
     {
-        $settings = AcademySetting::pluck('value', 'key')->toArray();
+        $settings = SchoolSetting::pluck('value', 'key')->toArray();
         $complianceDocuments = SchoolComplianceDocument::query()
             ->orderByRaw('CASE WHEN expires_on IS NULL THEN 1 ELSE 0 END')
             ->orderBy('expires_on')
@@ -86,17 +86,17 @@ class SettingsController extends Controller
             'academic_session', 'board_name', 'affiliation_number',
             'principal_name', 'institution_phone', 'institution_email', 'institution_address',
         ];
-        $oldValues = AcademySetting::whereIn('key', $auditedKeys)->pluck('value', 'key')->toArray();
+        $oldValues = SchoolSetting::whereIn('key', $auditedKeys)->pluck('value', 'key')->toArray();
         $newValues = array_intersect_key($validated, array_flip($auditedKeys));
 
         DB::transaction(function () use ($validated) {
             foreach ($validated as $key => $value) {
-                AcademySetting::set($key, $value === null ? null : (string) $value);
+                SchoolSetting::set($key, $value === null ? null : (string) $value);
             }
         });
 
         // Remove any stale legacy gateway/GST keys
-        AcademySetting::whereIn('key', [
+        SchoolSetting::whereIn('key', [
             'active_payment_gateway', 'payment_gateway_mode', 'ownpay_key', 'ownpay_secret',
             'razorpay_enabled', 'razorpay_key_id', 'razorpay_key_secret', 'razorpay_webhook_secret',
             'stripe_enabled', 'cashfree_enabled',
@@ -137,12 +137,12 @@ class SettingsController extends Controller
             'payment_qr_image' => 'required|image|mimes:png,jpg,jpeg,webp|max:2048',
         ]);
 
-        $old = AcademySetting::get('payment_qr_image');
+        $old = SchoolSetting::get('payment_qr_image');
         if ($old && Storage::disk('public')->exists($old)) {
             Storage::disk('public')->delete($old);
         }
         $path = $request->file('payment_qr_image')->store('school/qr', 'public');
-        AcademySetting::set('payment_qr_image', $path);
+        SchoolSetting::set('payment_qr_image', $path);
 
         return redirect()->back()->with('success', 'Payment QR code updated. It will now appear on all fee invoices.');
     }

@@ -5,14 +5,17 @@ use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AttendanceApiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchApiController;
+use App\Http\Controllers\Api\BiometricApiController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\DppApiController;
 use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\FeeController as ApiFeeController;
 use App\Http\Controllers\Api\HomeworkApiController;
+use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SubmissionController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\School\TransportController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware('throttle:60,1')->group(function () {
@@ -20,13 +23,25 @@ Route::prefix('v1')->middleware('throttle:60,1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 
+    // Biometric Device Push & Telemetry API (Turnstiles, Punch clocks, ADMS push)
+    Route::post('/biometric/push', [BiometricApiController::class, 'push'])->middleware('throttle:120,1');
+    Route::post('/biometric/heartbeat', [BiometricApiController::class, 'heartbeat'])->middleware('throttle:60,1');
+    Route::get('/biometric/status', [BiometricApiController::class, 'status'])->middleware('throttle:60,1');
+
+    // Payment Gateway Webhooks & Checkout Initiation
+    Route::post('/payments/webhook/{gateway}', [PaymentWebhookController::class, 'handleWebhook'])->name('api.payments.webhook');
+    Route::post('/payments/initiate', [PaymentWebhookController::class, 'initiate'])->name('api.payments.initiate');
+
+    // Transport Live GPS Telematics Push
+    Route::post('/transport/telemetry', [TransportController::class, 'recordTelemetry'])->name('api.transport.telemetry');
+
     // Authenticated API Routes
     Route::middleware('auth:sanctum')->group(function () {
         // Auth session
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
 
-        // Modern Academy Batches
+        // Academic Cohorts & Class Sections
         Route::get('/batches', [BatchApiController::class, 'index']);
         Route::get('/batches/{id}', [BatchApiController::class, 'show']);
 

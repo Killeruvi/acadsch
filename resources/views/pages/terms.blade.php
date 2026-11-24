@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Terms & Conditions — ' . ($school['name'] ?? 'PrimeArc Public School'))
+@section('title', 'Terms & Conditions — ' . ($school['name'] ?? config('app.name', 'School ERP')))
 @section('meta_description', 'Official Institutional Terms of Service governing enrollment, academic integrity, portal usage, and faculty authorization. Powered by PrimeOS.')
 
 @section('content')

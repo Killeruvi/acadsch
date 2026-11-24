@@ -1,13 +1,17 @@
 <?php
 
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\PublicAdmissionController;
 use App\Http\Controllers\School\AcademicProgressionController;
 use App\Http\Controllers\School\AcademicYearController;
 use App\Http\Controllers\School\AccountManagementController;
 use App\Http\Controllers\School\AdmissionEnquiryController;
+use App\Http\Controllers\School\BiometricDeviceController;
 use App\Http\Controllers\School\DormitoryController;
 use App\Http\Controllers\School\FrontOfficeController;
 use App\Http\Controllers\School\LibraryController;
+use App\Http\Controllers\School\OnlineAdmissionAdminController;
+use App\Http\Controllers\School\ParentTeacherMeetingController;
 use App\Http\Controllers\School\SchoolAccountsController;
 use App\Http\Controllers\School\SchoolAttendanceController;
 use App\Http\Controllers\School\SchoolClassController;
@@ -37,6 +41,9 @@ use App\Http\Controllers\WebScheduleController;
 use Illuminate\Support\Facades\Route;
 
 // Public Admission Inquiries & Verification
+Route::get('/admissions/apply', [PublicAdmissionController::class, 'create'])->name('admissions.apply');
+Route::post('/admissions/apply', [PublicAdmissionController::class, 'store'])->name('admissions.apply.store');
+Route::get('/admissions/track', [PublicAdmissionController::class, 'track'])->name('admissions.track');
 Route::post('/admissions/enquiry', [AdmissionEnquiryController::class, 'storePublic'])
     ->middleware('throttle:5,10')->name('admissions.enquiry.store');
 
@@ -102,6 +109,15 @@ Route::middleware(['auth', 'student.account.active'])->group(function () {
         Route::match(['post', 'patch'], '/leave-requests/{id}/review', [LeaveRequestController::class, 'review'])->name('leaves.review')->whereNumber('id');
         Route::get('/school/attendance/classes/{classId}', [SchoolAttendanceController::class, 'take'])->name('school.attendance.take')->whereNumber('classId');
         Route::post('/school/attendance/classes/{classId}', [SchoolAttendanceController::class, 'store'])->name('school.attendance.store')->whereNumber('classId');
+    });
+
+    // Biometric Attendance & Hardware Bridge (Admin)
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/school/attendance/biometric', [BiometricDeviceController::class, 'index'])->name('school.attendance.biometric');
+        Route::post('/school/attendance/biometric/devices', [BiometricDeviceController::class, 'storeDevice'])->name('school.attendance.biometric.devices.store');
+        Route::delete('/school/attendance/biometric/devices/{device}', [BiometricDeviceController::class, 'destroyDevice'])->name('school.attendance.biometric.devices.destroy');
+        Route::post('/school/attendance/biometric/sync', [BiometricDeviceController::class, 'syncPendingLogs'])->name('school.attendance.biometric.sync');
+        Route::post('/school/attendance/biometric/send-absentee-alerts', [BiometricDeviceController::class, 'dispatchAbsenteeAlerts'])->name('school.attendance.biometric.absentee-alerts');
     });
 
     // 3. Unified Student Directory (Canonical SchoolStudentController)
@@ -198,20 +214,29 @@ Route::middleware(['auth', 'student.account.active'])->group(function () {
         Route::delete('/school/subjects/{id}', [SchoolSubjectController::class, 'destroy'])->name('school.subjects.destroy')->whereNumber('id');
     });
 
-    // 6. Admissions Enquiry Management
+    // 6. Admissions Enquiry Management & Online Applications
     Route::middleware('role:admin')->prefix('/school/admissions')->name('school.admissions.')->group(function () {
         Route::get('/enquiries', [AdmissionEnquiryController::class, 'index'])->name('enquiries.index');
         Route::patch('/enquiries/{enquiry}', [AdmissionEnquiryController::class, 'update'])->name('enquiries.update');
+
+        // Online Admissions Review Register
+        Route::get('/online', [OnlineAdmissionAdminController::class, 'index'])->name('online.index');
+        Route::get('/online/{admission}', [OnlineAdmissionAdminController::class, 'show'])->name('online.show')->whereNumber('admission');
+        Route::patch('/online/{admission}/status', [OnlineAdmissionAdminController::class, 'updateStatus'])->name('online.status')->whereNumber('admission');
+        Route::post('/online/{admission}/convert', [OnlineAdmissionAdminController::class, 'convertToStudent'])->name('online.convert')->whereNumber('admission');
     });
 
     // 7. Examinations & Report Cards
     Route::get('/school/exams', [SchoolExaminationController::class, 'index'])->name('school.exams.index');
     Route::get('/school/exams/admit-card/{termId}/{studentId?}', [SchoolExaminationController::class, 'admitCard'])->name('school.exams.admit-card')->whereNumber('termId')->whereNumber('studentId');
     Route::get('/school/report-cards/{id}', [SchoolExaminationController::class, 'showReportCard'])->name('school.report-cards.show')->whereNumber('id');
+    Route::get('/school/exams/holistic-report-card/{studentId}/{termId}', [SchoolExaminationController::class, 'holisticReportCard'])->name('school.exams.holistic-report-card')->whereNumber('studentId')->whereNumber('termId');
 
     Route::middleware('role:admin,teacher')->group(function () {
         Route::get('/school/exams/marks-entry', [SchoolExaminationController::class, 'marksEntry'])->name('school.exams.marks-entry');
         Route::post('/school/exams/marks', [SchoolExaminationController::class, 'storeMarks'])->name('school.exams.marks.store');
+        Route::get('/school/exams/co-scholastic', [SchoolExaminationController::class, 'coScholasticRegister'])->name('school.exams.co-scholastic');
+        Route::post('/school/exams/co-scholastic', [SchoolExaminationController::class, 'storeCoScholasticMarks'])->name('school.exams.co-scholastic.store');
         Route::post('/school/exams/marks/bulk-import', [SchoolExaminationController::class, 'bulkImportMarks'])->name('school.exams.marks.bulk-import');
         Route::post('/school/exams/marks/{id}/re-evaluate', [SchoolExaminationController::class, 'reEvaluateMark'])->name('school.exams.marks.re-evaluate')->whereNumber('id');
         Route::post('/school/exams/terms', [SchoolExaminationController::class, 'storeTerm'])->name('school.exams.terms.store');
@@ -248,9 +273,24 @@ Route::middleware(['auth', 'student.account.active'])->group(function () {
         Route::post('/school/timetable/auto-generate/{classId}', [SchoolTimetableController::class, 'autoGenerate'])->name('school.timetable.auto-generate')->whereNumber('classId');
         Route::post('/school/timetable/substitutes', [SchoolTimetableController::class, 'storeSubstitute'])->name('school.timetable.substitutes.store');
         Route::delete('/school/timetable/substitutes/{id}', [SchoolTimetableController::class, 'destroySubstitute'])->name('school.timetable.substitutes.destroy')->whereNumber('id');
+        Route::post('/school/timetable/check-conflict', [SchoolTimetableController::class, 'checkConflict'])->name('school.timetable.check-conflict');
+        Route::get('/school/timetable/available-substitutes', [SchoolTimetableController::class, 'availableSubstitutes'])->name('school.timetable.available-substitutes');
     });
 
-    // 9. Parent Portal
+    // 9. Parent-Teacher Consultations (PTM)
+    Route::get('/school/ptm', [ParentTeacherMeetingController::class, 'index'])->name('school.ptm.index');
+    Route::get('/school/ptm/{schedule}', [ParentTeacherMeetingController::class, 'show'])->name('school.ptm.show')->whereNumber('schedule');
+    Route::get('/school/ptm/{schedule}/book', [ParentTeacherMeetingController::class, 'bookView'])->name('school.ptm.book')->whereNumber('schedule');
+    Route::post('/school/ptm/{schedule}/book', [ParentTeacherMeetingController::class, 'storeBooking'])->name('school.ptm.book.store')->whereNumber('schedule');
+    Route::patch('/school/ptm/booking/{booking}/feedback', [ParentTeacherMeetingController::class, 'updateFeedback'])->name('school.ptm.booking.feedback')->whereNumber('booking');
+    Route::patch('/school/ptm/booking/{booking}/cancel', [ParentTeacherMeetingController::class, 'cancelBooking'])->name('school.ptm.booking.cancel')->whereNumber('booking');
+
+    Route::middleware('role:admin')->group(function () {
+        Route::post('/school/ptm', [ParentTeacherMeetingController::class, 'store'])->name('school.ptm.store');
+        Route::delete('/school/ptm/{schedule}', [ParentTeacherMeetingController::class, 'destroy'])->name('school.ptm.destroy')->whereNumber('schedule');
+    });
+
+    // 10. Parent Portal
     Route::middleware('role:parent,admin')->group(function () {
         Route::get('/parent/dashboard', [SchoolParentController::class, 'dashboard'])->name('school.parent.dashboard');
     });
@@ -270,6 +310,8 @@ Route::middleware(['auth', 'student.account.active'])->group(function () {
     // 11. Library Management
     Route::prefix('school/library')->name('school.library.')->group(function () {
         Route::get('/', [LibraryController::class, 'index'])->name('index');
+        Route::get('/scanner', [LibraryController::class, 'scannerView'])->name('scanner');
+        Route::post('/scanner/scan', [LibraryController::class, 'quickScan'])->name('scanner.scan');
         Route::post('/books', [LibraryController::class, 'storeBook'])->name('books.store');
         Route::post('/issue', [LibraryController::class, 'issueBook'])->name('issue');
         Route::post('/return/{issueId}', [LibraryController::class, 'returnBook'])->name('return')->whereNumber('issueId');
@@ -280,6 +322,8 @@ Route::middleware(['auth', 'student.account.active'])->group(function () {
     // 12. Transport Management
     Route::prefix('school/transport')->name('school.transport.')->group(function () {
         Route::get('/', [TransportController::class, 'index'])->name('index');
+        Route::get('/live-map', [TransportController::class, 'liveMap'])->name('live-map');
+        Route::get('/vehicle-locations', [TransportController::class, 'getVehicleLocations'])->name('vehicle-locations');
         Route::post('/vehicles', [TransportController::class, 'storeVehicle'])->name('vehicles.store');
         Route::put('/vehicles/{id}', [TransportController::class, 'updateVehicle'])->name('vehicles.update')->whereNumber('id');
         Route::delete('/vehicles/{id}', [TransportController::class, 'destroyVehicle'])->name('vehicles.destroy')->whereNumber('id');

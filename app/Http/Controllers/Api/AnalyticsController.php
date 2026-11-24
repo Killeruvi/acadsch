@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class AnalyticsController extends Controller
 {
-    /** Return academy-wide metrics to admins and teacher-owned metrics to teachers. */
+    /** Return school-wide metrics to admins and teacher-owned metrics to teachers. */
     public function overview(): JsonResponse
     {
         $viewer = Auth::user();

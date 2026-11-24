@@ -420,7 +420,7 @@ class DashboardController extends Controller
             $data['taughtCourses'] = $taughtCourses;
             $data['totalStudentsTaught'] = Enrollment::whereIn('course_id', $courseIds)->distinct('student_id')->count();
 
-            // Coaching Academy Faculty Metrics
+            // Academic Faculty Metrics
             $data['totalBatches'] = Batch::where('is_active', true)->count();
             $data['totalDppsCreated'] = DailyDpp::where('teacher_id', $user->id)->count();
             $data['pendingHomeworkChecks'] = HomeworkSubmission::where('status', 'submitted')->count();
@@ -450,7 +450,7 @@ class DashboardController extends Controller
             $user->load('batch.academicClass');
             $classId = $user->batch?->class_id ?? $user->classEnrollments()->first()?->class_id;
 
-            // Coaching DPP metrics
+            // Daily Practice & Worksheet metrics
             $dppQuery = DailyDpp::query();
             if ($classId) {
                 $dppQuery->where('class_id', $classId);
@@ -469,7 +469,7 @@ class DashboardController extends Controller
                 $data['totalVideosCount'] = CurriculumVideo::count();
             }
 
-            // Coaching Homework metrics
+            // Student Homework & Task metrics
             $homeworkQuery = HomeworkTask::query();
             if ($classId) {
                 $homeworkQuery->where('class_id', $classId);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $reportData['title'] }} • {{ $school['name'] ?? 'PrimeArc Public School' }}</title>
+    <title>{{ $reportData['title'] }} • {{ $school['name'] ?? config('app.name', 'School ERP') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -130,7 +130,7 @@
         <!-- 5. REGULATORY DISCLAIMER & OFFICIAL SIGN-OFF -->
         <div class="pt-6 border-t border-slate-300 mt-12">
             <p class="text-[10px] text-slate-500 text-center mb-8">
-                This document is generated directly from the verified institutional database of {{ $school['name'] ?? 'PrimeArc Public School' }}. Any unauthorized alteration, erasure, or duplication renders this report invalid.
+                This document is generated directly from the verified institutional database of {{ $school['name'] ?? config('app.name', 'School ERP') }}. Any unauthorized alteration, erasure, or duplication renders this report invalid.
             </p>
 
             <div class="grid grid-cols-3 gap-6 text-center text-xs">
